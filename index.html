@@ -29,7 +29,7 @@
         .main-content { display: flex; gap: 15px; flex: 1; overflow: hidden; }
         
         .panel { background: var(--surface-dark); border: 1px solid var(--border); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); height: 100%; overflow: hidden; }
-        .list-container { flex: 0 0 44%; max-width: 46%; }
+        .list-container { flex: 0 0 46%; max-width: 48%; }
         .calendar-container { flex: 1; background: #111827; position: relative; }
         
         .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 10px; flex-shrink: 0; }
@@ -46,13 +46,18 @@
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; table-layout: fixed; }
         th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid #334155; word-wrap: break-word; color: #e2e8f0; }
         th { background: #1e293b; position: sticky; top: 0; z-index: 10; font-size: 0.8rem; color: #94a3b8; }
-        th:nth-child(1) { width: 25%; } th:nth-child(2) { width: 35%; } th:nth-child(3), th:nth-child(4), th:nth-child(5) { width: 13%; text-align: center; }
+        th:nth-child(1) { width: 26%; } th:nth-child(2) { width: 34%; } th:nth-child(3) { width: 14%; text-align: center; } th:nth-child(4) { width: 12%; text-align: center; } th:nth-child(5) { width: 14%; text-align: center; }
         tr:hover { background-color: rgba(255,255,255,0.02); }
         .checkbox-cell { text-align: center; }
 
         input[type="checkbox"] { appearance: none; width: 16px; height: 16px; background: #334155; border: 1px solid #475569; border-radius: 4px; cursor: pointer; position: relative; vertical-align: middle; }
         input[type="checkbox"]:checked { background: var(--success); border-color: var(--success); }
         input[type="checkbox"]:checked::after { content: '✔'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 10px; font-weight: bold; }
+
+        /* Botão alternador de OLT direto na tabela */
+        .btn-olt-toggle { background: #334155; border: 1px solid #475569; color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; transition: 0.2s; }
+        .btn-olt-toggle.has-olt { background: rgba(34, 197, 94, 0.2); color: #4ade80; border-color: #22c55e; }
+        .btn-olt-toggle:hover { opacity: 0.8; }
 
         .calendar-scroll-area { flex: 1; overflow-y: auto; }
         .calendar-scroll-area::-webkit-scrollbar { width: 5px; }
@@ -154,7 +159,7 @@
                             <th>CPD</th>
                             <th>Switch</th>
                             <th class="checkbox-cell">Switch</th>
-                            <th class="checkbox-cell">OLT</th>
+                            <th class="checkbox-cell">Possui OLT</th>
                             <th class="checkbox-cell">OLT</th>
                         </tr>
                     </thead>
@@ -201,7 +206,7 @@
         let selectedDateStr = "";
         let currentModalOptions = [];
 
-        const defaultEquipments = [{"id": 0, "cpd": "Embratel", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": true, "has_olt": false, "olt_updated": true}, {"id": 1, "cpd": "Oi vital", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 2, "cpd": "Gigamall", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 3, "cpd": "InNET", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 4, "cpd": "Inclui telecom", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 5, "cpd": "Itaitinga", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 6, "cpd": "Aracoiaba", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 7, "cpd": "Caponga", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 8, "cpd": "Caucaia", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 9, "cpd": "Choro limão", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 10, "cpd": "Capistrano", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 11, "cpd": "IflDnet Maracanau", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 12, "cpd": "IflDnet Serpa", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 13, "cpd": "Porto das dunas", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 14, "cpd": "Horizonte", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 15, "cpd": "Beberibe", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 16, "cpd": "Jebnet - Baleia", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 17, "cpd": "Jebnet - Violete", "switch_model": "DM4610 HW2 - 8GPON+8GX+4GT+2XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 18, "cpd": "Jebnet - Tururu", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 19, "cpd": "Jebnet - Muribeca", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 20, "cpd": "Pacajus", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 21, "cpd": "PE - Eusebio", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 22, "cpd": "Jabuti", "switch_model": "S6730S-H24X6C-A", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 23, "cpd": "Aquiraz CND", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": false}, {"id": 24, "cpd": "Palmeiras", "switch_model": "S6730S-H24X6C-A", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 25, "cpd": "Acarape", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 26, "cpd": "Angola", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": false}, {"id": 27, "cpd": "Aquiraz II", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 28, "cpd": "Cascavel", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 29, "cpd": "Pacatuba", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 30, "cpd": "Pajuçara", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 31, "cpd": "Wstc", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 32, "cpd": "Pindoretama", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 33, "cpd": "Genibau", "switch_model": "S6720-54C-EI-48S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 34, "cpd": "Chorozinho", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 35, "cpd": "Tapera", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 36, "cpd": "Maranguape", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 37, "cpd": "Barra", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 38, "cpd": "Barreira", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 39, "cpd": "Globnet", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 40, "cpd": "Guaiuba", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 41, "cpd": "Ascenty", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 42, "cpd": "Terrazo", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 43, "cpd": "P - Eusebio", "switch_model": "S6750-H36C", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 44, "cpd": "IflDnet - Matriz", "switch_model": "S6730-H48X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 45, "cpd": "Itau Jebnet I", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 46, "cpd": "Itau Jebnet II", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": true}];
+        const defaultEquipments = [{"id": 0, "cpd": "Embratel", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": true, "has_olt": false, "olt_updated": true}, {"id": 1, "cpd": "Oi vital", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 2, "cpd": "Gigamall", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 3, "cpd": "InNET", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 4, "cpd": "Inclui telecom", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 5, "cpd": "Itaitinga", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 6, "cpd": "Aracoiaba", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 7, "cpd": "Caponga", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 8, "cpd": "Caucaia", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 9, "cpd": "Choro limão", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 10, "cpd": "Capistrano", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 11, "cpd": "IflDnet Maracanau", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 12, "cpd": "IflDnet Serpa", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 13, "cpd": "Porto das dunas", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 14, "cpd": "Horizonte", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 15, "cpd": "Beberibe", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 16, "cpd": "Jebnet - Baleia", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 17, "cpd": "Jebnet - Violete", "switch_model": "DM4610 HW2 - 8GPON+8GX+4GT+2XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 18, "cpd": "Jebnet - Tururu", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 19, "cpd": "Jebnet - Muribeca", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 20, "cpd": "Pacajus", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 21, "cpd": "PE - Eusebio", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 22, "cpd": "Jabuti", "switch_model": "S6730S-H24X6C-A", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 23, "cpd": "Aquiraz CND", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": false}, {"id": 24, "cpd": "Palmeiras", "switch_model": "S6730S-H24X6C-A", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 25, "cpd": "Acarape", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 26, "cpd": "Angola", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 27, "cpd": "Aquiraz II", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 28, "cpd": "Cascavel", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 29, "cpd": "Pacatuba", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 30, "cpd": "Pajuçara", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 31, "cpd": "Wstc", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 32, "cpd": "Pindoretama", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 33, "cpd": "Genibau", "switch_model": "S6720-54C-EI-48S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 34, "cpd": "Chorozinho", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 35, "cpd": "Tapera", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 36, "cpd": "Maranguape", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 37, "cpd": "Barra", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 38, "cpd": "Barreira", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 39, "cpd": "Globnet", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 40, "cpd": "Guaiuba", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 41, "cpd": "Ascenty", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 42, "cpd": "Terrazo", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 43, "cpd": "P - Eusebio", "switch_model": "S6750-H36C", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 44, "cpd": "IflDnet - Matriz", "switch_model": "S6730-H48X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 45, "cpd": "Itau Jebnet I", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 46, "cpd": "Itau Jebnet II", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": true}];
 
         async function loadDataFromCloud() {
             let { data: eqData, error: eqError } = await supabaseClient.from('equipments').select('*');
@@ -279,18 +284,26 @@
                 if (currentFilter === 'done' && !isAllDone) return;
 
                 const tr = document.createElement('tr');
-                let oltContent = eq.has_olt ? 'Sim' : '<span style="color:#475569">-</span>';
+                
+                // Botão interativo para ligar/desligar OLT diretamente na tabela
+                let oltToggleBtn = `<button class="btn-olt-toggle ${eq.has_olt ? 'has-olt' : ''}" onclick="toggleHasOlt(${index})">${eq.has_olt ? 'Com OLT' : 'Sem OLT'}</button>`;
                 let oltCheck = eq.has_olt ? `<input type="checkbox" ${eq.olt_updated ? 'checked' : ''} onchange="toggleUpdate(${index}, 'olt')">` : `-`;
 
                 tr.innerHTML = `
                     <td><strong>${eq.cpd}</strong></td>
                     <td style="font-size: 0.8rem; color: #cbd5e1;">${eq.switch_model}</td>
                     <td class="checkbox-cell"><input type="checkbox" ${eq.switch_updated ? 'checked' : ''} onchange="toggleUpdate(${index}, 'switch')"></td>
-                    <td class="checkbox-cell">${oltContent}</td>
+                    <td class="checkbox-cell">${oltToggleBtn}</td>
                     <td class="checkbox-cell">${oltCheck}</td>
                 `;
                 tbody.appendChild(tr);
             });
+        }
+
+        window.toggleHasOlt = async function(index) {
+            equipments[index].has_olt = !equipments[index].has_olt;
+            await supabaseClient.from('equipments').upsert(equipments[index]);
+            updateUI();
         }
 
         window.toggleUpdate = async function(index, type) {
@@ -397,6 +410,7 @@
                     label: `Switch - ${eq.cpd} (${eq.switch_model.split('-')[0].trim()})`,
                     searchTerms: (`switch ${eq.cpd} ${eq.switch_model}`).toLowerCase()
                 });
+                // Só adiciona OLT na lista de agendamento se o equipamento realmente tiver OLT ativada (`eq.has_olt` for true)
                 if (eq.has_olt) {
                     currentModalOptions.push({
                         value: JSON.stringify({ cpd: eq.cpd, type: "OLT", text: "OLT - " + eq.cpd, isOlt: true, completed: false }),
@@ -441,9 +455,7 @@
                 await supabaseClient.from('equipments').upsert(equipments[eqIndex]);
             }
 
-            let { error } = await supabaseClient.from('schedules').upsert({ date_str: dateStr, items: schedules[dateStr] });
-            if (error) alert("Erro ao salvar no Supabase: " + error.message);
-
+            await supabaseClient.from('schedules').upsert({ date_str: dateStr, items: schedules[dateStr] });
             updateUI();
             renderModalSchedules();
         }
@@ -454,8 +466,7 @@
                 delete schedules[dateStr];
                 await supabaseClient.from('schedules').delete().eq('date_str', dateStr);
             } else {
-                let { error } = await supabaseClient.from('schedules').upsert({ date_str: dateStr, items: schedules[dateStr] });
-                if (error) alert("Erro ao atualizar no Supabase: " + error.message);
+                await supabaseClient.from('schedules').upsert({ date_str: dateStr, items: schedules[dateStr] });
             }
             updateUI();
             renderModalSchedules();
@@ -468,17 +479,7 @@
             if(!schedules[selectedDateStr]) schedules[selectedDateStr] = [];
             schedules[selectedDateStr].push(JSON.parse(select.value));
             
-            // Envia para o Supabase e captura erros caso ocorram
-            let { error } = await supabaseClient.from('schedules').upsert({ 
-                date_str: selectedDateStr, 
-                items: schedules[selectedDateStr] 
-            });
-
-            if (error) {
-                alert("Erro ao salvar agendamento: " + error.message + "\n\nVerifique se desativou o RLS nas tabelas do Supabase.");
-                return;
-            }
-
+            await supabaseClient.from('schedules').upsert({ date_str: selectedDateStr, items: schedules[selectedDateStr] });
             select.value = "";
             updateUI();
             renderModalSchedules();
