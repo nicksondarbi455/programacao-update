@@ -22,7 +22,14 @@
         
         .top-bar { display: flex; gap: 15px; background: var(--surface-dark); border: 1px solid var(--border); padding: 12px 15px; border-radius: 8px; align-items: center; justify-content: space-between; flex-shrink: 0; }
         .alert-box { font-size: 0.9rem; display: flex; align-items: center; gap: 8px; color: #38bdf8; font-weight: 500; }
-        .progress-container { display: flex; align-items: center; gap: 10px; width: 300px; }
+        
+        /* Indicador de Conexão com o Supabase */
+        .connection-status { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-muted); background: #0f172a; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); }
+        .status-dot { width: 9px; height: 9px; border-radius: 50%; background-color: #eab308; transition: 0.3s; }
+        .status-dot.online { background-color: var(--success); box-shadow: 0 0 8px var(--success); }
+        .status-dot.offline { background-color: var(--danger); box-shadow: 0 0 8px var(--danger); }
+
+        .progress-container { display: flex; align-items: center; gap: 10px; width: 250px; }
         .progress-bar-bg { flex: 1; background: #334155; height: 10px; border-radius: 5px; overflow: hidden; }
         .progress-bar-fill { background: var(--success); height: 100%; width: 0%; transition: width 0.4s ease; }
         
@@ -54,7 +61,6 @@
         input[type="checkbox"]:checked { background: var(--success); border-color: var(--success); }
         input[type="checkbox"]:checked::after { content: '✔'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 10px; font-weight: bold; }
 
-        /* Botão alternador de OLT direto na tabela */
         .btn-olt-toggle { background: #334155; border: 1px solid #475569; color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; transition: 0.2s; }
         .btn-olt-toggle.has-olt { background: rgba(34, 197, 94, 0.2); color: #4ade80; border-color: #22c55e; }
         .btn-olt-toggle:hover { opacity: 0.8; }
@@ -130,14 +136,21 @@
         <div id="tooltip-items"></div>
     </div>
 
+    <!-- TOPO COM INDICADOR DE CONEXÃO -->
     <div class="top-bar">
         <div id="today-alert" class="alert-box">⏳ Conectando ao Supabase...</div>
+        
+        <div class="connection-status">
+            <div id="status-dot" class="status-dot"></div>
+            <span id="status-text">Conectando...</span>
+        </div>
+
         <div class="progress-container">
-            <span id="progress-text" style="font-size: 0.8rem; color: var(--text-muted);">Progresso: 0%</span>
+            <span id="progress-text" style="font-size: 0.8rem; color: var(--text-muted);">0%</span>
             <div class="progress-bar-bg"><div id="progress-fill" class="progress-bar-fill"></div></div>
         </div>
         <div class="action-bar">
-            <button class="btn-sm" onclick="exportData()">💾 Baixar Backup</button>
+            <button class="btn-sm" onclick="exportData()">💾 Backup</button>
             <label class="btn-sm" style="cursor: pointer;">📂 Restaurar <input type="file" id="import-file" style="display:none" onchange="importData(event)"></label>
         </div>
     </div>
@@ -157,7 +170,7 @@
                     <thead>
                         <tr>
                             <th>CPD</th>
-                            <th>Modelo</th>
+                            <th>Switch</th>
                             <th class="checkbox-cell">Switch</th>
                             <th class="checkbox-cell">Possui OLT</th>
                             <th class="checkbox-cell">OLT</th>
@@ -208,9 +221,23 @@
 
         const defaultEquipments = [{"id": 0, "cpd": "Embratel", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": true, "has_olt": false, "olt_updated": true}, {"id": 1, "cpd": "Oi vital", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 2, "cpd": "Gigamall", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 3, "cpd": "InNET", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 4, "cpd": "Inclui telecom", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 5, "cpd": "Itaitinga", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 6, "cpd": "Aracoiaba", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 7, "cpd": "Caponga", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 8, "cpd": "Caucaia", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 9, "cpd": "Choro limão", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 10, "cpd": "Capistrano", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 11, "cpd": "IflDnet Maracanau", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 12, "cpd": "IflDnet Serpa", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 13, "cpd": "Porto das dunas", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 14, "cpd": "Horizonte", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 15, "cpd": "Beberibe", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 16, "cpd": "Jebnet - Baleia", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 17, "cpd": "Jebnet - Violete", "switch_model": "DM4610 HW2 - 8GPON+8GX+4GT+2XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 18, "cpd": "Jebnet - Tururu", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 19, "cpd": "Jebnet - Muribeca", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 20, "cpd": "Pacajus", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 21, "cpd": "PE - Eusebio", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 22, "cpd": "Jabuti", "switch_model": "S6730S-H24X6C-A", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 23, "cpd": "Aquiraz CND", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": false}, {"id": 24, "cpd": "Palmeiras", "switch_model": "S6730S-H24X6C-A", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 25, "cpd": "Acarape", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 26, "cpd": "Angola", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 27, "cpd": "Aquiraz II", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 28, "cpd": "Cascavel", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 29, "cpd": "Pacatuba", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 30, "cpd": "Pajuçara", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 31, "cpd": "Wstc", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 32, "cpd": "Pindoretama", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 33, "cpd": "Genibau", "switch_model": "S6720-54C-EI-48S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 34, "cpd": "Chorozinho", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 35, "cpd": "Tapera", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 36, "cpd": "Maranguape", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 37, "cpd": "Barra", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 38, "cpd": "Barreira", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 39, "cpd": "Globnet", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 40, "cpd": "Guaiuba", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 41, "cpd": "Ascenty", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 42, "cpd": "Terrazo", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 43, "cpd": "P - Eusebio", "switch_model": "S6750-H36C", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 44, "cpd": "IflDnet - Matriz", "switch_model": "S6730-H48X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 45, "cpd": "Itau Jebnet I", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 46, "cpd": "Itau Jebnet II", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": true}];
 
+        function setConnectionStatus(status, text) {
+            const dot = document.getElementById('status-dot');
+            const label = document.getElementById('status-text');
+            dot.className = 'status-dot ' + status;
+            label.innerText = text;
+        }
+
         async function loadDataFromCloud() {
+            setConnectionStatus('', 'Sincronizando...');
             let { data: eqData, error: eqError } = await supabaseClient.from('equipments').select('*');
-            if (eqError || !eqData || eqData.length === 0) {
+            
+            if (eqError) {
+                setConnectionStatus('offline', 'Erro ao conectar');
+                return;
+            }
+
+            if (!eqData || eqData.length === 0) {
                 for(let eq of defaultEquipments) {
                     await supabaseClient.from('equipments').upsert(eq);
                 }
@@ -225,16 +252,27 @@
                 schData.forEach(row => { schedules[row.date_str] = row.items; });
             }
 
+            setConnectionStatus('online', 'Tempo Real Ativo');
             updateUI();
             setupRealtime();
         }
 
+        // WebSockets em Tempo Real Otimizado para Equipamentos e Agendamentos
         function setupRealtime() {
-            supabaseClient.channel('db-changes')
-                .on('postgres_changes', { event: '*', schema: 'public' }, payload => {
+            supabaseClient.channel('public:all-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'equipments' }, payload => {
                     loadDataFromCloud();
                 })
-                .subscribe();
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, payload => {
+                    loadDataFromCloud();
+                })
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        setConnectionStatus('online', 'Tempo Real Ativo');
+                    } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+                        setConnectionStatus('offline', 'Desconectado');
+                    }
+                });
         }
 
         function updateUI() {
@@ -250,7 +288,7 @@
                 if(eq.has_olt) { total++; if(eq.olt_updated) done++; }
             });
             let pct = total > 0 ? Math.round((done / total) * 100) : 0;
-            document.getElementById('progress-text').innerText = `Progresso Geral: ${pct}%`;
+            document.getElementById('progress-text').innerText = `${pct}% Concluído`;
             document.getElementById('progress-fill').style.width = pct + '%';
 
             let todayStr = new Date().toISOString().split('T')[0];
@@ -284,8 +322,6 @@
                 if (currentFilter === 'done' && !isAllDone) return;
 
                 const tr = document.createElement('tr');
-                
-                // Botão interativo para ligar/desligar OLT diretamente na tabela
                 let oltToggleBtn = `<button class="btn-olt-toggle ${eq.has_olt ? 'has-olt' : ''}" onclick="toggleHasOlt(${index})">${eq.has_olt ? 'Com OLT' : 'Sem OLT'}</button>`;
                 let oltCheck = eq.has_olt ? `<input type="checkbox" ${eq.olt_updated ? 'checked' : ''} onchange="toggleUpdate(${index}, 'olt')">` : `-`;
 
@@ -410,7 +446,6 @@
                     label: `Switch - ${eq.cpd} (${eq.switch_model.split('-')[0].trim()})`,
                     searchTerms: (`switch ${eq.cpd} ${eq.switch_model}`).toLowerCase()
                 });
-                // Só adiciona OLT na lista de agendamento se o equipamento realmente tiver OLT ativada (`eq.has_olt` for true)
                 if (eq.has_olt) {
                     currentModalOptions.push({
                         value: JSON.stringify({ cpd: eq.cpd, type: "OLT", text: "OLT - " + eq.cpd, isOlt: true, completed: false }),
