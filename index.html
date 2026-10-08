@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Atualização - Switches e OLTs</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --dark: #171717;
+            --bg-color: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-light: #64748b;
+        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 15px; display: flex; gap: 15px; height: 100vh; overflow: hidden; }
+        
+        /* Layout Principal */
+        .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .list-container { flex: 0 0 42%; max-width: 45%; overflow-y: auto; overflow-x: hidden; }
+        .calendar-container { flex: 1; overflow-y: auto; overflow-x: hidden; }
+        
+        h2 { margin-top: 0; font-size: 1.1rem; color: var(--text-main); border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+        
+        /* Tabela Ajustada */
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; table-layout: fixed; }
+        th, td { padding: 8px 4px; text-align: left; border-bottom: 1px solid var(--border); word-wrap: break-word; }
+        th { background: #f1f5f9; position: sticky; top: 0; z-index: 10; font-size: 0.8rem; }
+        
+        th:nth-child(1) { width: 25%; } 
+        th:nth-child(2) { width: 35%; } 
+        th:nth-child(3) { width: 15%; text-align: center; } 
+        th:nth-child(4) { width: 10%; text-align: center; } 
+        th:nth-child(5) { width: 15%; text-align: center; } 
+
+        tr:hover { background-color: #f8fafc; }
+        .checkbox-cell { text-align: center; }
+
+        /* Calendário */
+        .months-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
+        .month-card { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+        .month-header { background: var(--primary); color: white; text-align: center; padding: 8px; font-weight: bold; text-transform: capitalize; font-size: 0.9rem; }
+        .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); }
+        .day-name { background: #f1f5f9; text-align: center; padding: 5px; font-size: 0.75rem; font-weight: bold; }
+        
+        .day-cell { 
+            background: white; height: 95px; padding: 4px; cursor: pointer; transition: 0.2s; 
+            position: relative; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; 
+        }
+        .day-cell::-webkit-scrollbar { width: 4px; }
+        .day-cell::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .day-cell:hover { background: #eff6ff; }
+        .day-number { font-weight: bold; font-size: 0.8rem; color: var(--text-light); margin-bottom: 3px; flex-shrink: 0; }
+        .day-cell.empty { background: #f8fafc; cursor: default; }
+        
+        /* Cores dos Agendamentos no Calendário */
+        .schedule-item { font-size: 0.7rem; padding: 3px 5px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 1px 2px rgba(0,0,0,0.1); font-weight: 500; flex-shrink: 0; transition: opacity 0.2s;}
+        .schedule-item.DM { background-color: var(--primary); color: white; }
+        .schedule-item.S6 { background-color: var(--danger); color: white; }
+        .schedule-item.OLT { background-color: var(--dark); color: white; }
+        .schedule-item.completed { opacity: 0.45; text-decoration: line-through; }
+
+        /* Modal */
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 450px; max-width: 90%; display: flex; flex-direction: column; max-height: 90vh; }
+        .modal-content input[type="text"] { width: 100%; padding: 10px; margin: 10px 0 5px 0; border: 1px solid var(--border); border-radius: 4px; font-size: 0.95rem; }
+        .modal-content select { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid var(--border); border-radius: 4px; font-size: 0.95rem; background: #fff; }
+        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.9rem;}
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-cancel { background: #e2e8f0; color: var(--text-main); margin-right: 10px; }
+        hr { border: none; border-top: 1px solid var(--border); margin: 15px 0; }
+
+        .modal-schedule-list { max-height: 150px; overflow-y: auto; background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-top: 10px; }
+        .modal-schedule-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem;}
+        .modal-schedule-item:last-child { border-bottom: none; }
+        .btn-remove { background: #fee2e2; color: var(--danger); border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold;}
+        .btn-remove:hover { background: #fca5a5; }
+        .schedule-badge { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+        .schedule-badge.DM { background-color: var(--primary); }
+        .schedule-badge.S6 { background-color: var(--danger); }
+        .schedule-badge.OLT { background-color: var(--dark); }
+        .text-completed { text-decoration: line-through; opacity: 0.6; }
+    </style>
+</head>
+<body>
+
+    <!-- Lista de Equipamentos -->
+    <div class="panel list-container">
+        <h2>Equipamentos e Status</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>CPD</th>
+                    <th>Switch</th>
+                    <th class="checkbox-cell">Up. Switch</th>
+                    <th class="checkbox-cell">OLT</th>
+                    <th class="checkbox-cell">Up. OLT</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <!-- Preenchido via JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Calendário de Agendamentos -->
+    <div class="panel calendar-container">
+        <h2>Programação (Próximos 6 meses)</h2>
+        <div id="calendar-wrapper" class="months-grid">
+            <!-- Preenchido via JS -->
+        </div>
+    </div>
+
+    <!-- Modal de Agendamento/Gerenciamento -->
+    <div id="modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0; margin-bottom: 5px;">Gerenciar Agendamentos</h3>
+            <p style="margin-bottom:0; font-size: 0.95rem; color: var(--text-light);">Dia: <strong id="selected-date-text" style="color: var(--text-main);"></strong></p>
+            
+            <div id="modal-schedule-list" class="modal-schedule-list">
+                <!-- Preenchido via JS -->
+            </div>
+
+            <hr>
+            
+            <h4 style="margin: 0 0 5px 0; font-size: 0.95rem;">Adicionar Novo Equipamento</h4>
+            <input type="text" id="equip-search" placeholder="Pesquise por nome do CPD, OLT, ou Switch..." autocomplete="off">
+            <select id="equip-select" size="5">
+                <!-- Preenchido via JS -->
+            </select>
+
+            <div style="text-align: right; margin-top: auto;">
+                <button class="btn btn-cancel" onclick="closeModal()">Fechar</button>
+                <button class="btn btn-primary" onclick="saveSchedule()">Adicionar ao Dia</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const initialData = [{"id": 0, "cpd": "Embratel", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": true, "has_olt": false, "olt_updated": true}, {"id": 1, "cpd": "Oi vital", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 2, "cpd": "Gigamall", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 3, "cpd": "InNET", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 4, "cpd": "Inclui telecom", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 5, "cpd": "Itaitinga", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 6, "cpd": "Aracoiaba", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 7, "cpd": "Caponga", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 8, "cpd": "Caucaia", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 9, "cpd": "Choro limão", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 10, "cpd": "Capistrano", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 11, "cpd": "IflDnet Maracanau", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 12, "cpd": "IflDnet Serpa", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 13, "cpd": "Porto das dunas", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 14, "cpd": "Horizonte", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 15, "cpd": "Beberibe", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 16, "cpd": "Jebnet - Baleia", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 17, "cpd": "Jebnet - Violete", "switch_model": "DM4610 HW2 - 8GPON+8GX+4GT+2XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 18, "cpd": "Jebnet - Tururu", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 19, "cpd": "Jebnet - Muribeca", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 20, "cpd": "Pacajus", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 21, "cpd": "PE - Eusebio", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 22, "cpd": "Jabuti", "switch_model": "S6730S-H24X6C-A", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 23, "cpd": "Aquiraz CND", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": false}, {"id": 24, "cpd": "Palmeiras", "switch_model": "S6730S-H24X6C-A", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 25, "cpd": "Acarape", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 26, "cpd": "Angola", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 27, "cpd": "Aquiraz II", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 28, "cpd": "Cascavel", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 29, "cpd": "Pacatuba", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 30, "cpd": "Pajuçara", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 31, "cpd": "Wstc", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 32, "cpd": "Pindoretama", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 33, "cpd": "Genibau", "switch_model": "S6720-54C-EI-48S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 34, "cpd": "Chorozinho", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 35, "cpd": "Tapera", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 36, "cpd": "Maranguape", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 37, "cpd": "Barra", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 38, "cpd": "Barreira", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 39, "cpd": "Globnet", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 40, "cpd": "Guaiuba", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 41, "cpd": "Ascenty", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 42, "cpd": "Terrazo", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 43, "cpd": "P - Eusebio", "switch_model": "S6750-H36C", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 44, "cpd": "IflDnet - Matriz", "switch_model": "S6730-H48X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 45, "cpd": "Itau Jebnet I", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 46, "cpd": "Itau Jebnet II", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": true}];
+
+        let equipments = JSON.parse(localStorage.getItem('equipments_v2')) || initialData;
+        let schedules = JSON.parse(localStorage.getItem('schedules_v2')) || {}; 
+        
+        let selectedDateStr = "";
+        let currentModalOptions = [];
+
+        // 1. Renderizar Tabela
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            
+            equipments.forEach((eq, index) => {
+                const tr = document.createElement('tr');
+                
+                let oltContent = eq.has_olt ? 'Sim' : '<span style="color:#cbd5e1">-</span>';
+                let oltCheck = eq.has_olt ? 
+                    `<input type="checkbox" ${eq.olt_updated ? 'checked' : ''} onchange="toggleUpdate(${index}, 'olt')">` : 
+                    `-`;
+
+                tr.innerHTML = `
+                    <td><strong>${eq.cpd}</strong></td>
+                    <td style="font-size: 0.8rem;">${eq.switch_model}</td>
+                    <td class="checkbox-cell">
+                        <input type="checkbox" ${eq.switch_updated ? 'checked' : ''} onchange="toggleUpdate(${index}, 'switch')">
+                    </td>
+                    <td class="checkbox-cell">${oltContent}</td>
+                    <td class="checkbox-cell">${oltCheck}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            localStorage.setItem('equipments_v2', JSON.stringify(equipments));
+        }
+
+        // 2. Ação de Atualizar na Tabela
+        window.toggleUpdate = function(index, type) {
+            if(type === 'switch') {
+                equipments[index].switch_updated = !equipments[index].switch_updated;
+            } else if (type === 'olt') {
+                equipments[index].olt_updated = !equipments[index].olt_updated;
+            }
+            renderTable();
+        };
+
+        // 3. Renderizar Calendário
+        function renderCalendar() {
+            const wrapper = document.getElementById('calendar-wrapper');
+            wrapper.innerHTML = '';
+            
+            let currentDate = new Date();
+            
+            for (let i = 0; i < 6; i++) {
+                let monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+                let year = monthDate.getFullYear();
+                let month = monthDate.getMonth();
+                
+                let monthCard = document.createElement('div');
+                monthCard.className = 'month-card';
+                
+                let monthName = monthDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+                
+                let header = document.createElement('div');
+                header.className = 'month-header';
+                header.innerText = monthName;
+                monthCard.appendChild(header);
+                
+                let daysGrid = document.createElement('div');
+                daysGrid.className = 'days-grid';
+                
+                const weekDays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+                weekDays.forEach(wd => {
+                    let d = document.createElement('div');
+                    d.className = 'day-name';
+                    d.innerText = wd;
+                    daysGrid.appendChild(d);
+                });
+
+                let firstDayIndex = monthDate.getDay();
+                for(let j=0; j<firstDayIndex; j++){
+                    let emptyDay = document.createElement('div');
+                    emptyDay.className = 'day-cell empty';
+                    daysGrid.appendChild(emptyDay);
+                }
+
+                let daysInMonth = new Date(year, month + 1, 0).getDate();
+                for(let d = 1; d <= daysInMonth; d++){
+                    let dateStr = `${year}-${String(month+1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    let dayCell = document.createElement('div');
+                    dayCell.className = 'day-cell';
+                    dayCell.innerHTML = `<div class="day-number">${d}</div>`;
+                    
+                    dayCell.onclick = () => openModal(dateStr, `${d} de ${monthDate.toLocaleString('pt-BR', {month: 'long'})}`);
+                    
+                    if(schedules[dateStr]) {
+                        schedules[dateStr].forEach((itemObj) => {
+                            let schedDiv = document.createElement('div');
+                            schedDiv.className = `schedule-item ${itemObj.type} ${itemObj.completed ? 'completed' : ''}`;
+                            let prefix = itemObj.completed ? '✓ ' : '';
+                            schedDiv.innerHTML = `<span title="${itemObj.text}">${prefix}${itemObj.text}</span>`;
+                            dayCell.appendChild(schedDiv);
+                        });
+                    }
+                    
+                    daysGrid.appendChild(dayCell);
+                }
+                
+                monthCard.appendChild(daysGrid);
+                wrapper.appendChild(monthCard);
+            }
+        }
+
+        // 4. Modal de Gerenciamento e Pesquisa
+        window.openModal = function(dateStr, friendlyDate) {
+            selectedDateStr = dateStr;
+            document.getElementById('selected-date-text').innerText = friendlyDate;
+            document.getElementById('equip-search').value = ''; 
+            
+            renderModalSchedules();
+            
+            currentModalOptions = [];
+            equipments.forEach(eq => {
+                let swNameUpper = eq.switch_model.trim().toUpperCase();
+                let swType = swNameUpper.startsWith('DM') ? 'DM' : (swNameUpper.startsWith('S6') ? 'S6' : 'Other');
+                
+                currentModalOptions.push({
+                    value: JSON.stringify({ cpd: eq.cpd, type: swType, text: eq.cpd + " (Switch)", isOlt: false, completed: false }),
+                    label: "Switch - " + eq.cpd + " (" + eq.switch_model.split('-')[0].trim() + ")",
+                    searchTerms: ("switch " + eq.cpd + " " + eq.switch_model).toLowerCase()
+                });
+                
+                if (eq.has_olt) {
+                    currentModalOptions.push({
+                        value: JSON.stringify({ cpd: eq.cpd, type: "OLT", text: "OLT - " + eq.cpd, isOlt: true, completed: false }),
+                        label: "OLT - " + eq.cpd,
+                        searchTerms: ("olt " + eq.cpd).toLowerCase()
+                    });
+                }
+            });
+            
+            renderModalOptions('');
+            document.getElementById('modal').style.display = 'flex';
+            document.getElementById('equip-search').focus(); 
+        };
+
+        function renderModalSchedules() {
+            const listContainer = document.getElementById('modal-schedule-list');
+            listContainer.innerHTML = '';
+            
+            const daySchedules = schedules[selectedDateStr] || [];
+
+            if (daySchedules.length === 0) {
+                listContainer.innerHTML = '<p style="margin:0; font-size: 0.85rem; color: var(--text-light); text-align: center;">Nenhum equipamento agendado para este dia.</p>';
+            } else {
+                daySchedules.forEach((item, idx) => {
+                    const isCompleted = item.completed || false;
+                    const div = document.createElement('div');
+                    div.className = 'modal-schedule-item';
+                    div.innerHTML = `
+                        <div style="display:flex; align-items:center; gap: 10px;">
+                            <input type="checkbox" ${isCompleted ? 'checked' : ''} onchange="toggleComplete('${selectedDateStr}', ${idx})" title="Concluir e atualizar na tabela">
+                            <span class="${isCompleted ? 'text-completed' : ''}">
+                                <span class="schedule-badge ${item.type}"></span> ${item.text}
+                            </span>
+                        </div>
+                        <button class="btn-remove" onclick="removeSchedule('${selectedDateStr}', ${idx})">Remover</button>
+                    `;
+                    listContainer.appendChild(div);
+                });
+            }
+        }
+
+        // Marcar como concluído E sincronizar automaticamente com a tabela da esquerda
+        window.toggleComplete = function(dateStr, idx) {
+            let item = schedules[dateStr][idx];
+            item.completed = !item.completed;
+            
+            // Achar o equipamento correspondente na lista da esquerda e atualizar o status
+            let eqIndex = equipments.findIndex(e => e.cpd === item.cpd);
+            if (eqIndex !== -1) {
+                if (item.isOlt) {
+                    equipments[eqIndex].olt_updated = item.completed;
+                } else {
+                    equipments[eqIndex].switch_updated = item.completed;
+                }
+            }
+
+            localStorage.setItem('schedules_v2', JSON.stringify(schedules));
+            
+            renderModalSchedules(); 
+            renderCalendar();
+            renderTable(); // Atualiza a tabela da esquerda instantaneamente
+        };
+
+        window.removeSchedule = function(dateStr, idx) {
+            schedules[dateStr].splice(idx, 1);
+            if(schedules[dateStr].length === 0) { delete schedules[dateStr]; }
+            localStorage.setItem('schedules_v2', JSON.stringify(schedules));
+            
+            renderModalSchedules(); 
+            renderCalendar();
+        };
+
+        window.renderModalOptions = function(filterText) {
+            const select = document.getElementById('equip-select');
+            select.innerHTML = '';
+            
+            let filteredOptions = currentModalOptions.filter(opt => opt.searchTerms.includes(filterText.toLowerCase()));
+            
+            if (filteredOptions.length === 0) {
+                let opt = document.createElement('option');
+                opt.value = "";
+                opt.innerText = "Nenhum resultado encontrado...";
+                opt.disabled = true;
+                select.appendChild(opt);
+            } else {
+                filteredOptions.forEach(optData => {
+                    let opt = document.createElement('option');
+                    opt.value = optData.value;
+                    opt.innerText = optData.label;
+                    select.appendChild(opt);
+                });
+            }
+        };
+
+        document.getElementById('equip-search').addEventListener('input', (e) => {
+            renderModalOptions(e.target.value);
+        });
+
+        window.closeModal = function() {
+            document.getElementById('modal').style.display = 'none';
+        };
+
+        window.saveSchedule = function() {
+            const select = document.getElementById('equip-select');
+            if(!select.value) { alert('Selecione um equipamento da lista para adicionar!'); return; }
+            
+            if(!schedules[selectedDateStr]) { schedules[selectedDateStr] = []; }
+            schedules[selectedDateStr].push(JSON.parse(select.value));
+            
+            localStorage.setItem('schedules_v2', JSON.stringify(schedules));
+            
+            select.value = "";
+            renderModalSchedules();
+            renderCalendar();
+        };
+
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) { closeModal(); }
+        });
+
+        // Inicializar
+        renderTable();
+        renderCalendar();
+    </script>
+</body>
+</html>
