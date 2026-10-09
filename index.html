@@ -3,114 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel NOC - Escalável & Tempo Real</title>
+    <title>Painel NOC - Customizável</title>
+    <!-- Importação da fonte DM Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --bg-dark: #0b0f19;
-            --surface-dark: #111827;
-            --surface-header: #1f2937;
-            --primary: #3b82f6;
-            --primary-hover: #2563eb;
-            --danger: #ef4444;
-            --success: #22c55e;
-            --border: #374151;
-            --text-main: #f9fafb;
-            --text-muted: #9ca3af;
+            --color1: #371ae5;
+            --color2: #2914c8;
+            --color3: #1b0dac;
+            --color4: #0e078f;
+            --color5: #000073;
+
+            --bg-dark: #f1f5f9;
+            --surface-dark: #ffffff;
+            --primary: #2914c8;
+            --primary-hover: #371ae5;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --border: #cbd5e1;
+            --header-bg: #2914c8;
+            --header-text: #ffffff;
         }
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--bg-dark); color: var(--text-main); margin: 0; padding: 15px; display: flex; flex-direction: column; gap: 12px; height: 100vh; overflow: hidden; }
+        * { box-sizing: border-box; font-family: 'DM Sans', sans-serif; }
+        body { background-color: var(--bg-dark); color: #1e293b; margin: 0; padding: 10px; display: flex; flex-direction: column; gap: 8px; height: 100vh; overflow: hidden; }
         
-        .top-bar { display: flex; gap: 15px; background: var(--surface-dark); border: 1px solid var(--border); padding: 10px 15px; border-radius: 8px; align-items: center; justify-content: space-between; flex-shrink: 0; }
-        .alert-box { font-size: 0.85rem; display: flex; align-items: center; gap: 8px; color: #38bdf8; font-weight: 500; }
+        .top-bar { display: flex; gap: 15px; background: var(--surface-dark); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; align-items: center; justify-content: space-between; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        .alert-box { font-size: 0.8rem; color: #1e293b; font-weight: 500; display: flex; align-items: center; gap: 10px; }
         
-        .connection-status { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--text-muted); background: #0b0f19; padding: 3px 8px; border-radius: 20px; border: 1px solid var(--border); }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #eab308; }
-        .status-dot.online { background-color: var(--success); box-shadow: 0 0 6px var(--success); }
-        .status-dot.offline { background-color: var(--danger); box-shadow: 0 0 6px var(--danger); }
+        .progress-wrapper { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #64748b; }
+        .progress-bar-bg { width: 100px; background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden; border: 1px solid #cbd5e1; }
+        .progress-bar-fill { background: var(--success); height: 100%; width: 0%; transition: width 0.3s ease; }
 
-        .main-content { display: flex; flex-direction: column; gap: 15px; flex: 1; overflow-y: auto; padding-bottom: 70px; }
-        .main-content::-webkit-scrollbar { width: 6px; }
-        .main-content::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        .connection-status { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: #475569; background: #f8fafc; padding: 2px 8px; border-radius: 20px; border: 1px solid var(--border); }
+        .status-dot { width: 7px; height: 7px; border-radius: 50%; background-color: #eab308; }
+        .status-dot.online { background-color: var(--success); box-shadow: 0 0 5px var(--success); }
+        .status-dot.offline { background-color: var(--danger); box-shadow: 0 0 5px var(--danger); }
 
-        .section-panel { background: var(--surface-dark); border: 1px solid var(--border); border-radius: 8px; padding: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 8px; margin-bottom: 10px; }
-        h2 { margin: 0; font-size: 1rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+        .main-content { display: flex; flex-direction: column; gap: 10px; flex: 1; overflow-y: auto; padding-bottom: 60px; }
+        .main-content::-webkit-scrollbar { width: 5px; }
+        .main-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
-        .table-container { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #2d3748; color: #edf2f7; }
-        th { background: #1a202c; color: #cbd5e1; font-weight: 600; border-bottom: 2px solid var(--border); position: sticky; top: 0; }
-        td { background: #1e293b; }
-        tr:hover td { background: #263348; }
+        .section-panel { background: var(--surface-dark); border: 1px solid var(--border); border-radius: 6px; padding: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 6px; }
+        h2 { margin: 0; font-size: 0.9rem; color: #0f172a; font-weight: 700; letter-spacing: 0.3px; }
 
-        input[type="text"], input[type="checkbox"], select { background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 4px 6px; border-radius: 4px; font-size: 0.8rem; }
-        input[type="text"] { width: 100%; }
-        input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--success); }
+        .table-container { overflow-x: auto; max-height: calc(100vh - 150px); width: 100%; }
+        
+        table { border-collapse: collapse; font-size: 0.75rem; table-layout: fixed; }
+        
+        th, td { 
+            padding: 4px 8px; 
+            text-align: left; 
+            border: 1px solid #cbd5e1 !important; 
+            height: 32px; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            white-space: nowrap; 
+        }
+        
+        tr { background-color: #ffffff; }
+        
+        th { 
+            background: var(--header-bg); color: var(--header-text); font-weight: 600; position: sticky; top: 0; 
+            cursor: grab; user-select: none; position: relative; text-align: center; z-index: 10;
+            border-bottom: 2px solid var(--color1) !important;
+        }
+        th:active { cursor: grabbing; }
+        th.dragging { opacity: 0.4; background: var(--color1); }
+        
+        .resizer {
+            position: absolute; right: 0; top: 0; width: 12px; height: 100%;
+            cursor: col-resize; z-index: 20;
+        }
+        .resizer:hover { background: rgba(55, 26, 229, 0.2); }
 
-        .btn { padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.75rem; transition: 0.2s; }
+        input[type="text"] { background: transparent; border: none; color: #1e293b; padding: 3px 6px; border-radius: 3px; font-size: 0.75rem; width: 100%; font-weight: 500; }
+        input[type="text"]:read-only { color: #1e293b; font-weight: 500; pointer-events: none; }
+        input[type="text"].editable { background: #f8fafc; border: 1px solid #cbd5e1; color: #0f172a; }
+        
+        select.color-select { background: #f1f5f9; border: 1px solid var(--border); color: #1e293b; padding: 3px 6px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 600; }
+        
+        td.checkbox-cell { text-align: center; vertical-align: middle; }
+        input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--success); cursor: pointer; vertical-align: middle; margin: 0 auto; display: block; }
+        
+        th .col-title-display { background: transparent; border: none; color: var(--header-text); font-weight: bold; width: 100%; display: block; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+        th .col-title-display.editable { background: var(--color3); border: 1px solid var(--color1); padding: 1px 3px; color: #fff; border-radius: 3px; }
+
+        .btn { padding: 4px 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.75rem; transition: 0.2s; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-primary:hover { background: var(--primary-hover); }
-        .btn-danger { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-        .btn-danger:hover { background: rgba(239, 68, 68, 0.4); }
-        .btn-sm { padding: 3px 6px; font-size: 0.7rem; }
+        .btn-danger { background: var(--danger); color: white; border: none; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-warning { background: #d97706; color: white; }
+        .btn-warning:hover { background: #b45309; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #15803d; }
+        .btn-sm { padding: 2px 6px; font-size: 0.7rem; }
 
-        /* CALENDÁRIO FLUTUANTE NO CANTO INFERIOR DIREITO */
-        #floating-calendar-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; }
-        .calendar-toggle-btn { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 30px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 8px; font-size: 0.85rem; transition: 0.2s; }
+        /* CALENDÁRIO FLUTUANTE & ANIMAÇÃO DE PULSO */
+        @keyframes bounce-pulse {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-3px) scale(1.08); }
+        }
+
+        #floating-calendar-container { position: fixed; bottom: 15px; right: 15px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; }
+        
+        .calendar-btn-wrapper { position: relative; display: inline-flex; align-items: center; }
+        .calendar-toggle-btn { background: var(--primary); color: white; border: none; padding: 8px 14px; border-radius: 20px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.15); font-size: 0.8rem; transition: 0.2s; }
         .calendar-toggle-btn:hover { background: var(--primary-hover); transform: scale(1.05); }
-        
-        .floating-calendar-box { display: none; width: 380px; max-height: 480px; background: #111827; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); overflow: hidden; flex-direction: column; margin-bottom: 10px; }
-        .floating-calendar-header { background: #1a202c; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-        .calendar-scroll-area { flex: 1; overflow-y: auto; padding: 10px; }
+
+        .notif-badge {
+            position: absolute; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 0.6rem; font-weight: bold; color: white; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            animation: bounce-pulse 1.8s infinite ease-in-out;
+        }
+        .badge-week { background-color: var(--success); top: -8px; right: -8px; }
+        .badge-tomorrow { background-color: var(--danger); top: -8px; right: 22px; }
+
+        .floating-calendar-box { display: none; width: 380px; max-height: 480px; background: #ffffff; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); overflow: hidden; flex-direction: column; margin-bottom: 8px; }
+        .floating-calendar-header { background: var(--header-bg); color: #fff; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        .calendar-scroll-area { flex: 1; overflow-y: auto; padding: 8px; background: #f8fafc; }
         .calendar-scroll-area::-webkit-scrollbar { width: 4px; }
-        .calendar-scroll-area::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+        .calendar-scroll-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
-        .months-grid { display: flex; flex-direction: column; gap: 15px; }
-        .month-card { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: #1f2937; }
-        .month-header { background: #1a202c; color: white; text-align: center; padding: 6px; font-weight: bold; font-size: 0.8rem; text-transform: capitalize; }
+        .months-grid { display: flex; flex-direction: column; gap: 12px; }
+        .month-card { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .month-header { background: #f1f5f9; color: #1e293b; text-align: center; padding: 5px; font-weight: bold; font-size: 0.75rem; text-transform: capitalize; border-bottom: 1px solid var(--border); }
         .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); }
-        .day-name { background: #111827; text-align: center; padding: 4px; font-size: 0.7rem; font-weight: bold; color: var(--text-muted); }
-        .day-cell { background: #1f2937; height: 60px; padding: 3px; cursor: pointer; transition: 0.2s; position: relative; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; }
-        .day-cell:hover { background: #374151; }
-        .day-number { font-weight: bold; font-size: 0.75rem; color: var(--text-muted); }
-        .day-cell.empty { background: #0b0f19; cursor: default; }
-        .schedule-item { font-size: 0.65rem; padding: 2px 4px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--primary); color: white; font-weight: 500; }
-        .schedule-item.completed { opacity: 0.4; text-decoration: line-through; }
+        .day-name { background: #f8fafc; text-align: center; padding: 3px; font-size: 0.65rem; font-weight: bold; color: #64748b; }
+        .day-cell { background: #ffffff; height: 55px; padding: 2px; cursor: pointer; transition: 0.2s; position: relative; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; }
+        .day-cell:hover { background: #f1f5f9; }
+        .day-number { font-weight: bold; font-size: 0.7rem; color: #475569; }
+        .day-cell.empty { background: #f8fafc; cursor: default; }
+        .schedule-item { font-size: 0.6rem; padding: 1px 3px; border-radius: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: white; font-weight: 500; cursor: pointer; }
+        .schedule-item.completed { opacity: 0.35; text-decoration: line-through; }
 
-        /* MODAL DE AGENDAMENTO */
-        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
-        .modal-content { background: var(--surface-dark); border: 1px solid var(--border); padding: 20px; border-radius: 12px; width: 400px; max-width: 90%; display: flex; flex-direction: column; }
-        .modal-content input, .modal-content select { width: 100%; padding: 8px; margin: 6px 0; background: #0f172a; border: 1px solid var(--border); color: #fff; border-radius: 6px; }
+        /* TOOLTIP DO CALENDÁRIO */
+        #custom-tooltip {
+            position: fixed; display: none; background: rgba(255, 255, 255, 0.98); border: 1px solid #cbd5e1;
+            color: #1e293b; padding: 6px 10px; border-radius: 6px; font-size: 0.7rem; z-index: 100000;
+            pointer-events: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 200px; transform: translate(-50%, -100%);
+        }
+        #custom-tooltip h4 { margin: 0 0 3px 0; font-size: 0.75rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; color: var(--primary); }
+
+        /* MODAIS */
+        #modal, #modal-col { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        .modal-content { background: #ffffff; border: 1px solid var(--border); padding: 15px; border-radius: 10px; width: 360px; max-width: 90%; display: flex; flex-direction: column; color: #1e293b; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        .modal-content input[type="text"] { width: 100%; padding: 6px; margin: 5px 0; background: #f8fafc; border: 1px solid var(--border); color: #1e293b; border-radius: 4px; font-size: 0.8rem; }
         
-        .action-bar { display: flex; gap: 8px; }
+        .action-bar { display: flex; gap: 6px; align-items: center; }
     </style>
 </head>
 <body>
 
+    <div id="custom-tooltip">
+        <h4 id="tooltip-date"></h4>
+        <div id="tooltip-items"></div>
+    </div>
+
     <!-- TOPO -->
     <div class="top-bar">
-        <div id="today-alert" class="alert-box">⏳ Conectando...</div>
+        <div class="alert-box">
+            <span id="today-alert">⏳ Conectando...</span>
+            <div class="progress-wrapper">
+                <span id="progress-text">0% Concluído</span>
+                <div class="progress-bar-bg"><div id="progress-fill" class="progress-bar-fill"></div></div>
+            </div>
+        </div>
         <div class="connection-status">
             <div id="status-dot" class="status-dot"></div>
             <span id="status-text">Conectando...</span>
         </div>
         <div class="action-bar">
-            <button class="btn btn-primary btn-sm" onclick="addNewRow()">➕ Novo Item</button>
-            <button class="btn btn-primary btn-sm" onclick="addNewColumnModal()">📊 Nova Coluna</button>
-            <button class="btn btn-sm" style="background:#374151; color:#fff;" onclick="exportData()">💾 Backup</button>
-            <label class="btn btn-sm" style="background:#374151; color:#fff; cursor: pointer;">📂 Restaurar <input type="file" style="display:none" onchange="importData(event)"></label>
+            <button id="edit-mode-btn" class="btn btn-warning btn-sm" onclick="toggleEditMode()">Editar</button>
+            <button class="btn btn-primary btn-sm hidden-in-lock" id="btn-new-row" style="display:none;" onclick="addNewRow()">Novo Item</button>
+            <button class="btn btn-primary btn-sm hidden-in-lock" id="btn-new-col" style="display:none;" onclick="addNewColumnModal()">Nova Coluna</button>
+            <button class="btn btn-sm" style="background:#e2e8f0; color:#1e293b;" onclick="exportData()">Backup</button>
+            <label class="btn btn-sm" style="background:#e2e8f0; color:#1e293b; cursor: pointer;">Restaurar <input type="file" style="display:none" onchange="importData(event)"></label>
         </div>
     </div>
 
-    <!-- CONTEÚDO PRINCIPAL (MÚLTIPLAS TABELAS) -->
+    <!-- CONTEÚDO PRINCIPAL -->
     <div id="main-content" class="main-content">
         <div class="section-panel">
             <div class="panel-header">
-                <h2>🖥️ Gestão de Serviços e Equipamentos NOC</h2>
+                <h2>Gestão de Serviços e Equipamentos NOC</h2>
             </div>
             <div class="table-container">
-                <table>
+                <table id="noc-table">
                     <thead>
                         <tr id="table-headers"></tr>
                     </thead>
@@ -120,44 +203,57 @@
         </div>
     </div>
 
-    <!-- CALENDÁRIO FLUTUANTE NO CANTO INFERIOR DIREITO -->
+    <!-- CALENDÁRIO FLUTUANTE COM ÍCONES PULSANTES -->
     <div id="floating-calendar-container">
         <div id="floating-calendar-box" class="floating-calendar-box">
             <div class="floating-calendar-header">
-                <h3 style="margin:0; font-size:0.9rem; color:#fff;">📅 Calendário de Serviços</h3>
-                <button class="btn btn-danger btn-sm" onclick="toggleCalendar()">✖ Minimizar</button>
+                <h3 style="margin:0; font-size:0.85rem; color:#fff;">Calendário de Serviços</h3>
+                <button class="btn btn-danger btn-sm" onclick="toggleCalendar()">X</button>
             </div>
             <div class="calendar-scroll-area">
                 <div id="calendar-wrapper" class="months-grid"></div>
             </div>
         </div>
-        <button class="calendar-toggle-btn" onclick="toggleCalendar()">
-            📅 Calendário
-        </button>
+        
+        <div class="calendar-btn-wrapper">
+            <div id="badge-tomorrow-container"></div>
+            <div id="badge-week-container"></div>
+            <button class="calendar-toggle-btn" onclick="toggleCalendar()">Calendário</button>
+        </div>
     </div>
 
     <!-- MODAL DE AGENDAMENTO -->
     <div id="modal">
         <div class="modal-content">
-            <h3 style="margin:0 0 5px 0; font-size:1rem;">Criar Evento Personalizado</h3>
-            <p style="margin:0 0 10px 0; font-size: 0.8rem; color: var(--text-muted);">Data: <strong id="selected-date-text" style="color: #fff;"></strong></p>
-            <label style="font-size:0.75rem; color:var(--text-muted);">Título do Evento / Serviço:</label>
-            <input type="text" id="event-title-input" placeholder="Ex: Manutenção OLT Principal..." autocomplete="off">
-            <div style="text-align: right; margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px;">
-                <button class="btn" style="background:#374151; color:#fff;" onclick="closeModal()">Cancelar</button>
-                <button class="btn btn-primary" onclick="saveCustomEvent()">Salvar Evento</button>
+            <h3 style="margin:0 0 5px 0; font-size:0.9rem;">Gerenciar Agendamentos do Dia</h3>
+            <p style="margin:0 0 8px 0; font-size: 0.75rem; color: #64748b;">Data: <strong id="selected-date-text" style="color: #0f172a;"></strong></p>
+            
+            <div id="modal-schedule-list" style="max-height:120px; overflow-y:auto; margin-bottom:8px; background:#f8fafc; padding:6px; border-radius:4px; border:1px solid #e2e8f0;"></div>
+
+            <label style="font-size:0.7rem; color:#64748b;">Pesquisar evento cadastrado:</label>
+            <input type="text" id="event-search-input" list="equipment-suggestions" placeholder="Digite para buscar..." autocomplete="off">
+            <datalist id="equipment-suggestions"></datalist>
+            
+            <div style="text-align: right; margin-top: 10px; display: flex; justify-content: flex-end; gap: 6px;">
+                <button class="btn btn-sm" style="background:#e2e8f0; color:#1e293b;" onclick="closeModal()">Fechar</button>
+                <button class="btn btn-primary btn-sm" onclick="saveCustomEvent()">Adicionar Agendamento</button>
             </div>
         </div>
     </div>
 
     <!-- MODAL DE CRIAR COLUNA -->
-    <div id="modal-col" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; justify-content:center; align-items:center;">
+    <div id="modal-col">
         <div class="modal-content">
-            <h3 style="margin:0 0 5px 0; font-size:1rem;">Adicionar Nova Coluna</h3>
-            <input type="text" id="new-col-name" placeholder="Nome da coluna (ex: IP, Responsável)..." autocomplete="off">
-            <div style="text-align: right; margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px;">
-                <button class="btn" style="background:#374151; color:#fff;" onclick="document.getElementById('modal-col').style.display='none'">Cancelar</button>
-                <button class="btn btn-primary" onclick="saveNewColumn()">Criar Coluna</button>
+            <h3 style="margin:0 0 5px 0; font-size:0.9rem;">Adicionar Nova Coluna</h3>
+            <input type="text" id="new-col-name" placeholder="Nome da coluna..." autocomplete="off">
+            <label style="font-size:0.7rem; color:#64748b; margin-top:6px;">Tipo de Coluna:</label>
+            <select id="new-col-type">
+                <option value="text">Texto livre</option>
+                <option value="checkbox">Caixa de marcação (Sim/Não)</option>
+            </select>
+            <div style="text-align: right; margin-top: 10px; display: flex; justify-content: flex-end; gap: 6px;">
+                <button class="btn btn-sm" style="background:#e2e8f0; color:#1e293b;" onclick="document.getElementById('modal-col').style.display='none'">Cancelar</button>
+                <button class="btn btn-primary btn-sm" onclick="saveNewColumn()">Criar</button>
             </div>
         </div>
     </div>
@@ -168,14 +264,34 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let equipments = [];
-        let customColumns = [];
+        let columnConfig = [
+            { id: 'cpd', name: 'CPD / Serviço', type: 'text', position: 0, width: 150 },
+            { id: 'switch_model', name: 'Modelo Switch', type: 'text', position: 1, width: 180 },
+            { id: 'status', name: 'Status', type: 'checkbox', position: 2, width: 70 },
+            { id: 'obs', name: 'Observação', type: 'text', position: 3, width: 200 }
+        ];
         let schedules = {};
         let selectedDateStr = "";
+        let isEditMode = false;
+        let draggedIndex = null;
 
-        const defaultEquipments = [
-            { id: '1', cpd: 'Embratel', switch_model: 'DM4370', status: true, obs: 'Principal' },
-            { id: '2', cpd: 'Gigamall', switch_model: 'DM4370', status: false, obs: 'Aguardando liberação' }
-        ];
+        const colorMap = {
+            'vermelho': '#fee2e2',
+            'azul': '#dbeafe',
+            'verde': '#dcfce7',
+            'amarelo': '#fef3c7',
+            'preto': '#f1f5f9',
+            'padrao': '#ffffff'
+        };
+
+        const colorHexMap = {
+            'vermelho': '#dc2626',
+            'azul': '#2914c8',
+            'verde': '#16a34a',
+            'amarelo': '#d97706',
+            'preto': '#475569',
+            'padrao': '#2914c8'
+        };
 
         function setConnectionStatus(status, text) {
             document.getElementById('status-dot').className = 'status-dot ' + status;
@@ -185,8 +301,15 @@
         async function loadDataFromCloud() {
             setConnectionStatus('', 'Sincronizando...');
             
-            let { data: colData } = await supabaseClient.from('custom_columns').select('*');
-            customColumns = colData || [];
+            let { data: colData } = await supabaseClient.from('column_config').select('*');
+            if (colData && colData.length > 0) {
+                columnConfig = colData.sort((a,b) => a.position - b.position).map(c => ({
+                    ...c,
+                    width: parseInt(c.width) || 150
+                }));
+            } else {
+                for (let col of columnConfig) await supabaseClient.from('column_config').upsert({ ...col, width: col.width + 'px' });
+            }
 
             let { data: eqData, error } = await supabaseClient.from('equipments').select('*');
             if (error) {
@@ -195,13 +318,12 @@
             }
 
             if (!eqData || eqData.length === 0) {
-                for (let eq of defaultEquipments) {
-                    await supabaseClient.from('equipments').upsert({ id: eq.id, data: eq });
-                }
-                equipments = defaultEquipments;
+                equipments = [];
             } else {
                 equipments = eqData.map(row => row.data);
             }
+
+            equipments.sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, {numeric: true}));
 
             let { data: schData } = await supabaseClient.from('schedules').select('*');
             schedules = {};
@@ -223,66 +345,271 @@
         function updateUI() {
             renderTable();
             renderCalendar();
-            updateAlert();
+            updateProgressAndAlert();
+            updateNotificationBadges();
+        }
+
+        function updateNotificationBadges() {
+            let today = new Date();
+            let tomorrow = new Date();
+            tomorrow.setDate(today.getDate() + 1);
+            let tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+            // Calcula início e fim da semana atual (domingo a sábado)
+            let currOfWeek = new Date(today);
+            let dayOfWeek = currOfWeek.getDay();
+            let startOfWeek = new Date(currOfWeek);
+            startOfWeek.setDate(currOfWeek.getDate() - dayOfWeek);
+            startOfWeek.setHours(0,0,0,0);
+
+            let endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            endOfWeek.setHours(23,59,59,999);
+
+            let weekCount = 0;
+            let tomorrowCount = 0;
+
+            for (let dateStr in schedules) {
+                let parts = dateStr.split('-');
+                let dDate = new Date(parts[0], parts[1] - 1, parts[2]);
+
+                if (dDate >= startOfWeek && dDate <= endOfWeek) {
+                    let activeItems = (schedules[dateStr] || []).filter(i => !i.completed);
+                    weekCount += activeItems.length;
+                }
+
+                if (dateStr === tomorrowStr) {
+                    let activeTom = (schedules[dateStr] || []).filter(i => !i.completed);
+                    tomorrowCount += activeTom.length;
+                }
+            }
+
+            // Renderiza bolha verde da semana
+            let weekContainer = document.getElementById('badge-week-container');
+            if (weekCount > 0) {
+                weekContainer.innerHTML = `<div class="notif-badge badge-week" title="${weekCount} agendamento(s) pendente(s) nesta semana">${weekCount}</div>`;
+            } else {
+                weekContainer.innerHTML = '';
+            }
+
+            // Renderiza bolha vermelha do dia seguinte
+            let tomContainer = document.getElementById('badge-tomorrow-container');
+            if (tomorrowCount > 0) {
+                tomContainer.innerHTML = `<div class="notif-badge badge-tomorrow" title="${tomorrowCount} agendamento(s) para amanhã">${tomorrowCount}</div>`;
+            } else {
+                tomContainer.innerHTML = '';
+            }
+        }
+
+        function updateProgressAndAlert() {
+            let total = 0, done = 0;
+            equipments.forEach(eq => {
+                total++;
+                if (eq.status) done++;
+                columnConfig.forEach(col => {
+                    if (col.type === 'checkbox' && col.id !== 'status') {
+                        total++;
+                        let val = eq[col.id] !== undefined ? eq[col.id] : (eq.custom ? eq.custom[col.id] : false);
+                        if (val) done++;
+                    }
+                });
+            });
+
+            let pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            document.getElementById('progress-text').innerText = `${pct}% Concluído`;
+            document.getElementById('progress-fill').style.width = pct + '%';
+
+            let todayStr = new Date().toISOString().split('T')[0];
+            let todaySched = schedules[todayStr] || [];
+            let alertBox = document.getElementById('today-alert');
+            alertBox.innerHTML = todaySched.length > 0 ? `Hoje (${todaySched.length} agendamentos)` : `Nenhum agendamento hoje.`;
+        }
+
+        window.toggleEditMode = function() {
+            isEditMode = !isEditMode;
+            let btn = document.getElementById('edit-mode-btn');
+            let hiddenItems = document.querySelectorAll('.hidden-in-lock');
+            
+            if (isEditMode) {
+                btn.innerHTML = 'Salvar';
+                btn.className = 'btn btn-success btn-sm';
+                hiddenItems.forEach(el => el.style.display = 'inline-block');
+            } else {
+                btn.innerHTML = 'Editar';
+                btn.className = 'btn btn-warning btn-sm';
+                hiddenItems.forEach(el => el.style.display = 'none');
+            }
+            renderTable();
+        }
+
+        function calculateTotalTableWidth() {
+            let total = 0;
+            columnConfig.forEach(col => total += (parseInt(col.width) || 150));
+            if (isEditMode) total += 130;
+            return total + 'px';
         }
 
         function renderTable() {
+            const table = document.getElementById('noc-table');
+            table.style.width = calculateTotalTableWidth();
+
             const headerTr = document.getElementById('table-headers');
             const tbody = document.getElementById('table-body');
             
-            headerTr.innerHTML = `
-                <th>CPD / Serviço</th>
-                <th>Modelo Switch</th>
-                <th>Status</th>
-                <th>Observação</th>
-            `;
-            customColumns.forEach(col => {
-                headerTr.innerHTML += `<th>${col.name}</th>`;
+            headerTr.innerHTML = '';
+            columnConfig.forEach((col, idx) => {
+                let w = parseInt(col.width) || 150;
+                let titleClass = isEditMode ? "col-title-display editable" : "col-title-display";
+                let titleAttr = isEditMode ? `contenteditable="true" onblur="updateColumnName('${col.id}', this.innerText)"` : '';
+                let delColBtn = (isEditMode && idx >= 4) ? ` <button class="btn btn-danger btn-sm" style="padding:0 2px; float:right;" onclick="deleteColumn('${col.id}')">X</button>` : '';
+                
+                headerTr.innerHTML += `
+                    <th style="width: ${w}px; min-width: ${w}px; max-width: ${w}px;" draggable="true" ondragstart="onDragStart(event, ${idx})" ondragover="onDragOver(event)" ondrop="onDrop(event, ${idx})">
+                        ${delColBtn}
+                        <span class="${titleClass}" ${titleAttr}>${col.name}</span>
+                        <div class="resizer" onmousedown="initResize(event, ${idx})"></div>
+                    </th>`;
             });
-            headerTr.innerHTML += `<th style="text-align:center; width:80px;">Ações</th>`;
+            if (isEditMode) headerTr.innerHTML += `<th style="text-align:center; width:130px; min-width:130px; max-width:130px;">Cor / Ações</th>`;
 
             tbody.innerHTML = '';
-            equipments.forEach((eq, index) => {
+            equipments.forEach((eq) => {
                 let tr = document.createElement('tr');
-                let customTdHtml = '';
-                customColumns.forEach(col => {
-                    let val = eq.custom ? (eq.custom[col.id] || '') : '';
-                    customTdHtml += `<td><input type="text" value="${val}" onchange="updateCustomField('${eq.id}', '${col.id}', this.value)"></td>`;
+                let rowBg = colorMap[eq.color] || '#ffffff';
+                tr.style.backgroundColor = rowBg;
+
+                let rowHtml = '';
+
+                columnConfig.forEach(col => {
+                    let w = parseInt(col.width) || 150;
+                    let val = eq[col.id] !== undefined ? eq[col.id] : (eq.custom ? eq.custom[col.id] : '');
+                    if (col.type === 'checkbox') {
+                        let checked = val ? 'checked' : '';
+                        rowHtml += `<td class="checkbox-cell" style="width: ${w}px; min-width: ${w}px; max-width: ${w}px;"><input type="checkbox" ${checked} onchange="updateField('${eq.id}', '${col.id}', this.checked)"></td>`;
+                    } else {
+                        let readonly = isEditMode ? '' : 'readonly';
+                        let cssClass = isEditMode ? 'editable' : '';
+                        rowHtml += `<td style="width: ${w}px; min-width: ${w}px; max-width: ${w}px;"><input type="text" class="${cssClass}" value="${val || ''}" ${readonly} onchange="updateField('${eq.id}', '${col.id}', this.value)"></td>`;
+                    }
                 });
 
-                tr.innerHTML = `
-                    <td><input type="text" value="${eq.cpd || ''}" onchange="updateField('${eq.id}', 'cpd', this.value)"></td>
-                    <td><input type="text" value="${eq.switch_model || ''}" onchange="updateField('${eq.id}', 'switch_model', this.value)"></td>
-                    <td><input type="checkbox" ${eq.status ? 'checked' : ''} onchange="updateField('${eq.id}', 'status', this.checked)"></td>
-                    <td><input type="text" value="${eq.obs || ''}" onchange="updateField('${eq.id}', 'obs', this.value)"></td>
-                    ${customTdHtml}
-                    <td style="text-align:center;"><button class="btn btn-danger btn-sm" onclick="deleteRow('${eq.id}')">Excluir</button></td>
-                `;
+                if (isEditMode) {
+                    rowHtml += `<td style="text-align:center; display:flex; justify-content:center; gap:6px; align-items:center; height:32px; width:130px; min-width:130px; max-width:130px;">
+                        <select class="color-select" onchange="updateField('${eq.id}', 'color', this.value)">
+                            <option value="padrao" ${eq.color==='padrao'?'selected':''}>Padrão</option>
+                            <option value="vermelho" ${eq.color==='vermelho'?'selected':''}>Vermelho</option>
+                            <option value="azul" ${eq.color==='azul'?'selected':''}>Azul</option>
+                            <option value="verde" ${eq.color==='verde'?'selected':''}>Verde</option>
+                            <option value="amarelo" ${eq.color==='amarelo'?'selected':''}>Amarelo</option>
+                            <option value="preto" ${eq.color==='preto'?'selected':''}>Cinza</option>
+                        </select>
+                        <button class="btn btn-danger btn-sm" style="padding:2px 6px;" onclick="deleteRow('${eq.id}')">X</button>
+                    </td>`;
+                }
+                tr.innerHTML = rowHtml;
                 tbody.appendChild(tr);
             });
+        }
+
+        function initResize(e, index) {
+            e.stopPropagation();
+            e.preventDefault();
+            
+            let startX = e.clientX;
+            let colIndex = index;
+            let currentWidth = parseInt(columnConfig[colIndex].width) || 150;
+            let table = document.getElementById('noc-table');
+
+            function onMouseMove(moveEvent) {
+                let delta = moveEvent.clientX - startX;
+                let newWidth = Math.max(60, currentWidth + delta);
+                
+                columnConfig[colIndex].width = newWidth;
+                table.style.width = calculateTotalTableWidth();
+                
+                let rows = table.querySelectorAll('tr');
+                rows.forEach(row => {
+                    let cell = row.children[colIndex];
+                    if (cell) {
+                        cell.style.width = newWidth + 'px';
+                        cell.style.minWidth = newWidth + 'px';
+                        cell.style.maxWidth = newWidth + 'px';
+                    }
+                });
+            }
+
+            async function onMouseUp() {
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+                await supabaseClient.from('column_config').upsert({
+                    ...columnConfig[colIndex],
+                    width: columnConfig[colIndex].width + 'px'
+                });
+            }
+
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+        }
+
+        window.onDragStart = function(e, index) {
+            if (e.target.tagName === 'BUTTON' || e.target.classList.contains('resizer') || e.target.isContentEditable) {
+                e.preventDefault();
+                return;
+            }
+            draggedIndex = index;
+            e.target.classList.add('dragging');
+        }
+        window.onDragOver = function(e) { e.preventDefault(); }
+        window.onDrop = async function(e, index) {
+            e.preventDefault();
+            if (draggedIndex === null || draggedIndex === index) return;
+            
+            let movedCol = columnConfig.splice(draggedIndex, 1)[0];
+            columnConfig.splice(index, 0, movedCol);
+            
+            columnConfig.forEach((col, idx) => col.position = idx);
+            for (let col of columnConfig) await supabaseClient.from('column_config').upsert({
+                ...col,
+                width: col.width + 'px'
+            });
+            draggedIndex = null;
+            renderTable();
         }
 
         window.updateField = async function(id, field, value) {
             let eq = equipments.find(e => e.id === id);
             if (eq) {
-                eq[field] = value;
+                if (['cpd', 'switch_model', 'status', 'obs', 'color'].includes(field)) {
+                    eq[field] = value;
+                } else {
+                    if (!eq.custom) eq.custom = {};
+                    eq.custom[field] = value;
+                }
+                
+                if (field === 'color') renderTable();
+
                 await supabaseClient.from('equipments').upsert({ id: eq.id, data: eq });
+                updateProgressAndAlert();
+                updateNotificationBadges();
             }
         }
 
-        window.updateCustomField = async function(id, colId, value) {
-            let eq = equipments.find(e => e.id === id);
-            if (eq) {
-                if (!eq.custom) eq.custom = {};
-                eq.custom[colId] = value;
-                await supabaseClient.from('equipments').upsert({ id: eq.id, data: eq });
+        window.updateColumnName = async function(colId, newName) {
+            let col = columnConfig.find(c => c.id === colId);
+            if (col && newName.trim() !== '') {
+                col.name = newName.trim();
+                await supabaseClient.from('column_config').upsert({
+                    ...col,
+                    width: col.width + 'px'
+                });
             }
         }
 
         window.addNewRow = async function() {
             let newId = 'eq_' + Date.now();
-            let newEq = { id: newId, cpd: 'Novo CPD', switch_model: 'Modelo', status: false, obs: '' };
+            let newEq = { id: newId, cpd: 'Novo Item', switch_model: '', status: false, obs: '', color: 'padrao' };
             equipments.push(newEq);
+            equipments.sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, {numeric: true}));
             await supabaseClient.from('equipments').upsert({ id: newId, data: newEq });
             updateUI();
         }
@@ -300,11 +627,28 @@
 
         window.saveNewColumn = async function() {
             let name = document.getElementById('new-col-name').value;
+            let type = document.getElementById('new-col-type').value;
             if (!name) return alert('Digite o nome da coluna!');
             let colId = 'col_' + Date.now();
-            await supabaseClient.from('custom_columns').upsert({ id: colId, name: name });
+            let newCol = { id: colId, name: name, type: type, position: columnConfig.length, width: 120 };
+            columnConfig.push(newCol);
+            await supabaseClient.from('column_config').upsert({
+                ...newCol,
+                width: newCol.width + 'px'
+            });
             document.getElementById('modal-col').style.display = 'none';
-            loadDataFromCloud();
+            renderTable();
+        }
+
+        window.deleteColumn = async function(colId) {
+            columnConfig = columnConfig.filter(c => c.id !== colId);
+            columnConfig.forEach((col, idx) => col.position = idx);
+            await supabaseClient.from('column_config').delete().eq('id', colId);
+            for (let col of columnConfig) await supabaseClient.from('column_config').upsert({
+                ...col,
+                width: col.width + 'px'
+            });
+            renderTable();
         }
 
         window.toggleCalendar = function() {
@@ -339,13 +683,27 @@
                     let dayCell = document.createElement('div');
                     dayCell.className = 'day-cell';
                     dayCell.innerHTML = `<div class="day-number">${d}</div>`;
+                    
                     dayCell.onclick = () => openModal(dateStr, `${d} de ${monthDate.toLocaleString('pt-BR', {month: 'long'})}`);
                     
-                    if(schedules[dateStr]) {
-                        schedules[dateStr].forEach(item => {
+                    if(schedules[dateStr] && schedules[dateStr].length > 0) {
+                        dayCell.onmouseenter = (e) => showTooltip(e, dateStr, `${d} de ${monthDate.toLocaleString('pt-BR', {month: 'long', year: 'numeric'})}`);
+                        dayCell.onmouseleave = hideTooltip;
+
+                        schedules[dateStr].forEach((item, itemIdx) => {
+                            let eqMatch = equipments.find(eq => (eq.cpd || eq.id) === item.text);
+                            let itemColor = eqMatch && eqMatch.color ? (colorHexMap[eqMatch.color] || '#2914c8') : '#2914c8';
+
                             let div = document.createElement('div');
                             div.className = `schedule-item ${item.completed ? 'completed' : ''}`;
+                            div.style.backgroundColor = itemColor;
                             div.innerText = item.text;
+                            
+                            div.onclick = (ev) => {
+                                ev.stopPropagation();
+                                toggleScheduleComplete(dateStr, itemIdx);
+                            };
+
                             dayCell.appendChild(div);
                         });
                     }
@@ -356,36 +714,112 @@
             }
         }
 
+        window.toggleScheduleComplete = async function(dateStr, itemIdx) {
+            let item = schedules[dateStr][itemIdx];
+            item.completed = !item.completed;
+
+            let eq = equipments.find(e => (e.cpd || e.id) === item.text);
+            if (eq) {
+                eq.status = item.completed;
+                await supabaseClient.from('equipments').upsert({ id: eq.id, data: eq });
+            }
+
+            await supabaseClient.from('schedules').upsert({ date_str: dateStr, items: schedules[dateStr] });
+            updateUI();
+            renderModalSchedules();
+        }
+
+        const tooltip = document.getElementById('custom-tooltip');
+        function showTooltip(e, dateStr, friendlyDate) {
+            document.getElementById('tooltip-date').innerText = friendlyDate;
+            let itemsContainer = document.getElementById('tooltip-items');
+            itemsContainer.innerHTML = '';
+            schedules[dateStr].forEach(item => {
+                let statusMark = item.completed ? ' (Concluído)' : '';
+                itemsContainer.innerHTML += `<div>• ${item.text}${statusMark}</div>`;
+            });
+            tooltip.style.display = 'block';
+            let rect = e.currentTarget.getBoundingClientRect();
+            tooltip.style.left = (rect.left + rect.width / 2) + 'px';
+            tooltip.style.top = (rect.top - 6) + 'px';
+        }
+        function hideTooltip() { tooltip.style.display = 'none'; }
+
         window.openModal = function(dateStr, friendlyDate) {
             selectedDateStr = dateStr;
             document.getElementById('selected-date-text').innerText = friendlyDate;
-            document.getElementById('event-title-input').value = '';
+            document.getElementById('event-search-input').value = '';
+            
+            const datalist = document.getElementById('equipment-suggestions');
+            datalist.innerHTML = '';
+            equipments.forEach(eq => {
+                let name = eq.cpd || eq.id;
+                datalist.innerHTML += `<option value="${name}">`;
+            });
+
+            renderModalSchedules();
             document.getElementById('modal').style.display = 'flex';
+        }
+
+        function renderModalSchedules() {
+            const list = document.getElementById('modal-schedule-list');
+            list.innerHTML = '';
+            let daySched = schedules[selectedDateStr] || [];
+            if (daySched.length === 0) {
+                list.innerHTML = '<span style="font-size:0.7rem; color:#64748b;">Nenhum agendamento para este dia.</span>';
+                return;
+            }
+            daySched.forEach((item, idx) => {
+                let checkedAttr = item.completed ? 'checked' : '';
+                let styleText = item.completed ? 'text-decoration: line-through; color: #94a3b8;' : 'color: #0f172a;';
+                
+                list.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; padding:4px 0; border-bottom:1px solid #e2e8f0;">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; ${styleText}">
+                        <input type="checkbox" ${checkedAttr} onchange="toggleScheduleComplete('${selectedDateStr}', ${idx})" style="width:12px; height:12px; cursor:pointer;">
+                        <span>${item.text}</span>
+                    </label>
+                    <button class="btn btn-danger btn-sm" style="padding:1px 5px;" onclick="removeSchedule('${selectedDateStr}', ${idx})">Excluir</button>
+                </div>`;
+            });
+        }
+
+        window.removeSchedule = async function(dateStr, idx) {
+            schedules[dateStr].splice(idx, 1);
+            if (schedules[dateStr].length === 0) delete schedules[dateStr];
+            await supabaseClient.from('schedules').upsert({ date_str: dateStr, items: schedules[dateStr] || [] });
+            updateUI();
+            renderModalSchedules();
         }
 
         window.closeModal = () => document.getElementById('modal').style.display = 'none';
 
         window.saveCustomEvent = async function() {
-            let title = document.getElementById('event-title-input').value;
-            if (!title) return alert('Digite o título do evento!');
+            let input = document.getElementById('event-search-input');
+            let title = input.value.trim();
+            if (!title) return alert('Por favor, digite ou selecione um evento cadastrado!');
+            
+            // Verifica se o evento existe nos equipamentos cadastrados
+            let exists = equipments.some(eq => (eq.cpd || eq.id) === title);
+            if (!exists) {
+                return alert('Erro: Só é permitido agendar eventos que estejam cadastrados na tabela principal!');
+            }
             
             if(!schedules[selectedDateStr]) schedules[selectedDateStr] = [];
+            
+            if(schedules[selectedDateStr].some(i => i.text === title)) {
+                return alert('Este item já está agendado para este dia!');
+            }
+
             schedules[selectedDateStr].push({ text: title, completed: false });
             
             await supabaseClient.from('schedules').upsert({ date_str: selectedDateStr, items: schedules[selectedDateStr] });
-            closeModal();
+            input.value = '';
             updateUI();
-        }
-
-        function updateAlert() {
-            let todayStr = new Date().toISOString().split('T')[0];
-            let todaySched = schedules[todayStr] || [];
-            let alertBox = document.getElementById('today-alert');
-            alertBox.innerHTML = todaySched.length > 0 ? `🔔 Hoje (${todaySched.length} eventos)` : `☕ Nenhum evento hoje.`;
+            renderModalSchedules();
         }
 
         window.exportData = function() {
-            let backup = { equipments, customColumns, schedules };
+            let backup = { equipments, columnConfig, schedules };
             let blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'json' });
             let a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -400,7 +834,7 @@
             reader.onload = async function(e) {
                 let backup = JSON.parse(e.target.result);
                 for(let eq of backup.equipments) await supabaseClient.from('equipments').upsert({id: eq.id, data: eq});
-                for(let col of backup.customColumns) await supabaseClient.from('custom_columns').upsert(col);
+                for(let col of backup.columnConfig) await supabaseClient.from('column_config').upsert(col);
                 for(let date in backup.schedules) await supabaseClient.from('schedules').upsert({date_str: date, items: backup.schedules[date]});
                 alert('Restaurado com sucesso!');
                 loadDataFromCloud();
