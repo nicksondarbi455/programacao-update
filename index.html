@@ -3,206 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Atualização - Tempo Real (Supabase)</title>
+    <title>Painel NOC - Escalável & Tempo Real</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --bg-dark: #0f172a;
-            --surface-dark: #1e293b;
+            --bg-dark: #0b0f19;
+            --surface-dark: #111827;
+            --surface-header: #1f2937;
             --primary: #3b82f6;
             --primary-hover: #2563eb;
             --danger: #ef4444;
             --success: #22c55e;
-            --border: #334155;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --border: #374151;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
         }
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: var(--bg-dark); color: var(--text-main); margin: 0; padding: 15px; display: flex; flex-direction: column; gap: 12px; height: 100vh; overflow: hidden; }
         
-        .top-bar { display: flex; gap: 15px; background: var(--surface-dark); border: 1px solid var(--border); padding: 12px 15px; border-radius: 8px; align-items: center; justify-content: space-between; flex-shrink: 0; }
-        .alert-box { font-size: 0.9rem; display: flex; align-items: center; gap: 8px; color: #38bdf8; font-weight: 500; }
+        .top-bar { display: flex; gap: 15px; background: var(--surface-dark); border: 1px solid var(--border); padding: 10px 15px; border-radius: 8px; align-items: center; justify-content: space-between; flex-shrink: 0; }
+        .alert-box { font-size: 0.85rem; display: flex; align-items: center; gap: 8px; color: #38bdf8; font-weight: 500; }
         
-        /* Indicador de Conexão com o Supabase */
-        .connection-status { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-muted); background: #0f172a; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); }
-        .status-dot { width: 9px; height: 9px; border-radius: 50%; background-color: #eab308; transition: 0.3s; }
-        .status-dot.online { background-color: var(--success); box-shadow: 0 0 8px var(--success); }
-        .status-dot.offline { background-color: var(--danger); box-shadow: 0 0 8px var(--danger); }
+        .connection-status { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--text-muted); background: #0b0f19; padding: 3px 8px; border-radius: 20px; border: 1px solid var(--border); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #eab308; }
+        .status-dot.online { background-color: var(--success); box-shadow: 0 0 6px var(--success); }
+        .status-dot.offline { background-color: var(--danger); box-shadow: 0 0 6px var(--danger); }
 
-        .progress-container { display: flex; align-items: center; gap: 10px; width: 250px; }
-        .progress-bar-bg { flex: 1; background: #334155; height: 10px; border-radius: 5px; overflow: hidden; }
-        .progress-bar-fill { background: var(--success); height: 100%; width: 0%; transition: width 0.4s ease; }
+        .main-content { display: flex; flex-direction: column; gap: 15px; flex: 1; overflow-y: auto; padding-bottom: 70px; }
+        .main-content::-webkit-scrollbar { width: 6px; }
+        .main-content::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+
+        .section-panel { background: var(--surface-dark); border: 1px solid var(--border); border-radius: 8px; padding: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 8px; margin-bottom: 10px; }
+        h2 { margin: 0; font-size: 1rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #2d3748; color: #edf2f7; }
+        th { background: #1a202c; color: #cbd5e1; font-weight: 600; border-bottom: 2px solid var(--border); position: sticky; top: 0; }
+        td { background: #1e293b; }
+        tr:hover td { background: #263348; }
+
+        input[type="text"], input[type="checkbox"], select { background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 4px 6px; border-radius: 4px; font-size: 0.8rem; }
+        input[type="text"] { width: 100%; }
+        input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--success); }
+
+        .btn { padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.75rem; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-danger { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.4); }
+        .btn-sm { padding: 3px 6px; font-size: 0.7rem; }
+
+        /* CALENDÁRIO FLUTUANTE NO CANTO INFERIOR DIREITO */
+        #floating-calendar-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; }
+        .calendar-toggle-btn { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 30px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 8px; font-size: 0.85rem; transition: 0.2s; }
+        .calendar-toggle-btn:hover { background: var(--primary-hover); transform: scale(1.05); }
         
-        .main-content { display: flex; gap: 15px; flex: 1; overflow: hidden; }
-        
-        .panel { background: var(--surface-dark); border: 1px solid var(--border); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); height: 100%; overflow: hidden; }
-        .list-container { flex: 0 0 46%; max-width: 48%; }
-        .calendar-container { flex: 1; background: #111827; position: relative; }
-        
-        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 10px; flex-shrink: 0; }
-        h2 { margin: 0; font-size: 1.1rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
-        
-        .filters { display: flex; gap: 5px; }
-        .filter-btn { background: #334155; border: none; color: #cbd5e1; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; transition: 0.2s; }
-        .filter-btn.active, .filter-btn:hover { background: var(--primary); color: white; }
+        .floating-calendar-box { display: none; width: 380px; max-height: 480px; background: #111827; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); overflow: hidden; flex-direction: column; margin-bottom: 10px; }
+        .floating-calendar-header { background: #1a202c; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        .calendar-scroll-area { flex: 1; overflow-y: auto; padding: 10px; }
+        .calendar-scroll-area::-webkit-scrollbar { width: 4px; }
+        .calendar-scroll-area::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
 
-        .table-scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; }
-        .table-scroll-area::-webkit-scrollbar { width: 5px; }
-        .table-scroll-area::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; table-layout: fixed; }
-        th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid #334155; word-wrap: break-word; color: #e2e8f0; }
-        th { background: #1e293b; position: sticky; top: 0; z-index: 10; font-size: 0.8rem; color: #94a3b8; }
-        th:nth-child(1) { width: 26%; } th:nth-child(2) { width: 34%; } th:nth-child(3) { width: 14%; text-align: center; } th:nth-child(4) { width: 12%; text-align: center; } th:nth-child(5) { width: 14%; text-align: center; }
-        tr:hover { background-color: rgba(255,255,255,0.02); }
-        .checkbox-cell { text-align: center; }
-
-        input[type="checkbox"] { appearance: none; width: 16px; height: 16px; background: #334155; border: 1px solid #475569; border-radius: 4px; cursor: pointer; position: relative; vertical-align: middle; }
-        input[type="checkbox"]:checked { background: var(--success); border-color: var(--success); }
-        input[type="checkbox"]:checked::after { content: '✔'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 10px; font-weight: bold; }
-
-        .btn-olt-toggle { background: #334155; border: 1px solid #475569; color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; transition: 0.2s; }
-        .btn-olt-toggle.has-olt { background: rgba(34, 197, 94, 0.2); color: #4ade80; border-color: #22c55e; }
-        .btn-olt-toggle:hover { opacity: 0.8; }
-
-        .calendar-scroll-area { flex: 1; overflow-y: auto; }
-        .calendar-scroll-area::-webkit-scrollbar { width: 5px; }
-        .calendar-scroll-area::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-
-        .months-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; padding-bottom: 15px; }
-        .month-card { border: 1px solid #374151; border-radius: 8px; overflow: hidden; background: #1f2937; }
-        .month-header { background: #1e3a8a; color: white; text-align: center; padding: 8px; font-weight: bold; text-transform: capitalize; font-size: 0.9rem; }
-        .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #374151; }
-        .day-name { background: #111827; text-align: center; padding: 5px; font-size: 0.75rem; font-weight: bold; color: #9ca3af; }
-        
-        .day-cell { background: #1f2937; height: 95px; padding: 4px; cursor: pointer; transition: 0.2s; position: relative; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
-        .day-cell::-webkit-scrollbar { width: 3px; }
-        .day-cell::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+        .months-grid { display: flex; flex-direction: column; gap: 15px; }
+        .month-card { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: #1f2937; }
+        .month-header { background: #1a202c; color: white; text-align: center; padding: 6px; font-weight: bold; font-size: 0.8rem; text-transform: capitalize; }
+        .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); }
+        .day-name { background: #111827; text-align: center; padding: 4px; font-size: 0.7rem; font-weight: bold; color: var(--text-muted); }
+        .day-cell { background: #1f2937; height: 60px; padding: 3px; cursor: pointer; transition: 0.2s; position: relative; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; }
         .day-cell:hover { background: #374151; }
-        .day-number { font-weight: bold; font-size: 0.8rem; color: #9ca3af; margin-bottom: 3px; flex-shrink: 0; }
-        .day-cell.empty { background: #111827; cursor: default; }
-        
-        .schedule-item { font-size: 0.7rem; padding: 3px 5px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 500; flex-shrink: 0; }
-        .schedule-item.DM { background-color: #2563eb; color: white; }
-        .schedule-item.S6 { background-color: #dc2626; color: white; }
-        .schedule-item.OLT { background-color: #374151; border: 1px solid #6b7280; color: #f3f4f6; }
+        .day-number { font-weight: bold; font-size: 0.75rem; color: var(--text-muted); }
+        .day-cell.empty { background: #0b0f19; cursor: default; }
+        .schedule-item { font-size: 0.65rem; padding: 2px 4px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--primary); color: white; font-weight: 500; }
         .schedule-item.completed { opacity: 0.4; text-decoration: line-through; }
 
-        #custom-tooltip {
-            position: fixed;
-            display: none;
-            background: rgba(15, 23, 42, 0.98);
-            border: 1px solid #475569;
-            backdrop-filter: blur(8px);
-            color: #f8fafc;
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            z-index: 9999;
-            pointer-events: none;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
-            min-width: 180px;
-            max-width: 260px;
-            transform: translate(-50%, -100%);
-        }
-        #custom-tooltip h4 { margin: 0 0 6px 0; font-size: 0.85rem; border-bottom: 1px solid #334155; padding-bottom: 4px; color: #38bdf8; }
-        .tooltip-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-        .tooltip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-        .tooltip-dot.DM { background-color: #2563eb; }
-        .tooltip-dot.S6 { background-color: #dc2626; }
-        .tooltip-dot.OLT { background-color: #9ca3af; }
-
+        /* MODAL DE AGENDAMENTO */
         #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
-        .modal-content { background: var(--surface-dark); border: 1px solid var(--border); padding: 20px; border-radius: 12px; width: 450px; max-width: 90%; display: flex; flex-direction: column; max-height: 90vh; }
-        .modal-content input[type="text"], .modal-content select { width: 100%; padding: 10px; margin: 8px 0; background: #0f172a; border: 1px solid var(--border); color: #fff; border-radius: 6px; outline: none; }
-        .modal-content select option { background: #0f172a; color: #fff; }
-        .btn { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-cancel { background: #334155; color: #f8fafc; margin-right: 8px; }
-        .btn-remove { background: rgba(239, 68, 68, 0.15); color: #f87171; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold; }
-        
-        .modal-schedule-list { max-height: 150px; overflow-y: auto; background: #0f172a; border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-top: 5px; }
-        .modal-schedule-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #1e293b; font-size: 0.85rem; }
+        .modal-content { background: var(--surface-dark); border: 1px solid var(--border); padding: 20px; border-radius: 12px; width: 400px; max-width: 90%; display: flex; flex-direction: column; }
+        .modal-content input, .modal-content select { width: 100%; padding: 8px; margin: 6px 0; background: #0f172a; border: 1px solid var(--border); color: #fff; border-radius: 6px; }
         
         .action-bar { display: flex; gap: 8px; }
-        .btn-sm { background: #334155; color: #cbd5e1; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
-        .btn-sm:hover { background: #475569; color: white; }
     </style>
 </head>
 <body>
 
-    <div id="custom-tooltip">
-        <h4 id="tooltip-date"></h4>
-        <div id="tooltip-items"></div>
-    </div>
-
-    <!-- TOPO COM INDICADOR DE CONEXÃO -->
+    <!-- TOPO -->
     <div class="top-bar">
-        <div id="today-alert" class="alert-box">⏳ Conectando ao Supabase...</div>
-        
+        <div id="today-alert" class="alert-box">⏳ Conectando...</div>
         <div class="connection-status">
             <div id="status-dot" class="status-dot"></div>
             <span id="status-text">Conectando...</span>
         </div>
-
-        <div class="progress-container">
-            <span id="progress-text" style="font-size: 0.8rem; color: var(--text-muted);">0%</span>
-            <div class="progress-bar-bg"><div id="progress-fill" class="progress-bar-fill"></div></div>
-        </div>
         <div class="action-bar">
-            <button class="btn-sm" onclick="exportData()">💾 Backup</button>
-            <label class="btn-sm" style="cursor: pointer;">📂 Restaurar <input type="file" id="import-file" style="display:none" onchange="importData(event)"></label>
+            <button class="btn btn-primary btn-sm" onclick="addNewRow()">➕ Novo Item</button>
+            <button class="btn btn-primary btn-sm" onclick="addNewColumnModal()">📊 Nova Coluna</button>
+            <button class="btn btn-sm" style="background:#374151; color:#fff;" onclick="exportData()">💾 Backup</button>
+            <label class="btn btn-sm" style="background:#374151; color:#fff; cursor: pointer;">📂 Restaurar <input type="file" style="display:none" onchange="importData(event)"></label>
         </div>
     </div>
 
-    <div class="main-content">
-        <div class="panel list-container">
+    <!-- CONTEÚDO PRINCIPAL (MÚLTIPLAS TABELAS) -->
+    <div id="main-content" class="main-content">
+        <div class="section-panel">
             <div class="panel-header">
-                <h2>🖥️ Equipamentos</h2>
-                <div class="filters">
-                    <button class="filter-btn active" onclick="setFilter('all', this)">Todos</button>
-                    <button class="filter-btn" onclick="setFilter('pending', this)">Pendentes</button>
-                    <button class="filter-btn" onclick="setFilter('done', this)">Concluídos</button>
-                </div>
+                <h2>🖥️ Gestão de Serviços e Equipamentos NOC</h2>
             </div>
-            <div class="table-scroll-area">
+            <div class="table-container">
                 <table>
                     <thead>
-                        <tr>
-                            <th>CPD</th>
-                            <th>Switch</th>
-                            <th class="checkbox-cell">Switch</th>
-                            <th class="checkbox-cell">Possui OLT</th>
-                            <th class="checkbox-cell">OLT</th>
-                        </tr>
+                        <tr id="table-headers"></tr>
                     </thead>
                     <tbody id="table-body"></tbody>
                 </table>
             </div>
         </div>
+    </div>
 
-        <div class="panel calendar-container">
-            <div class="panel-header">
-                <h2>📅 Programação Semestral (Tempo Real)</h2>
+    <!-- CALENDÁRIO FLUTUANTE NO CANTO INFERIOR DIREITO -->
+    <div id="floating-calendar-container">
+        <div id="floating-calendar-box" class="floating-calendar-box">
+            <div class="floating-calendar-header">
+                <h3 style="margin:0; font-size:0.9rem; color:#fff;">📅 Calendário de Serviços</h3>
+                <button class="btn btn-danger btn-sm" onclick="toggleCalendar()">✖ Minimizar</button>
             </div>
             <div class="calendar-scroll-area">
                 <div id="calendar-wrapper" class="months-grid"></div>
             </div>
         </div>
+        <button class="calendar-toggle-btn" onclick="toggleCalendar()">
+            📅 Calendário
+        </button>
     </div>
 
+    <!-- MODAL DE AGENDAMENTO -->
     <div id="modal">
         <div class="modal-content">
-            <h3 style="margin:0 0 5px 0;">Gerenciar Agendamentos</h3>
-            <p style="margin:0 0 10px 0; font-size: 0.85rem; color: var(--text-muted);">Dia: <strong id="selected-date-text" style="color: var(--text-main);"></strong></p>
-            <div id="modal-schedule-list" class="modal-schedule-list"></div>
-            <hr style="border:none; border-top:1px solid var(--border); margin:12px 0;">
-            <h4 style="margin:0 0 5px 0; font-size: 0.9rem;">Adicionar Equipamento</h4>
-            <input type="text" id="equip-search" placeholder="Pesquise por CPD, OLT ou Switch..." autocomplete="off">
-            <select id="equip-select" size="4"></select>
-            <div style="text-align: right; margin-top: 12px; display: flex; justify-content: flex-end;">
-                <button class="btn btn-cancel" onclick="closeModal()">Fechar</button>
-                <button class="btn btn-primary" onclick="saveSchedule()">Adicionar ao Dia</button>
+            <h3 style="margin:0 0 5px 0; font-size:1rem;">Criar Evento Personalizado</h3>
+            <p style="margin:0 0 10px 0; font-size: 0.8rem; color: var(--text-muted);">Data: <strong id="selected-date-text" style="color: #fff;"></strong></p>
+            <label style="font-size:0.75rem; color:var(--text-muted);">Título do Evento / Serviço:</label>
+            <input type="text" id="event-title-input" placeholder="Ex: Manutenção OLT Principal..." autocomplete="off">
+            <div style="text-align: right; margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px;">
+                <button class="btn" style="background:#374151; color:#fff;" onclick="closeModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveCustomEvent()">Salvar Evento</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CRIAR COLUNA -->
+    <div id="modal-col" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; justify-content:center; align-items:center;">
+        <div class="modal-content">
+            <h3 style="margin:0 0 5px 0; font-size:1rem;">Adicionar Nova Coluna</h3>
+            <input type="text" id="new-col-name" placeholder="Nome da coluna (ex: IP, Responsável)..." autocomplete="off">
+            <div style="text-align: right; margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px;">
+                <button class="btn" style="background:#374151; color:#fff;" onclick="document.getElementById('modal-col').style.display='none'">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveNewColumn()">Criar Coluna</button>
             </div>
         </div>
     </div>
@@ -210,144 +165,151 @@
     <script>
         const SUPABASE_URL = 'https://rwurgthulmhxyzsthpnf.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3dXJndGh1bG1oeHl6c3RocG5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MzUzNTcsImV4cCI6MjEwNzAxMTM1N30.N4yp4vuNCFd34s6OzznaxnX__dScz5kBFG_-qb3FNUo';
-        
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let equipments = [];
-        let schedules = {}; 
-        let currentFilter = 'all';
+        let customColumns = [];
+        let schedules = {};
         let selectedDateStr = "";
-        let currentModalOptions = [];
 
-        const defaultEquipments = [{"id": 0, "cpd": "Embratel", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": true, "has_olt": false, "olt_updated": true}, {"id": 1, "cpd": "Oi vital", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 2, "cpd": "Gigamall", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 3, "cpd": "InNET", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 4, "cpd": "Inclui telecom", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 5, "cpd": "Itaitinga", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 6, "cpd": "Aracoiaba", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 7, "cpd": "Caponga", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 8, "cpd": "Caucaia", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 9, "cpd": "Choro limão", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 10, "cpd": "Capistrano", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 11, "cpd": "IflDnet Maracanau", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 12, "cpd": "IflDnet Serpa", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 13, "cpd": "Porto das dunas", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 14, "cpd": "Horizonte", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 15, "cpd": "Beberibe", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 16, "cpd": "Jebnet - Baleia", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 17, "cpd": "Jebnet - Violete", "switch_model": "DM4610 HW2 - 8GPON+8GX+4GT+2XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 18, "cpd": "Jebnet - Tururu", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 19, "cpd": "Jebnet - Muribeca", "switch_model": "DM4370 - 4GT+4GX+4XS", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 20, "cpd": "Pacajus", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 21, "cpd": "PE - Eusebio", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 22, "cpd": "Jabuti", "switch_model": "S6730S-H24X6C-A", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 23, "cpd": "Aquiraz CND", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": false}, {"id": 24, "cpd": "Palmeiras", "switch_model": "S6730S-H24X6C-A", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 25, "cpd": "Acarape", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 26, "cpd": "Angola", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 27, "cpd": "Aquiraz II", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 28, "cpd": "Cascavel", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 29, "cpd": "Pacatuba", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 30, "cpd": "Pajuçara", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 31, "cpd": "Wstc", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 32, "cpd": "Pindoretama", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 33, "cpd": "Genibau", "switch_model": "S6720-54C-EI-48S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 34, "cpd": "Chorozinho", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 35, "cpd": "Tapera", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 36, "cpd": "Maranguape", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 37, "cpd": "Barra", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 38, "cpd": "Barreira", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 39, "cpd": "Globnet", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 40, "cpd": "Guaiuba", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 41, "cpd": "Ascenty", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 42, "cpd": "Terrazo", "switch_model": "S6720S-26Q-EI-24S-AC", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 43, "cpd": "P - Eusebio", "switch_model": "S6750-H36C", "switch_updated": false, "has_olt": false, "olt_updated": true}, {"id": 44, "cpd": "IflDnet - Matriz", "switch_model": "S6730-H48X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 45, "cpd": "Itau Jebnet I", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": true, "olt_updated": false}, {"id": 46, "cpd": "Itau Jebnet II", "switch_model": "S6730-H24X6C", "switch_updated": false, "has_olt": false, "olt_updated": true}];
+        const defaultEquipments = [
+            { id: '1', cpd: 'Embratel', switch_model: 'DM4370', status: true, obs: 'Principal' },
+            { id: '2', cpd: 'Gigamall', switch_model: 'DM4370', status: false, obs: 'Aguardando liberação' }
+        ];
 
         function setConnectionStatus(status, text) {
-            const dot = document.getElementById('status-dot');
-            const label = document.getElementById('status-text');
-            dot.className = 'status-dot ' + status;
-            label.innerText = text;
+            document.getElementById('status-dot').className = 'status-dot ' + status;
+            document.getElementById('status-text').innerText = text;
         }
 
         async function loadDataFromCloud() {
             setConnectionStatus('', 'Sincronizando...');
-            let { data: eqData, error: eqError } = await supabaseClient.from('equipments').select('*');
             
-            if (eqError) {
-                setConnectionStatus('offline', 'Erro ao conectar');
+            let { data: colData } = await supabaseClient.from('custom_columns').select('*');
+            customColumns = colData || [];
+
+            let { data: eqData, error } = await supabaseClient.from('equipments').select('*');
+            if (error) {
+                setConnectionStatus('offline', 'Erro na conexão');
                 return;
             }
 
             if (!eqData || eqData.length === 0) {
-                for(let eq of defaultEquipments) {
-                    await supabaseClient.from('equipments').upsert(eq);
+                for (let eq of defaultEquipments) {
+                    await supabaseClient.from('equipments').upsert({ id: eq.id, data: eq });
                 }
                 equipments = defaultEquipments;
             } else {
-                equipments = eqData.sort((a,b) => a.id - b.id);
+                equipments = eqData.map(row => row.data);
             }
 
-            let { data: schData, error: schError } = await supabaseClient.from('schedules').select('*');
+            let { data: schData } = await supabaseClient.from('schedules').select('*');
             schedules = {};
-            if (schData) {
-                schData.forEach(row => { schedules[row.date_str] = row.items; });
-            }
+            if (schData) schData.forEach(row => schedules[row.date_str] = row.items);
 
             setConnectionStatus('online', 'Tempo Real Ativo');
             updateUI();
             setupRealtime();
         }
 
-        // WebSockets em Tempo Real Otimizado para Equipamentos e Agendamentos
         function setupRealtime() {
-            supabaseClient.channel('public:all-changes')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'equipments' }, payload => {
-                    loadDataFromCloud();
-                })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, payload => {
-                    loadDataFromCloud();
-                })
-                .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        setConnectionStatus('online', 'Tempo Real Ativo');
-                    } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-                        setConnectionStatus('offline', 'Desconectado');
-                    }
+            supabaseClient.channel('db-all')
+                .on('postgres_changes', { event: '*', schema: 'public' }, () => loadDataFromCloud())
+                .subscribe(status => {
+                    if (status === 'SUBSCRIBED') setConnectionStatus('online', 'Tempo Real Ativo');
                 });
         }
 
         function updateUI() {
             renderTable();
             renderCalendar();
-            updateProgressAndAlert();
-        }
-
-        function updateProgressAndAlert() {
-            let total = 0, done = 0;
-            equipments.forEach(eq => {
-                total++; if(eq.switch_updated) done++;
-                if(eq.has_olt) { total++; if(eq.olt_updated) done++; }
-            });
-            let pct = total > 0 ? Math.round((done / total) * 100) : 0;
-            document.getElementById('progress-text').innerText = `${pct}% Concluído`;
-            document.getElementById('progress-fill').style.width = pct + '%';
-
-            let todayStr = new Date().toISOString().split('T')[0];
-            let todaySched = schedules[todayStr] || [];
-            let alertBox = document.getElementById('today-alert');
-            if(todaySched.length > 0) {
-                let pendentes = todaySched.filter(s => !s.completed).length;
-                alertBox.innerHTML = `🔔 Hoje (${todaySched.length} agendados / ${pendentes} pendentes)`;
-            } else {
-                alertBox.innerHTML = `☕ Nenhum agendamento para hoje.`;
-            }
-        }
-
-        window.setFilter = function(filter, btn) {
-            currentFilter = filter;
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            renderTable();
+            updateAlert();
         }
 
         function renderTable() {
+            const headerTr = document.getElementById('table-headers');
             const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '';
             
+            headerTr.innerHTML = `
+                <th>CPD / Serviço</th>
+                <th>Modelo Switch</th>
+                <th>Status</th>
+                <th>Observação</th>
+            `;
+            customColumns.forEach(col => {
+                headerTr.innerHTML += `<th>${col.name}</th>`;
+            });
+            headerTr.innerHTML += `<th style="text-align:center; width:80px;">Ações</th>`;
+
+            tbody.innerHTML = '';
             equipments.forEach((eq, index) => {
-                let swDone = eq.switch_updated;
-                let oltDone = eq.has_olt ? eq.olt_updated : true;
-                let isAllDone = swDone && oltDone;
-
-                if (currentFilter === 'pending' && isAllDone) return;
-                if (currentFilter === 'done' && !isAllDone) return;
-
-                const tr = document.createElement('tr');
-                let oltToggleBtn = `<button class="btn-olt-toggle ${eq.has_olt ? 'has-olt' : ''}" onclick="toggleHasOlt(${index})">${eq.has_olt ? 'Com OLT' : 'Sem OLT'}</button>`;
-                let oltCheck = eq.has_olt ? `<input type="checkbox" ${eq.olt_updated ? 'checked' : ''} onchange="toggleUpdate(${index}, 'olt')">` : `-`;
+                let tr = document.createElement('tr');
+                let customTdHtml = '';
+                customColumns.forEach(col => {
+                    let val = eq.custom ? (eq.custom[col.id] || '') : '';
+                    customTdHtml += `<td><input type="text" value="${val}" onchange="updateCustomField('${eq.id}', '${col.id}', this.value)"></td>`;
+                });
 
                 tr.innerHTML = `
-                    <td><strong>${eq.cpd}</strong></td>
-                    <td style="font-size: 0.8rem; color: #cbd5e1;">${eq.switch_model}</td>
-                    <td class="checkbox-cell"><input type="checkbox" ${eq.switch_updated ? 'checked' : ''} onchange="toggleUpdate(${index}, 'switch')"></td>
-                    <td class="checkbox-cell">${oltToggleBtn}</td>
-                    <td class="checkbox-cell">${oltCheck}</td>
+                    <td><input type="text" value="${eq.cpd || ''}" onchange="updateField('${eq.id}', 'cpd', this.value)"></td>
+                    <td><input type="text" value="${eq.switch_model || ''}" onchange="updateField('${eq.id}', 'switch_model', this.value)"></td>
+                    <td><input type="checkbox" ${eq.status ? 'checked' : ''} onchange="updateField('${eq.id}', 'status', this.checked)"></td>
+                    <td><input type="text" value="${eq.obs || ''}" onchange="updateField('${eq.id}', 'obs', this.value)"></td>
+                    ${customTdHtml}
+                    <td style="text-align:center;"><button class="btn btn-danger btn-sm" onclick="deleteRow('${eq.id}')">Excluir</button></td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        window.toggleHasOlt = async function(index) {
-            equipments[index].has_olt = !equipments[index].has_olt;
-            await supabaseClient.from('equipments').upsert(equipments[index]);
+        window.updateField = async function(id, field, value) {
+            let eq = equipments.find(e => e.id === id);
+            if (eq) {
+                eq[field] = value;
+                await supabaseClient.from('equipments').upsert({ id: eq.id, data: eq });
+            }
+        }
+
+        window.updateCustomField = async function(id, colId, value) {
+            let eq = equipments.find(e => e.id === id);
+            if (eq) {
+                if (!eq.custom) eq.custom = {};
+                eq.custom[colId] = value;
+                await supabaseClient.from('equipments').upsert({ id: eq.id, data: eq });
+            }
+        }
+
+        window.addNewRow = async function() {
+            let newId = 'eq_' + Date.now();
+            let newEq = { id: newId, cpd: 'Novo CPD', switch_model: 'Modelo', status: false, obs: '' };
+            equipments.push(newEq);
+            await supabaseClient.from('equipments').upsert({ id: newId, data: newEq });
             updateUI();
         }
 
-        window.toggleUpdate = async function(index, type) {
-            if(type === 'switch') equipments[index].switch_updated = !equipments[index].switch_updated;
-            if(type === 'olt') equipments[index].olt_updated = !equipments[index].olt_updated;
-
-            await supabaseClient.from('equipments').upsert(equipments[index]);
+        window.deleteRow = async function(id) {
+            equipments = equipments.filter(e => e.id !== id);
+            await supabaseClient.from('equipments').delete().eq('id', id);
             updateUI();
+        }
+
+        window.addNewColumnModal = function() {
+            document.getElementById('new-col-name').value = '';
+            document.getElementById('modal-col').style.display = 'flex';
+        }
+
+        window.saveNewColumn = async function() {
+            let name = document.getElementById('new-col-name').value;
+            if (!name) return alert('Digite o nome da coluna!');
+            let colId = 'col_' + Date.now();
+            await supabaseClient.from('custom_columns').upsert({ id: colId, name: name });
+            document.getElementById('modal-col').style.display = 'none';
+            loadDataFromCloud();
+        }
+
+        window.toggleCalendar = function() {
+            let box = document.getElementById('floating-calendar-box');
+            box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
         }
 
         function renderCalendar() {
@@ -377,18 +339,14 @@
                     let dayCell = document.createElement('div');
                     dayCell.className = 'day-cell';
                     dayCell.innerHTML = `<div class="day-number">${d}</div>`;
-                    
                     dayCell.onclick = () => openModal(dateStr, `${d} de ${monthDate.toLocaleString('pt-BR', {month: 'long'})}`);
                     
-                    if(schedules[dateStr] && schedules[dateStr].length > 0) {
-                        dayCell.onmouseenter = (e) => showTooltip(e, dateStr, `${d} de ${monthDate.toLocaleString('pt-BR', {month: 'long', year: 'numeric'})}`);
-                        dayCell.onmouseleave = hideTooltip;
-
-                        schedules[dateStr].forEach(itemObj => {
-                            let schedDiv = document.createElement('div');
-                            schedDiv.className = `schedule-item ${itemObj.type} ${itemObj.completed ? 'completed' : ''}`;
-                            schedDiv.innerHTML = `${itemObj.completed ? '✓ ' : ''}${itemObj.text}`;
-                            dayCell.appendChild(schedDiv);
+                    if(schedules[dateStr]) {
+                        schedules[dateStr].forEach(item => {
+                            let div = document.createElement('div');
+                            div.className = `schedule-item ${item.completed ? 'completed' : ''}`;
+                            div.innerText = item.text;
+                            dayCell.appendChild(div);
                         });
                     }
                     daysGrid.appendChild(dayCell);
@@ -398,134 +356,40 @@
             }
         }
 
-        const tooltip = document.getElementById('custom-tooltip');
-        function showTooltip(e, dateStr, friendlyDate) {
-            document.getElementById('tooltip-date').innerText = friendlyDate;
-            let itemsContainer = document.getElementById('tooltip-items');
-            itemsContainer.innerHTML = '';
-            
-            schedules[dateStr].forEach(item => {
-                let statusText = item.completed ? ' (Concluído)' : '';
-                let row = document.createElement('div');
-                row.className = 'tooltip-row';
-                row.innerHTML = `
-                    <div class="tooltip-dot ${item.type}"></div>
-                    <span style="${item.completed ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${item.text}${statusText}</span>
-                `;
-                itemsContainer.appendChild(row);
-            });
-
-            tooltip.style.display = 'block';
-            positionTooltip(e);
-        }
-
-        function positionTooltip(e) {
-            let rect = e.currentTarget.getBoundingClientRect();
-            let x = rect.left + (rect.width / 2);
-            let y = rect.top - 8;
-            
-            tooltip.style.left = x + 'px';
-            tooltip.style.top = y + 'px';
-        }
-
-        function hideTooltip() {
-            tooltip.style.display = 'none';
-        }
-
         window.openModal = function(dateStr, friendlyDate) {
             selectedDateStr = dateStr;
             document.getElementById('selected-date-text').innerText = friendlyDate;
-            document.getElementById('equip-search').value = ''; 
-            renderModalSchedules();
-            
-            currentModalOptions = [];
-            equipments.forEach(eq => {
-                let swType = eq.switch_model.toUpperCase().startsWith('DM') ? 'DM' : 'S6';
-                currentModalOptions.push({
-                    value: JSON.stringify({ cpd: eq.cpd, type: swType, text: eq.cpd + " (Switch)", isOlt: false, completed: false }),
-                    label: `Switch - ${eq.cpd} (${eq.switch_model.split('-')[0].trim()})`,
-                    searchTerms: (`switch ${eq.cpd} ${eq.switch_model}`).toLowerCase()
-                });
-                if (eq.has_olt) {
-                    currentModalOptions.push({
-                        value: JSON.stringify({ cpd: eq.cpd, type: "OLT", text: "OLT - " + eq.cpd, isOlt: true, completed: false }),
-                        label: `OLT - ${eq.cpd}`,
-                        searchTerms: (`olt ${eq.cpd}`).toLowerCase()
-                    });
-                }
-            });
-            renderModalOptions('');
+            document.getElementById('event-title-input').value = '';
             document.getElementById('modal').style.display = 'flex';
-        };
-
-        function renderModalSchedules() {
-            const listContainer = document.getElementById('modal-schedule-list');
-            listContainer.innerHTML = '';
-            const daySchedules = schedules[selectedDateStr] || [];
-
-            if (daySchedules.length === 0) {
-                listContainer.innerHTML = '<p style="margin:0; font-size: 0.8rem; color: var(--text-muted); text-align: center;">Nenhum agendamento neste dia.</p>';
-            } else {
-                daySchedules.forEach((item, idx) => {
-                    listContainer.innerHTML += `
-                        <div class="modal-schedule-item">
-                            <div style="display:flex; align-items:center; gap: 8px;">
-                                <input type="checkbox" ${item.completed ? 'checked' : ''} onchange="toggleComplete('${selectedDateStr}', ${idx})">
-                                <span class="${item.completed ? 'text-completed' : ''}">${item.text}</span>
-                            </div>
-                            <button class="btn-remove" onclick="removeSchedule('${selectedDateStr}', ${idx})">Excluir</button>
-                        </div>`;
-                });
-            }
         }
 
-        window.toggleComplete = async function(dateStr, idx) {
-            let item = schedules[dateStr][idx];
-            item.completed = !item.completed;
-            
-            let eqIndex = equipments.findIndex(e => e.cpd === item.cpd);
-            if (eqIndex !== -1) {
-                if (item.isOlt) equipments[eqIndex].olt_updated = item.completed;
-                else equipments[eqIndex].switch_updated = item.completed;
-                await supabaseClient.from('equipments').upsert(equipments[eqIndex]);
-            }
+        window.closeModal = () => document.getElementById('modal').style.display = 'none';
 
-            await supabaseClient.from('schedules').upsert({ date_str: dateStr, items: schedules[dateStr] });
-            updateUI();
-            renderModalSchedules();
-        }
-
-        window.removeSchedule = async function(dateStr, idx) {
-            schedules[dateStr].splice(idx, 1);
-            if(schedules[dateStr].length === 0) {
-                delete schedules[dateStr];
-                await supabaseClient.from('schedules').delete().eq('date_str', dateStr);
-            } else {
-                await supabaseClient.from('schedules').upsert({ date_str: dateStr, items: schedules[dateStr] });
-            }
-            updateUI();
-            renderModalSchedules();
-        }
-
-        window.saveSchedule = async function() {
-            const select = document.getElementById('equip-select');
-            if(!select.value) return alert('Selecione um equipamento!');
+        window.saveCustomEvent = async function() {
+            let title = document.getElementById('event-title-input').value;
+            if (!title) return alert('Digite o título do evento!');
             
             if(!schedules[selectedDateStr]) schedules[selectedDateStr] = [];
-            schedules[selectedDateStr].push(JSON.parse(select.value));
+            schedules[selectedDateStr].push({ text: title, completed: false });
             
             await supabaseClient.from('schedules').upsert({ date_str: selectedDateStr, items: schedules[selectedDateStr] });
-            select.value = "";
+            closeModal();
             updateUI();
-            renderModalSchedules();
-        };
+        }
+
+        function updateAlert() {
+            let todayStr = new Date().toISOString().split('T')[0];
+            let todaySched = schedules[todayStr] || [];
+            let alertBox = document.getElementById('today-alert');
+            alertBox.innerHTML = todaySched.length > 0 ? `🔔 Hoje (${todaySched.length} eventos)` : `☕ Nenhum evento hoje.`;
+        }
 
         window.exportData = function() {
-            let backup = { equipments, schedules };
+            let backup = { equipments, customColumns, schedules };
             let blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'json' });
             let a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = `backup-painel-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `backup-noc-${new Date().toISOString().split('T')[0]}.json`;
             a.click();
         }
 
@@ -534,37 +398,15 @@
             if(!file) return;
             let reader = new FileReader();
             reader.onload = async function(e) {
-                try {
-                    let backup = JSON.parse(e.target.result);
-                    if(backup.equipments && backup.schedules) {
-                        for(let eq of backup.equipments) await supabaseClient.from('equipments').upsert(eq);
-                        for(let date in backup.schedules) await supabaseClient.from('schedules').upsert({ date_str: date, items: backup.schedules[date] });
-                        alert('Backup restaurado com sucesso!');
-                        loadDataFromCloud();
-                    }
-                } catch(err) { alert('Erro ao ler arquivo de backup.'); }
+                let backup = JSON.parse(e.target.result);
+                for(let eq of backup.equipments) await supabaseClient.from('equipments').upsert({id: eq.id, data: eq});
+                for(let col of backup.customColumns) await supabaseClient.from('custom_columns').upsert(col);
+                for(let date in backup.schedules) await supabaseClient.from('schedules').upsert({date_str: date, items: backup.schedules[date]});
+                alert('Restaurado com sucesso!');
+                loadDataFromCloud();
             };
             reader.readAsText(file);
         }
-
-        document.getElementById('equip-search').addEventListener('input', (e) => {
-            const select = document.getElementById('equip-select');
-            select.innerHTML = '';
-            let term = e.target.value.toLowerCase();
-            currentModalOptions.filter(o => o.searchTerms.includes(term)).forEach(o => {
-                select.innerHTML += `<option value='${o.value}'>${o.label}</option>`;
-            });
-        });
-
-        window.renderModalOptions = function(term) {
-            const select = document.getElementById('equip-select');
-            select.innerHTML = '';
-            currentModalOptions.forEach(o => {
-                select.innerHTML += `<option value='${o.value}'>${o.label}</option>`;
-            });
-        }
-
-        window.closeModal = () => document.getElementById('modal').style.display = 'none';
 
         loadDataFromCloud();
     </script>
