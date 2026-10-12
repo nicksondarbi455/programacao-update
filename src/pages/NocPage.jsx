@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { storageService } from '../services/storageService';
 import { NocTemplate } from '../components/templates/NocTemplate';
 import { Button } from '../components/atoms/Button';
@@ -12,8 +12,9 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     const [colModalOpen, setColModalOpen] = useState(false);
     const [modalData, setModalData] = useState({ isOpen: false, dateStr: '', friendlyDate: '', items: [], equipments: [] });
     const [draggedIndex, setDraggedIndex] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
 
-    // Salva automaticamente no localStorage sempre que houver alteração
     const saveProjectData = (newEquips, newCols, newScheds) => {
         const allProjects = storageService.getProjects(userEmail);
         const updatedProjects = allProjects.map(p => {
@@ -30,7 +31,6 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         storageService.saveProjects(userEmail, updatedProjects);
     };
 
-    // Cálculos de Progresso e Notificações
     const calculateProgress = () => {
         let total = 0, done = 0;
         equipments.forEach(eq => {
@@ -48,12 +48,14 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     };
 
     const getTodayAlert = () => {
+        if (!project.hasCalendar) return `Projeto Ativo: ${project.name}`;
         let todayStr = new Date().toISOString().split('T')[0];
         let todaySched = schedules[todayStr] || [];
         return todaySched.length > 0 ? `Hoje (${todaySched.length} agendamentos)` : `Nenhum agendamento hoje.`;
     };
 
     const getBadgeCounts = () => {
+        if (!project.hasCalendar) return { weekCount: 0, tomorrowCount: 0 };
         let today = new Date();
         let tomorrow = new Date();
         tomorrow.setDate(today.getDate() + 1);
@@ -83,17 +85,11 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         return { weekCount, tomorrowCount };
     };
 
-    // Funções de Ação e Manipulação Local
     const handleUpdateField = (id, field, value) => {
         let updated = equipments.map(eq => {
             if (eq.id === id) {
                 let copy = { ...eq };
-                if (['cpd', 'switch_model', 'status', 'obs', 'color'].includes(field)) {
-                    copy[field] = value;
-                } else {
-                    if (!copy.custom) copy.custom = {};
-                    copy.custom[field] = value;
-                }
+                copy[field] = value;
                 return copy;
             }
             return eq;
@@ -111,7 +107,6 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
 
     const handleAddNewRow = () => {
         let newId = 'eq_' + Date.now();
-        // Cria um novo item vazio compatível com as colunas do projeto
         let newEq = { id: newId, color: 'padrao' };
         columnConfig.forEach(col => {
             newEq[col.id] = col.type === 'checkbox' ? false : '';
@@ -143,7 +138,6 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         saveProjectData(equipments, updated, schedules);
     };
 
-    // Redimensionamento de colunas por arraste
     const handleInitResize = (e, index) => {
         e.stopPropagation();
         e.preventDefault();
@@ -186,8 +180,8 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         saveProjectData(equipments, updated, schedules);
     };
 
-    // Gestão de Agendamentos
     const handleOpenModal = (dateStr, friendlyDate) => {
+        if (!project.hasCalendar) return;
         setModalData({
             isOpen: true,
             dateStr,
@@ -199,32 +193,36 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
 
     const handleSaveEvent = (title) => {
         if (!title) return alert('Digite ou selecione um evento!');
-        // Usa a primeira coluna como referência de nome do item cadastrado
         let firstColId = columnConfig[0]?.id;
         let exists = equipments.some(eq => (eq[firstColId] || eq.cpd || eq.id) === title);
-        if (!exists) return alert('Erro: Só é permitido agendar eventos cadastrados na tabela principal!');
+        if (!exists) return alert('Erro: O evento precisa corresponder a um registo válido na tabela principal!');
 
         let dateStr = modalData.dateStr;
         let daySched = schedules[dateStr] || [];
         if (daySched.some(i => i.text === title)) return alert('Este item já está agendado para este dia!');
 
-        let newSchedItems = [...daySched, { text: title, completed: false }];
+        let newSchedItems = [...daySched, { text: title, completed: false, statusText: 'Agendado' }];
         let newSchedules = { ...schedules, [dateStr]: newSchedItems };
         setSchedules(newSchedules);
         setModalData(prev => ({ ...prev, items: newSchedItems }));
         saveProjectData(equipments, columnConfig, newSchedules);
     };
 
+    // ALTERAÇÃO: Agora, ao marcar como feito no calendário, exibe um texto informativo na linha sem mexer nas caixas de seleção da tabela
     const handleToggleCompleteSchedule = (dateStr, itemIdx) => {
         let daySched = (schedules[dateStr] || []).map((item, idx) => {
             if (idx === itemIdx) {
-                return { ...item, completed: !item.completed };
+                const nextCompleted = !item.completed;
+                return { 
+                    ...item, 
+                    completed: nextCompleted, 
+                    statusText: nextCompleted ? '✔ Realizado com Sucesso' : '⏳ Pendente / Agendado' 
+                };
             }
             return { ...item };
         });
 
         if (!daySched[itemIdx]) return;
-        let item = daySched[itemIdx];
 
         let newSchedules = {
             ...schedules,
@@ -252,9 +250,12 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
 
     return (
         <div>
-            {/* Barra superior com botão para voltar ao dashboard */}
+            {/* Barra superior do editor */}
             <div style={{ background: '#1e293b', padding: '8px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Projeto: {project.name}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Projeto: {project.name} {project.isPrivate ? '🔒' : ''}</span>
+                    {project.description && <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>({project.description})</span>}
+                </div>
                 <Button size="sm" style={{ background: '#475569', color: '#fff' }} onClick={onBackToDashboard}>Voltar aos Projetos</Button>
             </div>
 
@@ -268,7 +269,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
                 onNewRow={handleAddNewRow}
                 onNewCol={() => setColModalOpen(true)}
                 onExport={() => {
-                    let backup = { equipments, columnConfig, schedules };
+                    let backup = { equipments, columnConfig, schedules, projectInfo: project };
                     let blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'json' });
                     let a = document.createElement('a');
                     a.href = URL.createObjectURL(blob);
@@ -285,7 +286,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
                         setColumnConfig(backup.columnConfig || []);
                         setSchedules(backup.schedules || {});
                         saveProjectData(backup.equipments, backup.columnConfig, backup.schedules);
-                        alert('Projeto restaurado com sucesso!');
+                        alert('Projeto importado/restaurado com sucesso!');
                     };
                     reader.readAsText(file);
                 }}
@@ -299,8 +300,8 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}
                 onInitResize={handleInitResize}
-                isOpen={isCalendarOpen}
-                onToggle={() => setIsCalendarOpen(!isCalendarOpen)}
+                isOpen={project.hasCalendar ? isCalendarOpen : false}
+                onToggle={() => project.hasCalendar && setIsCalendarOpen(!isCalendarOpen)}
                 schedules={schedules}
                 onOpenModal={handleOpenModal}
                 onToggleComplete={handleToggleCompleteSchedule}
@@ -314,6 +315,11 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
                 colModalOpen={colModalOpen}
                 onSaveCol={handleSaveNewCol}
                 onCloseCol={() => setColModalOpen(false)}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                statusFilter={statusFilter}
+                setStatusFilter={setStatusFilter}
+                hasCalendar={project.hasCalendar}
             />
         </div>
     );
