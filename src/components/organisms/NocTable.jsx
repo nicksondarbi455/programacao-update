@@ -7,6 +7,9 @@ const colorMap = {
     'amarelo': '#fef3c7', 'preto': '#f1f5f9', 'padrao': '#ffffff'
 };
 
+// Largura fixa da coluna "Check" (antes "Status", que ficava com 40px e mostrava só "S")
+const CHECK_COL_WIDTH = 70;
+
 // Verifica se a linha ou evento possui status de concluído nos agendamentos
 function isRowCompleted(eq, schedules, columnConfig) {
     if (eq.status) return true;
@@ -65,11 +68,77 @@ export function NocTable({
         });
     });
 
-    const totalWidth = columnConfig.reduce((acc, col) => acc + (parseInt(col.width) || 150), 0) + (isEditMode ? 180 : 40);
+    const totalWidth = columnConfig.reduce((acc, col) => acc + (parseInt(col.width) || 150), 0) + CHECK_COL_WIDTH + (isEditMode ? 180 : 0);
 
-    // Separa as colunas gerais das colunas exclusivas de eventos
-    const standardCols = columnConfig.filter(col => col.targetScope !== 'events');
-    const eventCols = columnConfig.filter(col => col.targetScope === 'events');
+    /**
+     * Monta as células de uma faixa de Evento Único respeitando a MESMA ordem das colunas
+     * do cabeçalho. Colunas gerais consecutivas viram um único bloco com o nome do evento;
+     * colunas exclusivas de evento (ex.: Check) ficam em célula própria, na sua posição.
+     * Assim a faixa cinza não invade nem desalinha as outras colunas.
+     */
+    const renderGroupCells = (eq, completed) => {
+        const segments = [];
+        columnConfig.forEach(col => {
+            if (col.targetScope === 'events') {
+                segments.push({ kind: 'event', col });
+            } else {
+                const last = segments[segments.length - 1];
+                if (last && last.kind === 'std') last.span += 1;
+                else segments.push({ kind: 'std', span: 1 });
+            }
+        });
+
+        let titleShown = false;
+
+        return segments.map((seg, i) => {
+            if (seg.kind === 'std') {
+                const isTitle = !titleShown;
+                titleShown = true;
+                return (
+                    <td
+                        key={`std-${i}`}
+                        colSpan={seg.span}
+                        style={{ textAlign: 'center', padding: '6px 12px', fontWeight: 'bold', color: '#0f172a', letterSpacing: '1px', textTransform: 'uppercase' }}
+                    >
+                        {isTitle && (isEditMode ? (
+                            <input
+                                type="text"
+                                value={eq.groupName || ''}
+                                onChange={(e) => onUpdateField(eq.id, 'groupName', e.target.value)}
+                                placeholder="NOME DO EVENTO"
+                                style={{
+                                    fontWeight: '800', textAlign: 'center', background: '#e2e8f0', borderRadius: '4px',
+                                    border: '1px solid #475569', color: '#0f172a', width: '100%', maxWidth: '100%',
+                                    boxSizing: 'border-box', display: 'block', padding: '3px 6px', margin: 0
+                                }}
+                            />
+                        ) : (
+                            <span>📌 {eq.groupName || 'EVENTO SEM NOME'} {completed ? '(CONCLUÍDO ✅)' : ''}</span>
+                        ))}
+                    </td>
+                );
+            }
+
+            const col = seg.col;
+            let w = parseInt(col.width) || 150;
+            let cellValue = eq[col.id] !== undefined ? eq[col.id] : '';
+            return (
+                <td key={col.id} className={col.type === 'checkbox' ? 'checkbox-cell' : ''} style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, background: '#cbd5e1' }}>
+                    {col.type === 'checkbox' ? (
+                        <Checkbox checked={!!cellValue} onChange={(e) => onUpdateField(eq.id, col.id, e.target.checked)} />
+                    ) : (
+                        <Input
+                            className={isEditMode ? 'editable' : ''}
+                            value={cellValue}
+                            placeholder={col.name}
+                            readOnly={!isEditMode}
+                            onChange={(e) => onUpdateField(eq.id, col.id, e.target.value)}
+                        />
+                    )}
+                </td>
+            );
+        });
+    };
 
     return (
         <div className="section-panel">
@@ -81,8 +150,8 @@ export function NocTable({
                 <table id="noc-table" style={{ width: `${totalWidth}px` }}>
                     <thead>
                         <tr>
-                            <th style={{ width: '40px', minWidth: '40px', textAlign: 'center' }}>
-                                Status
+                            <th style={{ width: `${CHECK_COL_WIDTH}px`, minWidth: `${CHECK_COL_WIDTH}px`, maxWidth: `${CHECK_COL_WIDTH}px`, textAlign: 'center' }}>
+                                Check
                             </th>
 
                             {columnConfig.map((col, idx) => {
@@ -135,51 +204,13 @@ export function NocTable({
 
                                 // FAIXA CINZA DE EVENTO ÚNICO
                                 if (eq.isGroupHeader) {
-                                    // Se existem colunas exclusivas de eventos, calcula o colSpan para o título principal
-                                    const titleColSpan = eventCols.length > 0 ? (standardCols.length || 1) : columnConfig.length;
-
                                     return (
                                         <tr key={eq.id} style={{ backgroundColor: completed ? '#d1fae5' : '#94a3b8', borderBottom: '2px solid #64748b' }}>
                                             <td style={{ textAlign: 'center', fontSize: '1rem' }}>
                                                 {completed ? '✅' : '📌'}
                                             </td>
-                                            
-                                            {/* Título Principal do Evento */}
-                                            <td colSpan={titleColSpan} style={{ textAlign: 'center', padding: '6px 12px', fontWeight: 'bold', color: '#0f172a', letterSpacing: '1px', textTransform: 'uppercase' }}>
-                                                {isEditMode ? (
-                                                    <input 
-                                                        type="text" 
-                                                        value={eq.groupName || ''} 
-                                                        onChange={(e) => onUpdateField(eq.id, 'groupName', e.target.value)}
-                                                        placeholder="NOME DO EVENTO"
-                                                        style={{ fontWeight: '800', textAlign: 'center', background: '#e2e8f0', borderRadius: '4px', border: '1px solid #475569', color: '#0f172a', width: '80%' }}
-                                                    />
-                                                ) : (
-                                                    <span>📌 {eq.groupName || 'EVENTO SEM NOME'} {completed ? '(CONCLUÍDO ✅)' : ''}</span>
-                                                )}
-                                            </td>
 
-                                            {/* Renderiza campos específicos de colunas exclusivas para eventos */}
-                                            {eventCols.map(col => {
-                                                let w = parseInt(col.width) || 150;
-                                                let cellValue = eq[col.id] !== undefined ? eq[col.id] : '';
-                                                return (
-                                                    <td key={col.id} className={col.type === 'checkbox' ? 'checkbox-cell' : ''} style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, background: '#cbd5e1' }}>
-                                                        {col.type === 'checkbox' ? (
-                                                            <Checkbox checked={!!cellValue} onChange={(e) => onUpdateField(eq.id, col.id, e.target.checked)} />
-                                                        ) : (
-                                                            <Input
-                                                                className={isEditMode ? 'editable' : ''}
-                                                                value={cellValue}
-                                                                placeholder={col.name}
-                                                                readOnly={!isEditMode}
-                                                                onChange={(e) => onUpdateField(eq.id, col.id, e.target.value)}
-                                                                style={{ fontWeight: '600' }}
-                                                            />
-                                                        )}
-                                                    </td>
-                                                );
-                                            })}
+                                            {renderGroupCells(eq, completed)}
 
                                             {isEditMode && (
                                                 <td style={{ textAlign: 'center', width: '140px' }}>
@@ -212,7 +243,7 @@ export function NocTable({
                                         {columnConfig.map(col => {
                                             let w = parseInt(col.width) || 150;
                                             
-                                            // Se a coluna for exclusiva para Eventos, desabilita/exibe travada nas linhas padrão
+                                            // Se a coluna for exclusiva para Eventos, exibe travada nas linhas padrão
                                             if (col.targetScope === 'events') {
                                                 return (
                                                     <td key={col.id} style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, textAlign: 'center', color: '#cbd5e1', background: '#f8fafc', fontSize: '0.8rem' }} title="Campo exclusivo para faixas de evento">

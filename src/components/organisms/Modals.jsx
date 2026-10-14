@@ -16,6 +16,7 @@ export function Modals({
     const [customColName, setCustomColName] = useState('');
     const [customColType, setCustomColType] = useState('text');
     const [customColScope, setCustomColScope] = useState('all');
+    const [eventSearch, setEventSearch] = useState('');
 
     if (!modalData?.isOpen && !colModalOpen) return null;
 
@@ -24,6 +25,7 @@ export function Modals({
         if (!selectedItem.trim()) return alert('Selecione um evento para agendar!');
         onSaveEvent(selectedItem);
         setSelectedItem('');
+        setEventSearch('');
     };
 
     const handleAddColSubmit = (e) => {
@@ -46,6 +48,25 @@ export function Modals({
         return !eq.groupId;
     });
 
+    // Opções de evento com o rótulo que será gravado no agendamento
+    const eventOptions = availableEvents.map((eq) => ({
+        id: eq.id,
+        label: eq.isGroupHeader
+            ? `📌 ${eq.groupName || 'Sem Nome'}`
+            : (columnConfig[0] ? String(eq[columnConfig[0].id] || 'Sem Nome') : 'Equipamento')
+    }));
+
+    const term = eventSearch.trim().toLowerCase();
+    const filteredOptions = eventOptions.filter(opt => opt.label.toLowerCase().includes(term));
+
+    const closeDayModal = () => {
+        setSelectedItem('');
+        setEventSearch('');
+        onCloseModal();
+    };
+
+    const pickOption = (label) => setSelectedItem(label);
+
     return (
         <>
             {/* Modal de Agendamentos do Dia */}
@@ -58,7 +79,7 @@ export function Modals({
                                 <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem' }}>Gerenciar Agendamentos do Dia</h3>
                                 <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>Data: <strong>{modalData.friendlyDate || modalData.dateStr}</strong></p>
                             </div>
-                            <Button size="sm" style={{ background: '#cbd5e1', color: '#1e293b' }} onClick={onCloseModal}>X</Button>
+                            <Button size="sm" style={{ background: '#cbd5e1', color: '#1e293b' }} onClick={closeDayModal}>X</Button>
                         </div>
 
                         {/* Lista dos Agendamentos do Dia */}
@@ -87,33 +108,62 @@ export function Modals({
                             )}
                         </div>
 
-                        {/* Seleção exclusiva de Eventos Únicos */}
+                        {/* Pesquisa e seleção exclusiva de Eventos Únicos */}
                         <form onSubmit={handleAddEventSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
                             <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#475569' }}>
-                                Selecionar evento único para agendar:
+                                Pesquisar evento único para agendar:
                             </label>
 
-                            <select 
-                                value={selectedItem} 
-                                onChange={(e) => setSelectedItem(e.target.value)}
-                                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff', color: '#0f172a' }}
-                            >
-                                <option value="">-- Escolha o Evento --</option>
-                                {availableEvents.map((eq) => {
-                                    const labelText = eq.isGroupHeader 
-                                        ? `📌 ${eq.groupName || 'Sem Nome'}` 
-                                        : (columnConfig[0] ? String(eq[columnConfig[0].id] || 'Sem Nome') : 'Equipamento');
+                            <input
+                                type="text"
+                                value={eventSearch}
+                                placeholder="Digite para pesquisar um evento..."
+                                autoComplete="off"
+                                onChange={(e) => { setEventSearch(e.target.value); setSelectedItem(''); }}
+                                onKeyDown={(e) => {
+                                    // Enter escolhe o primeiro resultado sem enviar o formulário
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        if (filteredOptions.length > 0) pickOption(filteredOptions[0].label);
+                                    }
+                                }}
+                                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box', background: '#f8fafc', color: '#0f172a' }}
+                            />
 
-                                    return (
-                                        <option key={eq.id} value={labelText}>
-                                            {labelText}
-                                        </option>
-                                    );
-                                })}
-                            </select>
+                            <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#fff' }}>
+                                {filteredOptions.length === 0 ? (
+                                    <p style={{ margin: 0, padding: '10px', fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', textAlign: 'center' }}>
+                                        {eventOptions.length === 0 ? 'Nenhum evento único cadastrado.' : 'Nenhum evento encontrado.'}
+                                    </p>
+                                ) : (
+                                    filteredOptions.map((opt) => {
+                                        const isPicked = selectedItem === opt.label;
+                                        return (
+                                            <button
+                                                key={opt.id}
+                                                type="button"
+                                                onClick={() => pickOption(opt.label)}
+                                                style={{
+                                                    display: 'block', width: '100%', textAlign: 'left', padding: '7px 10px',
+                                                    border: 'none', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
+                                                    fontSize: '0.85rem', color: '#0f172a',
+                                                    background: isPicked ? '#dbeafe' : '#ffffff',
+                                                    fontWeight: isPicked ? 'bold' : 'normal'
+                                                }}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        );
+                                    })
+                                )}
+                            </div>
+
+                            <span style={{ fontSize: '0.75rem', color: selectedItem ? '#16a34a' : '#94a3b8' }}>
+                                {selectedItem ? <>Selecionado: <strong>{selectedItem}</strong></> : 'Nenhum evento selecionado'}
+                            </span>
 
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '5px' }}>
-                                <Button style={{ background: '#e2e8f0', color: '#1e293b' }} onClick={onCloseModal}>Fechar</Button>
+                                <Button style={{ background: '#e2e8f0', color: '#1e293b' }} onClick={closeDayModal}>Fechar</Button>
                                 <Button variant="primary" type="submit">+ Agendar Evento</Button>
                             </div>
                         </form>
