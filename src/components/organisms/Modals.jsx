@@ -20,7 +20,7 @@ export function Modals({
 
     const handleAddEventSubmit = (e) => {
         e.preventDefault();
-        if (!selectedItem.trim()) return alert('Selecione um evento ou equipamento!');
+        if (!selectedItem.trim()) return alert('Selecione um evento para agendar!');
         onSaveEvent(selectedItem);
         setSelectedItem('');
     };
@@ -32,13 +32,15 @@ export function Modals({
         setCustomColName('');
     };
 
-    // Filtra os equipamentos para exibir SOMENTE os Eventos Unificados e equipamentos avulsos (oculta itens que foram agrupados)
+    // Verifica se existem Eventos Únicos (faixas cinzas) na tabela
+    const hasGroupHeaders = (modalData.equipments || []).some(eq => eq.isGroupHeader);
+
+    // Filtra para exibir SOMENTE os Eventos Únicos na caixa de seleção do calendário
     const availableEvents = (modalData.equipments || []).filter(eq => {
-        // Se for um Evento Unificado (Faixa Cinza), exibe no menu
-        if (eq.isGroupHeader) return true;
-        // Se a linha pertencer a um grupo/evento unificado, NÃO exibe individualmente
-        if (eq.groupId) return false;
-        return true;
+        if (hasGroupHeaders) {
+            return eq.isGroupHeader === true;
+        }
+        return !eq.groupId;
     });
 
     return (
@@ -66,14 +68,12 @@ export function Modals({
                                 modalData.items.map((item, idx) => (
                                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: item.completed ? '#f0fdf4' : '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            {/* SOMENTE o clique no checkbox altera o status de concluído */}
                                             <input 
                                                 type="checkbox" 
                                                 checked={item.completed || false} 
                                                 onChange={() => onToggleCompleteSchedule(modalData.dateStr, idx)}
                                                 style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                                             />
-                                            {/* O texto do nome do evento apenas exibe a informação, sem marcar como feito ao clicar */}
                                             <span style={{ fontSize: '0.85rem', fontWeight: '600', color: item.completed ? '#16a34a' : '#1e293b', textDecoration: item.completed ? 'line-through' : 'none', userSelect: 'none' }}>
                                                 {item.text}
                                             </span>
@@ -84,10 +84,10 @@ export function Modals({
                             )}
                         </div>
 
-                        {/* Form para Agendar Novo Evento */}
+                        {/* Seleção exclusiva de Eventos Únicos */}
                         <form onSubmit={handleAddEventSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
                             <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#475569' }}>
-                                Selecionar evento para agendar:
+                                Selecionar evento único para agendar:
                             </label>
 
                             <select 
@@ -95,10 +95,10 @@ export function Modals({
                                 onChange={(e) => setSelectedItem(e.target.value)}
                                 style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff', color: '#0f172a' }}
                             >
-                                <option value="">-- Escolha o Evento ou Equipamento --</option>
+                                <option value="">-- Escolha o Evento --</option>
                                 {availableEvents.map((eq) => {
                                     const labelText = eq.isGroupHeader 
-                                        ? eq.groupName || 'Sem Nome' 
+                                        ? `📌 ${eq.groupName || 'Sem Nome'}` 
                                         : (columnConfig[0] ? String(eq[columnConfig[0].id] || 'Sem Nome') : 'Equipamento');
 
                                     return (
@@ -151,4 +151,4 @@ export function Modals({
             )}
         </>
     );
-}
+}

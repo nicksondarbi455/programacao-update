@@ -1,7 +1,6 @@
 import { Input } from '../atoms/Input';
 import { Checkbox } from '../atoms/Checkbox';
 import { Button } from '../atoms/Button';
-import { getEventColor } from '../../constants/eventColors';
 
 const colorMap = {
     'vermelho': '#fee2e2', 'azul': '#dbeafe', 'verde': '#dcfce7',
@@ -12,15 +11,18 @@ const colorMap = {
 function isRowCompleted(eq, schedules, columnConfig) {
     if (eq.status) return true;
 
-    // Obtém o nome/rótulo do item
     let label = eq.isGroupHeader ? eq.groupName : (columnConfig[0] ? eq[columnConfig[0].id] : '');
-
     if (!label) return false;
 
-    // Procura nos agendamentos do calendário se este item foi marcado como concluído
+    const cleanedLabel = String(label).replace(/^📌\s*/, '').trim().toLowerCase();
+
     for (const dateKey in schedules) {
         const items = schedules[dateKey] || [];
-        const match = items.find(item => item.text === label || item.text === `📌 EVENTO: ${label}`);
+        const match = items.find(item => {
+            if (!item.text) return false;
+            const cleanedText = String(item.text).replace(/^📌\s*/, '').trim().toLowerCase();
+            return cleanedText === cleanedLabel;
+        });
         if (match && match.completed) {
             return true;
         }
@@ -75,7 +77,6 @@ export function NocTable({
                 <table id="noc-table" style={{ width: `${totalWidth}px` }}>
                     <thead>
                         <tr>
-                            {/* Coluna para Seleção e Status Positivo */}
                             <th style={{ width: '40px', minWidth: '40px', textAlign: 'center' }}>
                                 Status
                             </th>
@@ -120,24 +121,24 @@ export function NocTable({
                             filteredEquipments.map(eq => {
                                 const completed = isRowCompleted(eq, schedules, columnConfig);
 
-                                // FAIXA/EVENTO ÚNICO UNIFICADO
+                                // FAIXA DE EVENTO ÚNICO
                                 if (eq.isGroupHeader) {
                                     return (
-                                        <tr key={eq.id} style={{ backgroundColor: completed ? '#d1fae5' : getEventColor(eq.color).hex, borderBottom: '2px solid #64748b' }}>
+                                        <tr key={eq.id} style={{ backgroundColor: completed ? '#d1fae5' : '#94a3b8', borderBottom: '2px solid #64748b' }}>
                                             <td style={{ textAlign: 'center', fontSize: '1rem' }}>
                                                 {completed ? '✅' : '📌'}
                                             </td>
-                                            <td colSpan={columnConfig.length} style={{ textAlign: 'center', padding: '6px 12px', fontWeight: 'bold', color: completed ? '#0f172a' : getEventColor(eq.color).text, letterSpacing: '1px', textTransform: 'uppercase' }}>
+                                            <td colSpan={columnConfig.length} style={{ textAlign: 'center', padding: '6px 12px', fontWeight: 'bold', color: '#0f172a', letterSpacing: '1px', textTransform: 'uppercase' }}>
                                                 {isEditMode ? (
                                                     <input 
                                                         type="text" 
                                                         value={eq.groupName || ''} 
                                                         onChange={(e) => onUpdateField(eq.id, 'groupName', e.target.value)}
-                                                        placeholder="NOME DO EVENTO ÚNICO"
+                                                        placeholder="NOME DO EVENTO"
                                                         style={{ fontWeight: '800', textAlign: 'center', background: '#e2e8f0', borderRadius: '4px', border: '1px solid #475569', color: '#0f172a', width: '80%' }}
                                                     />
                                                 ) : (
-                                                    <span>EVENTO ÚNICO: {eq.groupName || 'EVENTO SEM NOME'} {completed ? '(CONCLUÍDO ✅)' : ''}</span>
+                                                    <span>📌 {eq.groupName || 'EVENTO SEM NOME'} {completed ? '(CONCLUÍDO ✅)' : ''}</span>
                                                 )}
                                             </td>
                                             {isEditMode && (
@@ -149,13 +150,12 @@ export function NocTable({
                                     );
                                 }
 
-                                // LINHA DE DADOS PERTENCENTE A UM EVENTO OU AVULSA
+                                // LINHA DE DADOS PADRÃO
                                 let rowBg = completed ? '#f0fdf4' : (colorMap[eq.color] || '#ffffff');
                                 const isSelected = selectedRowIds.includes(eq.id);
 
                                 return (
                                     <tr key={eq.id} style={{ backgroundColor: rowBg, borderLeft: eq.groupId ? '4px solid #8b5cf6' : 'none' }}>
-                                        {/* Coluna de Status Positivo ou Seleção no modo de edição */}
                                         <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                                             {isEditMode ? (
                                                 <input 
@@ -214,4 +214,4 @@ export function NocTable({
             </div>
         </div>
     );
-}
+}
