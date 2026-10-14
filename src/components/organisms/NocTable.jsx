@@ -67,6 +67,10 @@ export function NocTable({
 
     const totalWidth = columnConfig.reduce((acc, col) => acc + (parseInt(col.width) || 150), 0) + (isEditMode ? 180 : 40);
 
+    // Separa as colunas gerais das colunas exclusivas de eventos
+    const standardCols = columnConfig.filter(col => col.targetScope !== 'events');
+    const eventCols = columnConfig.filter(col => col.targetScope === 'events');
+
     return (
         <div className="section-panel">
             <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -83,26 +87,34 @@ export function NocTable({
 
                             {columnConfig.map((col, idx) => {
                                 let w = parseInt(col.width) || 150;
+                                const isEventScope = col.targetScope === 'events';
                                 return (
                                     <th
                                         key={col.id}
-                                        style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px` }}
+                                        style={{ 
+                                            width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`,
+                                            background: isEventScope ? '#334155' : undefined 
+                                        }}
                                         draggable={isEditMode}
                                         onDragStart={(e) => onDragStart(e, idx)}
                                         onDragOver={onDragOver}
                                         onDrop={(e) => onDrop(e, idx)}
+                                        title={isEventScope ? 'Coluna exclusiva de Eventos' : 'Coluna geral'}
                                     >
                                         {isEditMode && columnConfig.length > 1 && (
                                             <Button variant="danger" size="sm" style={{ padding: '0 2px', float: 'right' }} onClick={() => onDeleteCol(col.id)}>X</Button>
                                         )}
-                                        <span
-                                            className={isEditMode ? "col-title-display editable" : "col-title-display"}
-                                            contentEditable={isEditMode}
-                                            suppressContentEditableWarning={true}
-                                            onBlur={(e) => onUpdateColName(col.id, e.target.innerText)}
-                                        >
-                                            {col.name}
-                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            {isEventScope && <span style={{ fontSize: '0.7rem' }} title="Apenas Eventos">📌</span>}
+                                            <span
+                                                className={isEditMode ? "col-title-display editable" : "col-title-display"}
+                                                contentEditable={isEditMode}
+                                                suppressContentEditableWarning={true}
+                                                onBlur={(e) => onUpdateColName(col.id, e.target.innerText)}
+                                            >
+                                                {col.name}
+                                            </span>
+                                        </div>
                                         <div className="resizer" onMouseDown={(e) => onInitResize(e, idx)} />
                                     </th>
                                 );
@@ -121,14 +133,19 @@ export function NocTable({
                             filteredEquipments.map(eq => {
                                 const completed = isRowCompleted(eq, schedules, columnConfig);
 
-                                // FAIXA DE EVENTO ÚNICO
+                                // FAIXA CINZA DE EVENTO ÚNICO
                                 if (eq.isGroupHeader) {
+                                    // Se existem colunas exclusivas de eventos, calcula o colSpan para o título principal
+                                    const titleColSpan = eventCols.length > 0 ? (standardCols.length || 1) : columnConfig.length;
+
                                     return (
                                         <tr key={eq.id} style={{ backgroundColor: completed ? '#d1fae5' : '#94a3b8', borderBottom: '2px solid #64748b' }}>
                                             <td style={{ textAlign: 'center', fontSize: '1rem' }}>
                                                 {completed ? '✅' : '📌'}
                                             </td>
-                                            <td colSpan={columnConfig.length} style={{ textAlign: 'center', padding: '6px 12px', fontWeight: 'bold', color: '#0f172a', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                                            
+                                            {/* Título Principal do Evento */}
+                                            <td colSpan={titleColSpan} style={{ textAlign: 'center', padding: '6px 12px', fontWeight: 'bold', color: '#0f172a', letterSpacing: '1px', textTransform: 'uppercase' }}>
                                                 {isEditMode ? (
                                                     <input 
                                                         type="text" 
@@ -141,6 +158,29 @@ export function NocTable({
                                                     <span>📌 {eq.groupName || 'EVENTO SEM NOME'} {completed ? '(CONCLUÍDO ✅)' : ''}</span>
                                                 )}
                                             </td>
+
+                                            {/* Renderiza campos específicos de colunas exclusivas para eventos */}
+                                            {eventCols.map(col => {
+                                                let w = parseInt(col.width) || 150;
+                                                let cellValue = eq[col.id] !== undefined ? eq[col.id] : '';
+                                                return (
+                                                    <td key={col.id} className={col.type === 'checkbox' ? 'checkbox-cell' : ''} style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, background: '#cbd5e1' }}>
+                                                        {col.type === 'checkbox' ? (
+                                                            <Checkbox checked={!!cellValue} onChange={(e) => onUpdateField(eq.id, col.id, e.target.checked)} />
+                                                        ) : (
+                                                            <Input
+                                                                className={isEditMode ? 'editable' : ''}
+                                                                value={cellValue}
+                                                                placeholder={col.name}
+                                                                readOnly={!isEditMode}
+                                                                onChange={(e) => onUpdateField(eq.id, col.id, e.target.value)}
+                                                                style={{ fontWeight: '600' }}
+                                                            />
+                                                        )}
+                                                    </td>
+                                                );
+                                            })}
+
                                             {isEditMode && (
                                                 <td style={{ textAlign: 'center', width: '140px' }}>
                                                     <Button variant="danger" size="sm" style={{ padding: '2px 8px' }} onClick={() => onDeleteRow(eq.id)}>Excluir Evento</Button>
@@ -171,11 +211,21 @@ export function NocTable({
 
                                         {columnConfig.map(col => {
                                             let w = parseInt(col.width) || 150;
+                                            
+                                            // Se a coluna for exclusiva para Eventos, desabilita/exibe travada nas linhas padrão
+                                            if (col.targetScope === 'events') {
+                                                return (
+                                                    <td key={col.id} style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, textAlign: 'center', color: '#cbd5e1', background: '#f8fafc', fontSize: '0.8rem' }} title="Campo exclusivo para faixas de evento">
+                                                        —
+                                                    </td>
+                                                );
+                                            }
+
                                             let cellValue = eq[col.id] !== undefined ? eq[col.id] : '';
                                             return (
                                                 <td key={col.id} className={col.type === 'checkbox' ? 'checkbox-cell' : ''} style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px` }}>
                                                     {col.type === 'checkbox' ? (
-                                                        <Checkbox checked={cellValue} onChange={(e) => onUpdateField(eq.id, col.id, e.target.checked)} />
+                                                        <Checkbox checked={!!cellValue} onChange={(e) => onUpdateField(eq.id, col.id, e.target.checked)} />
                                                     ) : (
                                                         <Input
                                                             className={isEditMode ? 'editable' : ''}

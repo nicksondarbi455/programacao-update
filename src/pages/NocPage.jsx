@@ -207,14 +207,21 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         await persist(() => supabaseService.deleteEquipment(id));
     };
 
-    const handleSaveNewCol = async (name, type) => {
+    const handleSaveNewCol = async (name, type, targetScope = 'all') => {
         if (!name) return alert('Digite o nome da coluna!');
         let colId = 'col_' + Date.now();
-        let newCol = { id: colId, name, type, position: columnConfig.length, width: 120 };
+        let newCol = { 
+            id: colId, 
+            name, 
+            type, 
+            targetScope, // 'all' ou 'events'
+            position: columnConfig.length, 
+            width: 150 
+        };
         let updated = [...columnConfig, newCol];
         setColumnConfig(updated);
         setColModalOpen(false);
-        await persist(() => supabaseService.updateColumnConfig(project.id, updated));
+        await supabaseService.updateColumnConfig(project.id, updated);
     };
 
     const handleDeleteCol = async (colId) => {
@@ -389,4 +396,4 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
             />
         </div>
     );
-}
+}
