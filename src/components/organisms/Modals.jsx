@@ -98,7 +98,7 @@ export function Modals({
                                 <option value="">-- Escolha o Evento ou Equipamento --</option>
                                 {availableEvents.map((eq) => {
                                     const labelText = eq.isGroupHeader 
-                                        ? `📌 EVENTO: ${eq.groupName || 'Sem Nome'}` 
+                                        ? eq.groupName || 'Sem Nome' 
                                         : (columnConfig[0] ? String(eq[columnConfig[0].id] || 'Sem Nome') : 'Equipamento');
 
                                     return (
@@ -151,4 +151,4 @@ export function Modals({
             )}
         </>
     );
-}
+}

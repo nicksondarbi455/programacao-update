@@ -2,6 +2,7 @@ import { TopBar } from '../organisms/TopBar';
 import { NocTable } from '../organisms/NocTable';
 import { CalendarWidget } from '../organisms/CalendarWidget';
 import { Modals } from '../organisms/Modals';
+import { GroupEventModal } from '../organisms/GroupEventModal';
 
 export function NocTemplate({
     todayAlertText,
@@ -12,7 +13,6 @@ export function NocTemplate({
     onToggleEdit,
     onNewRow,
     onNewCol,
-    onNewGroup,
     selectedRowIds = [],
     onToggleSelectRow,
     onGroupSelectedRows,
@@ -46,7 +46,10 @@ export function NocTemplate({
     setSearchTerm,
     statusFilter,
     setStatusFilter,
-    hasCalendar
+    hasCalendar,
+    groupModalOpen,
+    onConfirmGroup,
+    onCloseGroupModal
 }) {
     return (
         /* Espaçamento inferior reforçado para garantir que o rodapé da tabela não fique escondido */
@@ -57,7 +60,6 @@ export function NocTemplate({
                 onToggleEdit={onToggleEdit}
                 onNewRow={onNewRow}
                 onNewCol={onNewCol}
-                onNewGroup={onNewGroup}
                 selectedRowsCount={selectedRowIds.length}
                 onGroupSelectedRows={onGroupSelectedRows}
                 onDeleteProject={onDeleteProject}
@@ -128,6 +130,14 @@ export function NocTemplate({
                 />
             )}
 
+            {groupModalOpen && (
+                <GroupEventModal
+                    rowsCount={selectedRowIds.length}
+                    onConfirm={onConfirmGroup}
+                    onCancel={onCloseGroupModal}
+                />
+            )}
+
             <Modals
                 modalData={modalData}
                 onCloseModal={onCloseModal}
@@ -141,4 +151,4 @@ export function NocTemplate({
             />
         </div>
     );
-}
+}

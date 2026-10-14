@@ -2,9 +2,18 @@ import { useState, useEffect } from 'react';
 import { supabaseService } from '../services/supabaseService';
 import { Button } from '../components/atoms/Button';
 import { Input } from '../components/atoms/Input';
+import { SideMenu } from '../components/organisms/SideMenu';
+import { UsersPage } from './UsersPage';
 import * as XLSX from 'xlsx';
 
+const PLACEHOLDER_TITLES = {
+    historico: 'Histórico',
+    personalizacao: 'Personalização',
+    sobre: 'Sobre'
+};
+
 export function DashboardPage({ user, onSelectProject, onLogout }) {
+    const [section, setSection] = useState('projetos');
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
@@ -17,7 +26,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
     const [tableSource, setTableSource] = useState('manual');
     const [numRows, setNumRows] = useState(3);
     const [numCols, setNumCols] = useState(4);
-    
+
     const [importedData, setImportedData] = useState({ columns: [], rows: [] });
 
     const loadProjects = async () => {
@@ -132,7 +141,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             }, user.email);
 
             await loadProjects();
-            
+
             setName('');
             setDescription('');
             setHasCalendar(true);
@@ -144,14 +153,11 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
         }
     };
 
-    return (
-        <div style={{ padding: '30px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'DM Sans, sans-serif' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #cbd5e1', paddingBottom: '15px', marginBottom: '25px' }}>
-                <div>
-                    <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.4rem' }}>Meus Projetos e Serviços</h2>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Sincronização em tempo real ativada.</p>
-                </div>
-                <Button style={{ background: '#dc2626', color: '#fff' }} onClick={onLogout}>Terminar Sessão</Button>
+    const renderProjects = () => (
+        <>
+            <div style={{ borderBottom: '1px solid #cbd5e1', paddingBottom: '15px', marginBottom: '25px' }}>
+                <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.4rem' }}>Meus Projetos e Serviços</h2>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Sincronização em tempo real ativada.</p>
             </div>
 
             {loadError && (
@@ -164,16 +170,16 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                 <p style={{ textAlign: 'center', color: '#64748b' }}>A carregar projetos...</p>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px' }}>
-                    
-                    <div 
+
+                    <div
                         onClick={() => setIsModalOpen(true)}
                         style={{
                             background: 'linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(90deg, #07aeea 0%, #2bf598 100%) border-box',
                             border: '2px solid transparent',
-                            borderRadius: '12px', 
+                            borderRadius: '12px',
                             padding: '20px',
                             display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-                            gap: '12px', cursor: 'pointer', height: '140px', 
+                            gap: '12px', cursor: 'pointer', height: '140px',
                             boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
                             transition: 'transform 0.3s ease, box-shadow 0.3s ease'
                         }}
@@ -186,14 +192,14 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                     </div>
 
                     {projects.map(proj => (
-                        <div 
-                            key={proj.id} 
+                        <div
+                            key={proj.id}
                             onClick={() => onSelectProject(proj)}
-                            style={{ 
+                            style={{
                                 background: 'linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(45deg, #fada61 0%, #ff9188 50%, #ff5acd 100%) border-box',
                                 border: '2px solid transparent',
-                                padding: '18px', borderRadius: '12px', cursor: 'pointer', 
-                                boxShadow: '0 2px 6px rgba(0,0,0,0.04)', 
+                                padding: '18px', borderRadius: '12px', cursor: 'pointer',
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
                                 display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '140px'
                             }}
                         >
@@ -220,15 +226,15 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, backdropFilter: 'blur(2px)' }}>
                     <div style={{ background: '#fff', padding: '25px', borderRadius: '12px', width: '440px', maxWidth: '90%', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <h3 style={{ margin: '0 0 5px 0', fontSize: '1.1rem', color: '#0f172a' }}>Configurar Novo Projeto</h3>
-                        
+
                         <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' }}>Nome do Projeto</label>
                             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Gestão de Ativos NOC" required />
 
                             <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' }}>Descrição</label>
-                            <textarea 
-                                value={description} onChange={(e) => setDescription(e.target.value)} 
-                                placeholder="Breve resumo..." 
+                            <textarea
+                                value={description} onChange={(e) => setDescription(e.target.value)}
+                                placeholder="Breve resumo..."
                                 style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', borderRadius: '4px', fontSize: '0.8rem', resize: 'none', height: '50px' }}
                             />
 
@@ -280,6 +286,23 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                     </div>
                 </div>
             )}
+        </>
+    );
+
+    return (
+        <div style={{ display: 'flex', height: '100vh', width: '100%', fontFamily: 'DM Sans, sans-serif' }}>
+            <SideMenu
+                active={section}
+                onSelect={setSection}
+                userEmail={user.email}
+                onLogout={onLogout}
+            />
+
+            <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '30px', boxSizing: 'border-box' }}>
+                {section === 'projetos' && <div style={{ maxWidth: '1000px', margin: '0 auto' }}>{renderProjects()}</div>}
+                {section === 'usuario' && <UsersPage currentUserEmail={user.email} />}
+                {PLACEHOLDER_TITLES[section] && <h2 style={{ fontSize: '1.4rem', color: '#0f172a' }}>{PLACEHOLDER_TITLES[section]}</h2>}
+            </main>
         </div>
     );
 }

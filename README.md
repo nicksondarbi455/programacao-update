@@ -21,7 +21,8 @@ Outros comandos: `npm run build`, `npm run preview`, `npm run lint`.
    - ativa **Row Level Security** em todas as tabelas, para que cada utilizador veja apenas os seus projetos;
    - bloqueia o acesso de visitantes sem login;
    - cria as funções `update_equipment_field` e `replace_column_configs` (gravações atómicas).
-3. Se já tem projetos criados com o login antigo (`user_email = 'admin'`), atribua-os à sua conta — o comando está no fim do ficheiro SQL.
+3. Em **SQL Editor**, execute também [`supabase/usuarios_departamentos.sql`](supabase/usuarios_departamentos.sql): cria os perfis, os departamentos e as permissões de acesso. Depois, torne-se administrador com o comando no fim do ficheiro.
+4. Se já tem projetos criados com o login antigo (`user_email = 'admin'`), atribua-os à sua conta — o comando está no fim do ficheiro SQL.
 
 > A chave `anon` é pública por desenho; quem protege os dados é a RLS. **Nunca** coloque a chave `service_role` no frontend.
 
@@ -36,5 +37,6 @@ src/
 │   ├── organisms/   TopBar, NocTable, Modals, FloatingCalendar, CalendarWidget
 │   └── templates/   NocTemplate
 └── services/        supabase.js (cliente), supabaseService.js (acesso a dados)
-supabase/seguranca.sql   RLS + funções SQL
+supabase/seguranca.sql           RLS + funções SQL
+supabase/usuarios_departamentos.sql   perfis, departamentos e permissões
 ```

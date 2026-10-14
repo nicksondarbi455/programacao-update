@@ -15,96 +15,127 @@ const inputStyle = {
     background: '#f8fafc'
 };
 
+const EMPTY_FORM = { name: '', email: '', password: '', confirmPassword: '' };
+
 const translateError = (err) => {
     const msg = err?.message || '';
-    if (msg.includes('Invalid login credentials')) return 'E-mail ou palavra-passe incorretos.';
+    if (msg.includes('Invalid login credentials')) return 'E-mail ou senha incorretos.';
     if (msg.includes('Email not confirmed')) return 'Confirme o seu e-mail antes de iniciar sessão.';
-    if (msg.includes('already registered')) return 'Este e-mail já está registado.';
-    if (msg.includes('Password should be')) return 'A palavra-passe deve ter pelo menos 6 caracteres.';
+    if (msg.includes('already registered')) return 'Este e-mail já está cadastrado.';
+    if (msg.includes('Password should be')) return 'A senha deve ter pelo menos 6 caracteres.';
     return msg || 'Ocorreu um erro. Tente novamente.';
+};
+
+// Em erros de senha os campos são limpos
+const isPasswordError = (err) => {
+    const msg = err?.message || '';
+    return msg.includes('Invalid login credentials') || msg.includes('Password should be');
 };
 
 export function AuthPage() {
     const [mode, setMode] = useState('login'); // 'login' | 'signup'
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const [form, setForm] = useState(EMPTY_FORM);
     const [message, setMessage] = useState(null); // { type: 'error' | 'info', text }
     const [loading, setLoading] = useState(false);
+
+    const isLogin = mode === 'login';
+
+    const updateField = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    const clearForm = () => setForm(EMPTY_FORM);
+
+    const switchMode = () => {
+        setMode(isLogin ? 'signup' : 'login');
+        setMessage(null);
+        clearForm();
+    };
 
     const handleAuth = async (e) => {
         e.preventDefault();
         setLoading(true);
         setMessage(null);
 
+        const email = form.email.trim().toLowerCase();
+
         try {
-            if (mode === 'login') {
-                const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+            if (isLogin) {
+                const { error } = await supabase.auth.signInWithPassword({ email, password: form.password });
                 if (error) throw error;
                 // O App deteta a sessão via onAuthStateChange e troca de ecrã.
-            } else {
-                const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
-                if (error) throw error;
-                if (!data.session) {
-                    setMessage({ type: 'info', text: 'Conta criada! Confirme o seu e-mail e depois inicie sessão.' });
-                    setMode('login');
-                }
+                return;
             }
+
+            if (form.password !== form.confirmPassword) {
+                setMessage({ type: 'error', text: 'As senhas não coincidem.' });
+                clearForm();
+                return;
+            }
+
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password: form.password,
+                options: { data: { full_name: form.name.trim() } }
+            });
+            if (error) throw error;
+
+            clearForm();
+            if (!data.session) {
+                setMode('login');
+                setMessage({ type: 'info', text: 'Conta criada! Confirme o seu e-mail, se solicitado, e depois inicie sessão.' });
+            }
+            // Com sessão ativa, o App troca de ecrã automaticamente.
         } catch (err) {
             setMessage({ type: 'error', text: translateError(err) });
+            if (isPasswordError(err)) clearForm();
         } finally {
             setLoading(false);
         }
     };
 
-    const isLogin = mode === 'login';
+    const fields = [
+        ...(!isLogin ? [{ key: 'name', label: 'Nome', type: 'text', autoComplete: 'name', placeholder: 'Seu nome completo' }] : []),
+        { key: 'email', label: 'E-mail', type: 'email', autoComplete: 'email', placeholder: 'voce@empresa.com' },
+        { key: 'password', label: 'Senha', type: 'password', autoComplete: isLogin ? 'current-password' : 'new-password', placeholder: '********', minLength: 6 },
+        ...(!isLogin ? [{ key: 'confirmPassword', label: 'Confirmar senha', type: 'password', autoComplete: 'new-password', placeholder: '********', minLength: 6 }] : [])
+    ];
 
     return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', fontFamily: 'DM Sans, sans-serif' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', fontFamily: 'DM Sans, sans-serif', padding: '20px', boxSizing: 'border-box' }}>
             <div style={{
                 background: '#ffffff',
                 padding: '35px 30px',
                 borderRadius: '16px',
                 boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
                 width: '360px',
+                maxWidth: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '18px'
+                gap: '18px',
+                boxSizing: 'border-box'
             }}>
                 <div style={{ textAlign: 'center' }}>
-                    <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.4rem', fontWeight: '800' }}>Painel NOC</h2>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-                        {isLogin ? 'Aceda à gestão de programação de rede' : 'Crie a sua conta'}
+                    {isLogin && <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.4rem', fontWeight: '800' }}>Painel NOC</h2>}
+                    <p style={{ margin: isLogin ? '4px 0 0 0' : 0, fontSize: '0.8rem', color: '#64748b' }}>
+                        {isLogin ? 'Acesse a gestão de programação de rede' : 'Crie a sua conta'}
                     </p>
                 </div>
 
                 <form onSubmit={handleAuth} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'center' }}>
-                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={labelStyle}>E-mail</label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="voce@empresa.com"
-                            autoComplete="email"
-                            required
-                            style={inputStyle}
-                        />
-                    </div>
-
-                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={labelStyle}>Palavra-passe</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="********"
-                            autoComplete={isLogin ? 'current-password' : 'new-password'}
-                            minLength={6}
-                            required
-                            style={inputStyle}
-                        />
-                    </div>
+                    {fields.map((field) => (
+                        <div key={field.key} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <label style={labelStyle}>{field.label}</label>
+                            <input
+                                type={field.type}
+                                value={form[field.key]}
+                                onChange={updateField(field.key)}
+                                placeholder={field.placeholder}
+                                autoComplete={field.autoComplete}
+                                minLength={field.minLength}
+                                required
+                                style={inputStyle}
+                            />
+                        </div>
+                    ))}
 
                     {message && (
                         <p role="alert" style={{ fontSize: '0.75rem', color: message.type === 'error' ? '#dc2626' : '#16a34a', margin: '2px 0 0 0', textAlign: 'center', fontWeight: '600' }}>
@@ -135,10 +166,10 @@ export function AuthPage() {
 
                 <button
                     type="button"
-                    onClick={() => { setMode(isLogin ? 'signup' : 'login'); setMessage(null); }}
+                    onClick={switchMode}
                     style={{ background: 'none', border: 'none', color: '#2914c8', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '600' }}
                 >
-                    {isLogin ? 'Não tem conta? Registe-se' : 'Já tem conta? Iniciar sessão'}
+                    {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Iniciar sessão'}
                 </button>
             </div>
         </div>

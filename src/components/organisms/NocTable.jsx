@@ -1,6 +1,7 @@
 import { Input } from '../atoms/Input';
 import { Checkbox } from '../atoms/Checkbox';
 import { Button } from '../atoms/Button';
+import { getEventColor } from '../../constants/eventColors';
 
 const colorMap = {
     'vermelho': '#fee2e2', 'azul': '#dbeafe', 'verde': '#dcfce7',
@@ -122,11 +123,11 @@ export function NocTable({
                                 // FAIXA/EVENTO ÚNICO UNIFICADO
                                 if (eq.isGroupHeader) {
                                     return (
-                                        <tr key={eq.id} style={{ backgroundColor: completed ? '#d1fae5' : '#94a3b8', borderBottom: '2px solid #64748b' }}>
+                                        <tr key={eq.id} style={{ backgroundColor: completed ? '#d1fae5' : getEventColor(eq.color).hex, borderBottom: '2px solid #64748b' }}>
                                             <td style={{ textAlign: 'center', fontSize: '1rem' }}>
                                                 {completed ? '✅' : '📌'}
                                             </td>
-                                            <td colSpan={columnConfig.length} style={{ textAlign: 'center', padding: '6px 12px', fontWeight: 'bold', color: '#0f172a', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                                            <td colSpan={columnConfig.length} style={{ textAlign: 'center', padding: '6px 12px', fontWeight: 'bold', color: completed ? '#0f172a' : getEventColor(eq.color).text, letterSpacing: '1px', textTransform: 'uppercase' }}>
                                                 {isEditMode ? (
                                                     <input 
                                                         type="text" 
@@ -213,4 +214,4 @@ export function NocTable({
             </div>
         </div>
     );
-}
+}

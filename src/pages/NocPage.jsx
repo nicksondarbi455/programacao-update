@@ -19,6 +19,8 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
 
     // Estado para guardar os IDs das linhas selecionadas para unificação
     const [selectedRowIds, setSelectedRowIds] = useState([]);
+    // Modal com nome e cor ao unir linhas em 1 evento
+    const [groupModalOpen, setGroupModalOpen] = useState(false);
 
     const columnConfigRef = useRef(columnConfig);
     useEffect(() => {
@@ -72,11 +74,15 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     };
 
     // UNIFICA AS LINHAS SELECIONADAS EM 1 EVENTO ÚNICO
-    const handleGroupSelectedRows = async () => {
+    const handleOpenGroupModal = () => {
         if (selectedRowIds.length === 0) return;
+        setGroupModalOpen(true);
+    };
 
-        const eventTitle = prompt(`Digite o nome do Evento Único para agrupar as ${selectedRowIds.length} linhas selecionadas:`);
-        if (!eventTitle || !eventTitle.trim()) return;
+    // Recebe o nome e a cor escolhidos no modal
+    const handleConfirmGroup = async (eventTitle, eventColor) => {
+        if (selectedRowIds.length === 0) return;
+        setGroupModalOpen(false);
 
         const groupId = 'grp_' + Date.now();
         const headerId = 'eq_grp_' + Date.now();
@@ -85,8 +91,8 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         const groupHeaderRow = {
             id: headerId,
             isGroupHeader: true,
-            groupName: eventTitle.trim().toUpperCase(),
-            color: 'cinza'
+            groupName: eventTitle.toUpperCase(),
+            color: eventColor
         };
 
         // 2. Associa o groupId às linhas selecionadas
@@ -194,22 +200,6 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         });
         setEquipments(prev => [...prev, newEq]);
         await persist(() => supabaseService.addEquipment(project.id, newEq));
-    };
-
-    const handleAddNewGroup = async () => {
-        let groupTitle = prompt('Digite o nome do Evento Único:');
-        if (!groupTitle || !groupTitle.trim()) return;
-
-        let newId = 'eq_grp_' + Date.now();
-        let newGroup = { 
-            id: newId, 
-            isGroupHeader: true, 
-            groupName: groupTitle.trim().toUpperCase(), 
-            color: 'cinza' 
-        };
-
-        setEquipments(prev => [...prev, newGroup]);
-        await persist(() => supabaseService.addEquipment(project.id, newGroup));
     };
 
     const handleDeleteRow = async (id) => {
@@ -359,10 +349,12 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
                 onToggleEdit={() => setIsEditMode(!isEditMode)}
                 onNewRow={handleAddNewRow}
                 onNewCol={() => setColModalOpen(true)}
-                onNewGroup={handleAddNewGroup}
                 selectedRowIds={selectedRowIds}
                 onToggleSelectRow={handleToggleSelectRow}
-                onGroupSelectedRows={handleGroupSelectedRows}
+                onGroupSelectedRows={handleOpenGroupModal}
+                groupModalOpen={groupModalOpen}
+                onConfirmGroup={handleConfirmGroup}
+                onCloseGroupModal={() => setGroupModalOpen(false)}
                 onDeleteProject={handleDeleteProject}
                 columnConfig={columnConfig}
                 equipments={equipments}
@@ -397,4 +389,4 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
             />
         </div>
     );
-}
+}
