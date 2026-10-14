@@ -146,7 +146,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #cbd5e1', paddingBottom: '18px', marginBottom: '25px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                     <img 
-                        src="/logo.png" 
+                        src="./logo.png" 
                         alt="Logo" 
                         onError={(e) => { e.target.style.display = 'none'; }}
                         style={{ height: '42px', objectFit: 'contain' }} 

@@ -3,7 +3,7 @@ export function SideMenu({ activeTab, onSelectTab }) {
         <div className="side-menu" style={{ width: '220px', height: '100vh', padding: '20px 15px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
                 <img 
-                    src="/logo.png" 
+                    src="./logo.png" 
                     alt="Logo" 
                     onError={(e) => { e.target.style.display = 'none'; }}
                     style={{ height: '36px', objectFit: 'contain' }} 
