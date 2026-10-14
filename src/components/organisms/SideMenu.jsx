@@ -1,50 +1,46 @@
-export function SideMenu({ activeTab, onSelectTab }) {
-    return (
-        <div className="side-menu" style={{ width: '220px', height: '100vh', padding: '20px 15px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
-                <img 
-                    src="./logo.png" 
-                    alt="Logo" 
-                    onError={(e) => { e.target.style.display = 'none'; }}
-                    style={{ height: '36px', objectFit: 'contain' }} 
-                />
-                <span style={{ fontWeight: '800', fontSize: '1.1rem', letterSpacing: '0.5px' }}>Painel NOC</span>
-            </div>
+// Menu lateral exibido após o login
+const MENU_ITEMS = [
+    { id: 'projetos', label: 'Projetos' },
+    { id: 'usuario', label: 'Usuário' },
+    { id: 'historico', label: 'Histórico' },
+    { id: 'personalizacao', label: 'Personalização' },
+    { id: 'sobre', label: 'Sobre' },
+];
 
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <button 
-                    onClick={() => onSelectTab('dashboard')} 
+export function SideMenu({ active, onSelect, userEmail, onLogout }) {
+    return (
+        <aside style={{ width: '220px', flexShrink: 0, height: '100vh', boxSizing: 'border-box', background: '#1e293b', color: '#ffffff', display: 'flex', flexDirection: 'column', padding: '20px 12px', gap: '6px' }}>
+            {MENU_ITEMS.map((item) => (
+                <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onSelect(item.id)}
                     style={{
                         padding: '10px 12px',
-                        borderRadius: '6px',
+                        borderRadius: '8px',
                         border: 'none',
-                        background: activeTab === 'dashboard' ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
-                        color: '#fff',
-                        textAlign: 'left',
-                        fontWeight: 'bold',
                         cursor: 'pointer',
-                        transition: 'background 0.2s'
+                        textAlign: 'left',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        background: active === item.id ? '#2914c8' : 'transparent',
+                        color: '#e2e8f0'
                     }}
                 >
-                    📊 Projetos
+                    {item.label}
                 </button>
-                <button 
-                    onClick={() => onSelectTab('users')} 
-                    style={{
-                        padding: '10px 12px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: activeTab === 'users' ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
-                        color: '#fff',
-                        textAlign: 'left',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        transition: 'background 0.2s'
-                    }}
+            ))}
+
+            <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <p style={{ margin: '0 4px', fontSize: '0.7rem', color: '#94a3b8', wordBreak: 'break-all' }}>{userEmail}</p>
+                <button
+                    type="button"
+                    onClick={onLogout}
+                    style={{ padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, background: '#dc2626', color: '#ffffff' }}
                 >
-                    👥 Usuários & Departamentos
+                    Terminar Sessão
                 </button>
-            </nav>
-        </div>
+            </div>
+        </aside>
     );
 }

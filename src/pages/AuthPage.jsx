@@ -1,207 +1,176 @@
 import { useState } from 'react';
+import { supabase } from '../services/supabase';
 import { Button } from '../components/atoms/Button';
-import { Input } from '../components/atoms/Input';
 
-export function AuthPage({ onLoginSuccess }) {
-    const [isRegister, setIsRegister] = useState(false);
-    const [name, setName] = useState('');
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [successMsg, setSuccessMsg] = useState('');
+const labelStyle = { fontSize: '0.75rem', color: '#475569', fontWeight: '700' };
+const inputStyle = {
+    width: '100%',
+    height: '38px',
+    padding: '0 12px',
+    borderRadius: '6px',
+    border: '1px solid #cbd5e1',
+    fontSize: '0.85rem',
+    boxSizing: 'border-box',
+    outline: 'none',
+    background: '#f8fafc'
+};
 
-    const handleSubmit = (e) => {
+const EMPTY_FORM = { name: '', email: '', password: '', confirmPassword: '' };
+
+const translateError = (err) => {
+    const msg = err?.message || '';
+    if (msg.includes('Invalid login credentials')) return 'E-mail ou senha incorretos.';
+    if (msg.includes('Email not confirmed')) return 'Confirme o seu e-mail antes de iniciar sessão.';
+    if (msg.includes('already registered')) return 'Este e-mail já está cadastrado.';
+    if (msg.includes('Password should be')) return 'A senha deve ter pelo menos 6 caracteres.';
+    return msg || 'Ocorreu um erro. Tente novamente.';
+};
+
+// Em erros de senha os campos são limpos
+const isPasswordError = (err) => {
+    const msg = err?.message || '';
+    return msg.includes('Invalid login credentials') || msg.includes('Password should be');
+};
+
+export function AuthPage() {
+    const [mode, setMode] = useState('login'); // 'login' | 'signup'
+    const [form, setForm] = useState(EMPTY_FORM);
+    const [message, setMessage] = useState(null); // { type: 'error' | 'info', text }
+    const [loading, setLoading] = useState(false);
+
+    const isLogin = mode === 'login';
+
+    const updateField = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    const clearForm = () => setForm(EMPTY_FORM);
+
+    const switchMode = () => {
+        setMode(isLogin ? 'signup' : 'login');
+        setMessage(null);
+        clearForm();
+    };
+
+    const handleAuth = async (e) => {
         e.preventDefault();
-        setError('');
-        setSuccessMsg('');
+        setLoading(true);
+        setMessage(null);
 
-        if (isRegister) {
-            if (!name.trim() || !username.trim() || !password.trim()) {
-                setError('Preencha todos os campos para se cadastrar.');
+        const email = form.email.trim().toLowerCase();
+
+        try {
+            if (isLogin) {
+                const { error } = await supabase.auth.signInWithPassword({ email, password: form.password });
+                if (error) throw error;
+                // O App deteta a sessão via onAuthStateChange e troca de ecrã.
                 return;
             }
-            // Regista novos utilizadores mantendo persistência
-            const users = JSON.parse(localStorage.getItem('noc_registered_users') || '[]');
-            if (users.some(u => u.username.toLowerCase() === username.trim().toLowerCase())) {
-                setError('Este nome de usuário já está em uso.');
+
+            if (form.password !== form.confirmPassword) {
+                setMessage({ type: 'error', text: 'As senhas não coincidem.' });
+                clearForm();
                 return;
             }
-            const newUser = {
-                name: name.trim(),
-                username: username.trim(),
-                email: `${username.trim().toLowerCase()}@noc.com`,
-                password: password,
-                departmentId: 'dep_noc'
-            };
-            users.push(newUser);
-            localStorage.setItem('noc_registered_users', JSON.stringify(users));
-            setSuccessMsg('Conta criada com sucesso! Você já pode entrar.');
-            setIsRegister(false);
-            setPassword('');
-        } else {
-            // Login com conta admin padrão ou conta cadastrada
-            const users = JSON.parse(localStorage.getItem('noc_registered_users') || '[]');
-            const foundUser = users.find(
-                u => (u.username.toLowerCase() === username.trim().toLowerCase() || u.email.toLowerCase() === username.trim().toLowerCase()) && u.password === password
-            );
 
-            if (foundUser) {
-                onLoginSuccess(foundUser);
-            } else if (username.trim() === 'admin' && password === 'noc@ultra') {
-                onLoginSuccess({
-                    email: 'admin@noc.com',
-                    name: 'Administrador NOC',
-                    departmentId: 'dep_noc'
-                });
-            } else {
-                setError('Credenciais inválidas. Utilize admin / noc@ultra ou crie uma nova conta.');
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password: form.password,
+                options: { data: { full_name: form.name.trim() } }
+            });
+            if (error) throw error;
+
+            clearForm();
+            if (!data.session) {
+                setMode('login');
+                setMessage({ type: 'info', text: 'Conta criada! Confirme o seu e-mail, se solicitado, e depois inicie sessão.' });
             }
+            // Com sessão ativa, o App troca de ecrã automaticamente.
+        } catch (err) {
+            setMessage({ type: 'error', text: translateError(err) });
+            if (isPasswordError(err)) clearForm();
+        } finally {
+            setLoading(false);
         }
     };
 
+    const fields = [
+        ...(!isLogin ? [{ key: 'name', label: 'Nome', type: 'text', autoComplete: 'name', placeholder: 'Seu nome completo' }] : []),
+        { key: 'email', label: 'E-mail', type: 'email', autoComplete: 'email', placeholder: 'voce@empresa.com' },
+        { key: 'password', label: 'Senha', type: 'password', autoComplete: isLogin ? 'current-password' : 'new-password', placeholder: '********', minLength: 6 },
+        ...(!isLogin ? [{ key: 'confirmPassword', label: 'Confirmar senha', type: 'password', autoComplete: 'new-password', placeholder: '********', minLength: 6 }] : [])
+    ];
+
     return (
-        <div className="login-bg">
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', fontFamily: 'DM Sans, sans-serif', padding: '20px', boxSizing: 'border-box' }}>
             <div style={{
-                background: 'rgba(255, 255, 255, 0.96)',
-                backdropFilter: 'blur(12px)',
+                background: '#ffffff',
                 padding: '35px 30px',
                 borderRadius: '16px',
-                width: '420px',
-                maxWidth: '90%',
-                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+                width: '360px',
+                maxWidth: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'center'
+                alignItems: 'center',
+                gap: '18px',
+                boxSizing: 'border-box'
             }}>
-                {/* Logo com caminho relativo ./logo.png para funcionar no GitHub Pages */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
-                    <img 
-                        src="./logo.png" 
-                        alt="Logo" 
-                        onError={(e) => {
-                            if (!e.target.dataset.tried) {
-                                e.target.dataset.tried = 'true';
-                                e.target.src = 'logo.png';
-                            }
-                        }}
-                        style={{ height: '48px', width: 'auto', objectFit: 'contain' }} 
-                    />
-                    <div>
-                        <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#0f172a', fontWeight: '800' }}>Painel NOC</h2>
-                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Gestão Integrada e Agendamentos</span>
-                    </div>
+                <div style={{ textAlign: 'center' }}>
+                    {isLogin && <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.4rem', fontWeight: '800' }}>Painel NOC</h2>}
+                    <p style={{ margin: isLogin ? '4px 0 0 0' : 0, fontSize: '0.8rem', color: '#64748b' }}>
+                        {isLogin ? 'Acesse a gestão de programação de rede' : 'Crie a sua conta'}
+                    </p>
                 </div>
 
-                {error && (
-                    <div style={{
-                        background: '#fef2f2',
-                        border: '1px solid #fca5a5',
-                        color: '#991b1b',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
-                        width: '100%',
-                        marginBottom: '15px',
-                        textAlign: 'center'
-                    }}>
-                        {error}
-                    </div>
-                )}
-
-                {successMsg && (
-                    <div style={{
-                        background: '#f0fdf4',
-                        border: '1px solid #86efac',
-                        color: '#166534',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
-                        width: '100%',
-                        marginBottom: '15px',
-                        textAlign: 'center'
-                    }}>
-                        {successMsg}
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    {isRegister && (
-                        <div>
-                            <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '4px' }}>
-                                Nome Completo
-                            </label>
-                            <Input 
-                                type="text"
-                                placeholder="Digite seu nome..." 
-                                value={name} 
-                                onChange={(e) => setName(e.target.value)}
-                                required 
-                                style={{ width: '100%', height: '38px', boxSizing: 'border-box' }}
+                <form onSubmit={handleAuth} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'center' }}>
+                    {fields.map((field) => (
+                        <div key={field.key} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <label style={labelStyle}>{field.label}</label>
+                            <input
+                                type={field.type}
+                                value={form[field.key]}
+                                onChange={updateField(field.key)}
+                                placeholder={field.placeholder}
+                                autoComplete={field.autoComplete}
+                                minLength={field.minLength}
+                                required
+                                style={inputStyle}
                             />
                         </div>
+                    ))}
+
+                    {message && (
+                        <p role="alert" style={{ fontSize: '0.75rem', color: message.type === 'error' ? '#dc2626' : '#16a34a', margin: '2px 0 0 0', textAlign: 'center', fontWeight: '600' }}>
+                            {message.text}
+                        </p>
                     )}
 
-                    <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '4px' }}>
-                            Usuário
-                        </label>
-                        <Input 
-                            type="text"
-                            placeholder="Digite seu usuário..." 
-                            value={username} 
-                            onChange={(e) => setUsername(e.target.value)}
-                            required 
-                            style={{ width: '100%', height: '38px', boxSizing: 'border-box' }}
-                        />
-                    </div>
-
-                    <div>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '4px' }}>
-                            Senha
-                        </label>
-                        <Input 
-                            type="password"
-                            placeholder="••••••••" 
-                            value={password} 
-                            onChange={(e) => setPassword(e.target.value)}
-                            required 
-                            style={{ width: '100%', height: '38px', boxSizing: 'border-box' }}
-                        />
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
-                        <Button variant="primary" style={{ width: '200px', height: '38px' }}>
-                            {isRegister ? 'Criar Minha Conta' : 'Entrar no Sistema'}
-                        </Button>
-                    </div>
-                </form>
-
-                {/* Botão de Alternância entre Entrar e Criar Conta */}
-                <div style={{ marginTop: '18px', textAlign: 'center' }}>
-                    <button 
-                        type="button" 
-                        onClick={() => {
-                            setIsRegister(!isRegister);
-                            setError('');
-                            setSuccessMsg('');
-                        }}
+                    <Button
+                        type="submit"
+                        variant="primary"
+                        disabled={loading}
                         style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#0284c7',
-                            fontWeight: '600',
+                            width: '180px',
+                            height: '38px',
+                            marginTop: '8px',
+                            borderRadius: '8px',
+                            fontWeight: 'bold',
                             fontSize: '0.85rem',
-                            cursor: 'pointer',
-                            textDecoration: 'underline'
+                            boxShadow: '0 4px 12px rgba(41, 20, 200, 0.25)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
                         }}
                     >
-                        {isRegister ? 'Já tem uma conta? Fazer Login' : 'Não tem conta? Criar nova conta'}
-                    </button>
-                </div>
+                        {loading ? 'Aguarde...' : isLogin ? 'Entrar' : 'Criar conta'}
+                    </Button>
+                </form>
 
-                <div style={{ marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '12px', width: '100%', textAlign: 'center' }}>
-                    <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Sistema de Sincronização em Tempo Real (Supabase)</span>
-                </div>
+                <button
+                    type="button"
+                    onClick={switchMode}
+                    style={{ background: 'none', border: 'none', color: '#2914c8', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '600' }}
+                >
+                    {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Iniciar sessão'}
+                </button>
             </div>
         </div>
     );
