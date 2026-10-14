@@ -1,43 +1,144 @@
 import { TopBar } from '../organisms/TopBar';
 import { NocTable } from '../organisms/NocTable';
-import { FloatingCalendar } from '../organisms/FloatingCalendar';
+import { CalendarWidget } from '../organisms/CalendarWidget';
 import { Modals } from '../organisms/Modals';
-import { Input } from '../atoms/Input';
-import { Button } from '../atoms/Button';
 
-export function NocTemplate({ searchTerm, setSearchTerm, statusFilter, setStatusFilter, hasCalendar, ...props }) {
+export function NocTemplate({
+    todayAlertText,
+    percentage,
+    connectionStatus,
+    connectionText,
+    isEditMode,
+    onToggleEdit,
+    onNewRow,
+    onNewCol,
+    onNewGroup,
+    selectedRowIds = [],
+    onToggleSelectRow,
+    onGroupSelectedRows,
+    onDeleteProject,
+    columnConfig,
+    equipments,
+    onUpdateField,
+    onUpdateColName,
+    onDeleteCol,
+    onDeleteRow,
+    onDragStart,
+    onDragOver,
+    onDrop,
+    onInitResize,
+    isOpen,
+    onToggle,
+    schedules,
+    onOpenModal,
+    onToggleComplete,
+    weekCount,
+    tomorrowCount,
+    modalData,
+    onSaveEvent,
+    onCloseModal,
+    onDeleteSchedule,
+    onToggleCompleteSchedule,
+    colModalOpen,
+    onSaveCol,
+    onCloseCol,
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    setStatusFilter,
+    hasCalendar
+}) {
     return (
-        <>
-            <TopBar {...props} />
-            
-            <div className="main-content" style={{ padding: '10px 15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                
-                {/* Barra de Filtros e Pesquisa Avançada */}
-                <div style={{ background: '#ffffff', padding: '10px 15px', borderRadius: '6px', border: '1px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1, minWidth: '250px' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#475569' }}>Pesquisar:</span>
-                        <Input 
-                            value={searchTerm} 
-                            onChange={(e) => setSearchTerm(e.target.value)} 
-                            placeholder="Pesquisar em qualquer coluna..." 
-                            style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }}
-                        />
-                    </div>
+        /* Espaçamento inferior reforçado para garantir que o rodapé da tabela não fique escondido */
+        <div style={{ paddingBottom: '160px', minHeight: '100vh', boxSizing: 'border-box' }}>
+            <TopBar
+                todayAlertText={todayAlertText}
+                isEditMode={isEditMode}
+                onToggleEdit={onToggleEdit}
+                onNewRow={onNewRow}
+                onNewCol={onNewCol}
+                onNewGroup={onNewGroup}
+                selectedRowsCount={selectedRowIds.length}
+                onGroupSelectedRows={onGroupSelectedRows}
+                onDeleteProject={onDeleteProject}
+            />
 
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#475569' }}>Filtrar:</span>
-                        <Button size="sm" variant={statusFilter === 'all' ? 'primary' : 'secondary'} style={statusFilter !== 'all' ? { background: '#e2e8f0', color: '#1e293b' } : {}} onClick={() => setStatusFilter('all')}>Todos</Button>
-                        <Button size="sm" variant={statusFilter === 'pending' ? 'primary' : 'secondary'} style={statusFilter !== 'pending' ? { background: '#e2e8f0', color: '#1e293b' } : {}} onClick={() => setStatusFilter('pending')}>Pendentes</Button>
-                        <Button size="sm" variant={statusFilter === 'completed' ? 'primary' : 'secondary'} style={statusFilter !== 'completed' ? { background: '#e2e8f0', color: '#1e293b' } : {}} onClick={() => setStatusFilter('completed')}>Concluídos</Button>
+            <div style={{ padding: '0 20px', marginTop: '15px' }}>
+                <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '15px' }}>
+                    <input
+                        type="text"
+                        placeholder="Pesquisar em qualquer coluna..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '300px', fontSize: '0.85rem' }}
+                    />
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '0.8rem' }}>
+                        <span style={{ color: '#64748b', fontWeight: 'bold' }}>Filtrar:</span>
+                        <button 
+                            onClick={() => setStatusFilter('all')} 
+                            style={{ padding: '4px 10px', borderRadius: '4px', border: 'none', background: statusFilter === 'all' ? '#1e293b' : '#e2e8f0', color: statusFilter === 'all' ? '#fff' : '#1e293b', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+                        >
+                            Todos
+                        </button>
+                        <button 
+                            onClick={() => setStatusFilter('pending')} 
+                            style={{ padding: '4px 10px', borderRadius: '4px', border: 'none', background: statusFilter === 'pending' ? '#1e293b' : '#e2e8f0', color: statusFilter === 'pending' ? '#fff' : '#1e293b', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+                        >
+                            Pendentes
+                        </button>
+                        <button 
+                            onClick={() => setStatusFilter('completed')} 
+                            style={{ padding: '4px 10px', borderRadius: '4px', border: 'none', background: statusFilter === 'completed' ? '#1e293b' : '#e2e8f0', color: statusFilter === 'completed' ? '#fff' : '#1e293b', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+                        >
+                            Concluídos
+                        </button>
                     </div>
                 </div>
 
-                <NocTable {...props} searchTerm={searchTerm} statusFilter={statusFilter} />
+                <NocTable
+                    columnConfig={columnConfig}
+                    equipments={equipments}
+                    isEditMode={isEditMode}
+                    selectedRowIds={selectedRowIds}
+                    onToggleSelectRow={onToggleSelectRow}
+                    onUpdateField={onUpdateField}
+                    onUpdateColName={onUpdateColName}
+                    onDeleteCol={onDeleteCol}
+                    onDeleteRow={onDeleteRow}
+                    onDragStart={onDragStart}
+                    onDragOver={onDragOver}
+                    onDrop={onDrop}
+                    onInitResize={onInitResize}
+                    schedules={schedules}
+                    searchTerm={searchTerm}
+                    statusFilter={statusFilter}
+                />
             </div>
 
-            {/* Renderiza o calendário apenas se o projeto tiver a opção ativada */}
-            {hasCalendar && <FloatingCalendar {...props} />}
-            <Modals {...props} />
-        </>
+            {hasCalendar && (
+                <CalendarWidget
+                    isOpen={isOpen}
+                    onToggle={onToggle}
+                    schedules={schedules}
+                    equipments={equipments}
+                    onOpenModal={onOpenModal}
+                    onToggleComplete={onToggleComplete}
+                    weekCount={weekCount}
+                    tomorrowCount={tomorrowCount}
+                />
+            )}
+
+            <Modals
+                modalData={modalData}
+                onCloseModal={onCloseModal}
+                onSaveEvent={onSaveEvent}
+                onDeleteSchedule={onDeleteSchedule}
+                onToggleCompleteSchedule={onToggleCompleteSchedule}
+                colModalOpen={colModalOpen}
+                onSaveCol={onSaveCol}
+                onCloseCol={onCloseCol}
+                columnConfig={columnConfig}
+            />
+        </div>
     );
 }

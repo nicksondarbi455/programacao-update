@@ -7,9 +7,48 @@ const colorMap = {
     'amarelo': '#fef3c7', 'preto': '#f1f5f9', 'padrao': '#ffffff'
 };
 
-export function NocTable({ columnConfig, equipments, isEditMode, onUpdateField, onUpdateColName, onDeleteCol, onDeleteRow, onDragStart, onDragOver, onDrop, onInitResize, searchTerm = '', statusFilter = 'all' }) {
+// Verifica se a linha ou evento possui status de concluído nos agendamentos
+function isRowCompleted(eq, schedules, columnConfig) {
+    if (eq.status) return true;
+
+    // Obtém o nome/rótulo do item
+    let label = eq.isGroupHeader ? eq.groupName : (columnConfig[0] ? eq[columnConfig[0].id] : '');
+
+    if (!label) return false;
+
+    // Procura nos agendamentos do calendário se este item foi marcado como concluído
+    for (const dateKey in schedules) {
+        const items = schedules[dateKey] || [];
+        const match = items.find(item => item.text === label || item.text === `📌 EVENTO: ${label}`);
+        if (match && match.completed) {
+            return true;
+        }
+    }
+    return false;
+}
+
+export function NocTable({ 
+    columnConfig, 
+    equipments, 
+    isEditMode, 
+    selectedRowIds = [],
+    onToggleSelectRow,
+    onUpdateField, 
+    onUpdateColName, 
+    onDeleteCol, 
+    onDeleteRow, 
+    onDragStart, 
+    onDragOver, 
+    onDrop, 
+    onInitResize, 
+    schedules = {},
+    searchTerm = '', 
+    statusFilter = 'all' 
+}) {
     
     const filteredEquipments = equipments.filter(eq => {
+        if (eq.isGroupHeader) return true;
+
         if (statusFilter === 'pending' && eq.status) return false;
         if (statusFilter === 'completed' && !eq.status) return false;
 
@@ -19,26 +58,27 @@ export function NocTable({ columnConfig, equipments, isEditMode, onUpdateField, 
         return Object.keys(eq).some(key => {
             let itemVal = eq[key];
             if (typeof itemVal === 'string' && itemVal.toLowerCase().includes(term)) return true;
-            if (eq.custom && typeof eq.custom === 'object') {
-                return Object.values(eq.custom).some(cVal => String(cVal).toLowerCase().includes(term));
-            }
             return false;
         });
     });
 
-    // Ajusta a largura total da tabela para acomodar a coluna de ações/prioridades quando em modo de edição
-    const totalWidth = columnConfig.reduce((acc, col) => acc + (parseInt(col.width) || 150), 0) + (isEditMode ? 140 : 0);
+    const totalWidth = columnConfig.reduce((acc, col) => acc + (parseInt(col.width) || 150), 0) + (isEditMode ? 180 : 40);
 
     return (
         <div className="section-panel">
             <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h2>Gestão de Dados ({filteredEquipments.length} registos)</h2>
-                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>💡 Clique em "Editar" no topo para alterar dados, cores ou remover itens</span>
+                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>💡 No modo de edição, marque as caixas das linhas desejadas e clique em "Unir em 1 Evento"</span>
             </div>
             <div className="table-container">
                 <table id="noc-table" style={{ width: `${totalWidth}px` }}>
                     <thead>
                         <tr>
+                            {/* Coluna para Seleção e Status Positivo */}
+                            <th style={{ width: '40px', minWidth: '40px', textAlign: 'center' }}>
+                                Status
+                            </th>
+
                             {columnConfig.map((col, idx) => {
                                 let w = parseInt(col.width) || 150;
                                 return (
@@ -65,22 +105,69 @@ export function NocTable({ columnConfig, equipments, isEditMode, onUpdateField, 
                                     </th>
                                 );
                             })}
-                            {/* A coluna de Prioridade e Ações só aparece quando o modo de edição está ativo */}
                             {isEditMode && <th style={{ textAlign: 'center', width: '140px', minWidth: '140px' }}>Prioridade / Ações</th>}
                         </tr>
                     </thead>
                     <tbody>
                         {filteredEquipments.length === 0 ? (
                             <tr>
-                                <td colSpan={columnConfig.length + (isEditMode ? 1 : 0)} style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+                                <td colSpan={columnConfig.length + (isEditMode ? 2 : 1)} style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
                                     Nenhum registo encontrado.
                                 </td>
                             </tr>
                         ) : (
                             filteredEquipments.map(eq => {
-                                let rowBg = colorMap[eq.color] || '#ffffff';
+                                const completed = isRowCompleted(eq, schedules, columnConfig);
+
+                                // FAIXA/EVENTO ÚNICO UNIFICADO
+                                if (eq.isGroupHeader) {
+                                    return (
+                                        <tr key={eq.id} style={{ backgroundColor: completed ? '#d1fae5' : '#94a3b8', borderBottom: '2px solid #64748b' }}>
+                                            <td style={{ textAlign: 'center', fontSize: '1rem' }}>
+                                                {completed ? '✅' : '📌'}
+                                            </td>
+                                            <td colSpan={columnConfig.length} style={{ textAlign: 'center', padding: '6px 12px', fontWeight: 'bold', color: '#0f172a', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                                                {isEditMode ? (
+                                                    <input 
+                                                        type="text" 
+                                                        value={eq.groupName || ''} 
+                                                        onChange={(e) => onUpdateField(eq.id, 'groupName', e.target.value)}
+                                                        placeholder="NOME DO EVENTO ÚNICO"
+                                                        style={{ fontWeight: '800', textAlign: 'center', background: '#e2e8f0', borderRadius: '4px', border: '1px solid #475569', color: '#0f172a', width: '80%' }}
+                                                    />
+                                                ) : (
+                                                    <span>EVENTO ÚNICO: {eq.groupName || 'EVENTO SEM NOME'} {completed ? '(CONCLUÍDO ✅)' : ''}</span>
+                                                )}
+                                            </td>
+                                            {isEditMode && (
+                                                <td style={{ textAlign: 'center', width: '140px' }}>
+                                                    <Button variant="danger" size="sm" style={{ padding: '2px 8px' }} onClick={() => onDeleteRow(eq.id)}>Excluir Evento</Button>
+                                                </td>
+                                            )}
+                                        </tr>
+                                    );
+                                }
+
+                                // LINHA DE DADOS PERTENCENTE A UM EVENTO OU AVULSA
+                                let rowBg = completed ? '#f0fdf4' : (colorMap[eq.color] || '#ffffff');
+                                const isSelected = selectedRowIds.includes(eq.id);
+
                                 return (
-                                    <tr key={eq.id} style={{ backgroundColor: rowBg }}>
+                                    <tr key={eq.id} style={{ backgroundColor: rowBg, borderLeft: eq.groupId ? '4px solid #8b5cf6' : 'none' }}>
+                                        {/* Coluna de Status Positivo ou Seleção no modo de edição */}
+                                        <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                                            {isEditMode ? (
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={isSelected} 
+                                                    onChange={() => onToggleSelectRow(eq.id)} 
+                                                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                                />
+                                            ) : (
+                                                completed ? <span style={{ fontSize: '1.1rem' }} title="Concluído">✅</span> : null
+                                            )}
+                                        </td>
+
                                         {columnConfig.map(col => {
                                             let w = parseInt(col.width) || 150;
                                             let cellValue = eq[col.id] !== undefined ? eq[col.id] : '';
@@ -99,7 +186,7 @@ export function NocTable({ columnConfig, equipments, isEditMode, onUpdateField, 
                                                 </td>
                                             );
                                         })}
-                                        {/* Seletor de Prioridade (Cores) + Botão de Excluir linha no modo de edição */}
+
                                         {isEditMode && (
                                             <td style={{ textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '4px', alignItems: 'center', height: '32px', width: '140px' }}>
                                                 <select 

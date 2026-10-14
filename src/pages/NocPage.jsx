@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { storageService } from '../services/storageService';
+import { useState, useEffect, useRef } from 'react';
+import { supabaseService } from '../services/supabaseService';
+import { supabase } from '../services/supabase';
 import { NocTemplate } from '../components/templates/NocTemplate';
 import { Button } from '../components/atoms/Button';
 
@@ -14,32 +15,119 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     const [draggedIndex, setDraggedIndex] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [errorMsg, setErrorMsg] = useState('');
 
-    const saveProjectData = (newEquips, newCols, newScheds) => {
-        const allProjects = storageService.getProjects(userEmail);
-        const updatedProjects = allProjects.map(p => {
-            if (p.id === project.id) {
-                return {
-                    ...p,
-                    equipments: newEquips,
-                    columnConfig: newCols,
-                    schedules: newScheds
-                };
+    // Estado para guardar os IDs das linhas selecionadas para unificação
+    const [selectedRowIds, setSelectedRowIds] = useState([]);
+
+    const columnConfigRef = useRef(columnConfig);
+    useEffect(() => {
+        columnConfigRef.current = columnConfig;
+    }, [columnConfig]);
+
+    const refreshData = async () => {
+        try {
+            const allProjs = await supabaseService.getProjects(userEmail);
+            const current = allProjs.find(p => p.id === project.id);
+            if (current) {
+                setEquipments(current.equipments);
+                setColumnConfig(current.columnConfig);
+                setSchedules(current.schedules);
             }
-            return p;
+        } catch (err) {
+            setErrorMsg(err.message);
+        }
+    };
+
+    // Executa uma gravação; se falhar, avisa o utilizador e recarrega o estado real do servidor
+    const persist = async (action) => {
+        try {
+            await action();
+            setErrorMsg('');
+            return true;
+        } catch (err) {
+            setErrorMsg(err.message || 'Não foi possível guardar as alterações.');
+            await refreshData();
+            return false;
+        }
+    };
+
+    useEffect(() => {
+        const channel = supabase
+            .channel(`realtime-project-${project.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'equipments', filter: `project_id=eq.${project.id}` }, () => refreshData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'column_configs', filter: `project_id=eq.${project.id}` }, () => refreshData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules', filter: `project_id=eq.${project.id}` }, () => refreshData())
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [project.id]);
+
+    const handleToggleSelectRow = (rowId) => {
+        setSelectedRowIds(prev => 
+            prev.includes(rowId) ? prev.filter(id => id !== rowId) : [...prev, rowId]
+        );
+    };
+
+    // UNIFICA AS LINHAS SELECIONADAS EM 1 EVENTO ÚNICO
+    const handleGroupSelectedRows = async () => {
+        if (selectedRowIds.length === 0) return;
+
+        const eventTitle = prompt(`Digite o nome do Evento Único para agrupar as ${selectedRowIds.length} linhas selecionadas:`);
+        if (!eventTitle || !eventTitle.trim()) return;
+
+        const groupId = 'grp_' + Date.now();
+        const headerId = 'eq_grp_' + Date.now();
+
+        // 1. Cria a linha de Evento Pai
+        const groupHeaderRow = {
+            id: headerId,
+            isGroupHeader: true,
+            groupName: eventTitle.trim().toUpperCase(),
+            color: 'cinza'
+        };
+
+        // 2. Associa o groupId às linhas selecionadas
+        const updatedEquipments = equipments.map(eq => {
+            if (selectedRowIds.includes(eq.id)) {
+                return { ...eq, groupId: groupId };
+            }
+            return eq;
         });
-        storageService.saveProjects(userEmail, updatedProjects);
+
+        // Insere o cabeçalho do evento acima das linhas
+        const newEquipmentsList = [groupHeaderRow, ...updatedEquipments];
+        setEquipments(newEquipmentsList);
+        setSelectedRowIds([]);
+
+        // Salva no Supabase
+        await persist(async () => {
+            await supabaseService.addEquipment(project.id, groupHeaderRow);
+            for (const rowId of selectedRowIds) {
+                await supabaseService.updateEquipmentField(rowId, project.id, 'groupId', groupId);
+            }
+        });
+    };
+
+    const handleDeleteProject = async () => {
+        if (confirm('Tem certeza de que deseja apagar este projeto? Esta ação não pode ser desfeita.')) {
+            const ok = await persist(() => supabaseService.deleteProject(project.id));
+            if (ok) onBackToDashboard();
+        }
     };
 
     const calculateProgress = () => {
         let total = 0, done = 0;
         equipments.forEach(eq => {
+            if (eq.isGroupHeader) return;
             total++;
             if (eq.status) done++;
             columnConfig.forEach(col => {
                 if (col.type === 'checkbox' && col.id !== 'status') {
                     total++;
-                    let val = eq[col.id] !== undefined ? eq[col.id] : (eq.custom ? eq.custom[col.id] : false);
+                    let val = eq[col.id] !== undefined ? eq[col.id] : false;
                     if (val) done++;
                 }
             });
@@ -85,57 +173,64 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         return { weekCount, tomorrowCount };
     };
 
-    const handleUpdateField = (id, field, value) => {
-        let updated = equipments.map(eq => {
-            if (eq.id === id) {
-                let copy = { ...eq };
-                copy[field] = value;
-                return copy;
-            }
-            return eq;
-        });
+    const handleUpdateField = async (id, field, value) => {
+        let updated = equipments.map(eq => eq.id === id ? { ...eq, [field]: value } : eq);
         setEquipments(updated);
-        saveProjectData(updated, columnConfig, schedules);
+        await persist(() => supabaseService.updateEquipmentField(id, project.id, field, value));
     };
 
-    const handleUpdateColName = (colId, newName) => {
+    const handleUpdateColName = async (colId, newName) => {
         if (!newName.trim()) return;
         let updated = columnConfig.map(col => col.id === colId ? { ...col, name: newName.trim() } : col);
         setColumnConfig(updated);
-        saveProjectData(equipments, updated, schedules);
+        await persist(() => supabaseService.updateColumnConfig(project.id, updated));
     };
 
-    const handleAddNewRow = () => {
+    const handleAddNewRow = async () => {
         let newId = 'eq_' + Date.now();
         let newEq = { id: newId, color: 'padrao' };
         columnConfig.forEach(col => {
             newEq[col.id] = col.type === 'checkbox' ? false : '';
         });
-        let updated = [...equipments, newEq];
-        setEquipments(updated);
-        saveProjectData(updated, columnConfig, schedules);
+        setEquipments(prev => [...prev, newEq]);
+        await persist(() => supabaseService.addEquipment(project.id, newEq));
     };
 
-    const handleDeleteRow = (id) => {
-        let updated = equipments.filter(e => e.id !== id);
-        setEquipments(updated);
-        saveProjectData(updated, columnConfig, schedules);
+    const handleAddNewGroup = async () => {
+        let groupTitle = prompt('Digite o nome do Evento Único:');
+        if (!groupTitle || !groupTitle.trim()) return;
+
+        let newId = 'eq_grp_' + Date.now();
+        let newGroup = { 
+            id: newId, 
+            isGroupHeader: true, 
+            groupName: groupTitle.trim().toUpperCase(), 
+            color: 'cinza' 
+        };
+
+        setEquipments(prev => [...prev, newGroup]);
+        await persist(() => supabaseService.addEquipment(project.id, newGroup));
     };
 
-    const handleSaveNewCol = (name, type) => {
+    const handleDeleteRow = async (id) => {
+        setEquipments(prev => prev.filter(e => e.id !== id));
+        await persist(() => supabaseService.deleteEquipment(id));
+    };
+
+    const handleSaveNewCol = async (name, type) => {
         if (!name) return alert('Digite o nome da coluna!');
         let colId = 'col_' + Date.now();
         let newCol = { id: colId, name, type, position: columnConfig.length, width: 120 };
         let updated = [...columnConfig, newCol];
         setColumnConfig(updated);
         setColModalOpen(false);
-        saveProjectData(equipments, updated, schedules);
+        await persist(() => supabaseService.updateColumnConfig(project.id, updated));
     };
 
-    const handleDeleteCol = (colId) => {
+    const handleDeleteCol = async (colId) => {
         let updated = columnConfig.filter(c => c.id !== colId).map((col, idx) => ({ ...col, position: idx }));
         setColumnConfig(updated);
-        saveProjectData(equipments, updated, schedules);
+        await persist(() => supabaseService.updateColumnConfig(project.id, updated));
     };
 
     const handleInitResize = (e, index) => {
@@ -150,10 +245,10 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
             setColumnConfig(prev => prev.map((col, idx) => idx === index ? { ...col, width: newWidth } : col));
         };
 
-        const onMouseUp = () => {
+        const onMouseUp = async () => {
             window.removeEventListener('mousemove', onMouseMove);
             window.removeEventListener('mouseup', onMouseUp);
-            saveProjectData(equipments, columnConfig, schedules);
+            await persist(() => supabaseService.updateColumnConfig(project.id, columnConfigRef.current));
         };
 
         window.addEventListener('mousemove', onMouseMove);
@@ -168,7 +263,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         setDraggedIndex(index);
     };
 
-    const handleDrop = (e, index) => {
+    const handleDrop = async (e, index) => {
         e.preventDefault();
         if (draggedIndex === null || draggedIndex === index) return;
         let updated = [...columnConfig];
@@ -177,7 +272,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         updated.forEach((col, idx) => col.position = idx);
         setColumnConfig(updated);
         setDraggedIndex(null);
-        saveProjectData(equipments, updated, schedules);
+        await persist(() => supabaseService.updateColumnConfig(project.id, updated));
     };
 
     const handleOpenModal = (dateStr, friendlyDate) => {
@@ -191,11 +286,8 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         });
     };
 
-    const handleSaveEvent = (title) => {
+    const handleSaveEvent = async (title) => {
         if (!title) return alert('Digite ou selecione um evento!');
-        let firstColId = columnConfig[0]?.id;
-        let exists = equipments.some(eq => (eq[firstColId] || eq.cpd || eq.id) === title);
-        if (!exists) return alert('Erro: O evento precisa corresponder a um registo válido na tabela principal!');
 
         let dateStr = modalData.dateStr;
         let daySched = schedules[dateStr] || [];
@@ -205,11 +297,10 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         let newSchedules = { ...schedules, [dateStr]: newSchedItems };
         setSchedules(newSchedules);
         setModalData(prev => ({ ...prev, items: newSchedItems }));
-        saveProjectData(equipments, columnConfig, newSchedules);
+        await persist(() => supabaseService.saveSchedule(project.id, dateStr, newSchedItems));
     };
 
-    // ALTERAÇÃO: Agora, ao marcar como feito no calendário, exibe um texto informativo na linha sem mexer nas caixas de seleção da tabela
-    const handleToggleCompleteSchedule = (dateStr, itemIdx) => {
+    const handleToggleCompleteSchedule = async (dateStr, itemIdx) => {
         let daySched = (schedules[dateStr] || []).map((item, idx) => {
             if (idx === itemIdx) {
                 const nextCompleted = !item.completed;
@@ -222,19 +313,13 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
             return { ...item };
         });
 
-        if (!daySched[itemIdx]) return;
-
-        let newSchedules = {
-            ...schedules,
-            [dateStr]: daySched
-        };
-
+        let newSchedules = { ...schedules, [dateStr]: daySched };
         setSchedules(newSchedules);
         setModalData(prev => ({ ...prev, items: daySched }));
-        saveProjectData(equipments, columnConfig, newSchedules);
+        await persist(() => supabaseService.saveSchedule(project.id, dateStr, daySched));
     };
 
-    const handleDeleteSchedule = (dateStr, idx) => {
+    const handleDeleteSchedule = async (dateStr, idx) => {
         let daySched = [...(schedules[dateStr] || [])];
         daySched.splice(idx, 1);
         let newSchedules = { ...schedules };
@@ -243,53 +328,42 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
 
         setSchedules(newSchedules);
         setModalData(prev => ({ ...prev, items: daySched }));
-        saveProjectData(equipments, columnConfig, newSchedules);
+        await persist(() => supabaseService.saveSchedule(project.id, dateStr, daySched));
     };
 
     const { weekCount, tomorrowCount } = getBadgeCounts();
 
     return (
         <div>
-            {/* Barra superior do editor */}
             <div style={{ background: '#1e293b', padding: '8px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Projeto: {project.name} {project.isPrivate ? '🔒' : ''}</span>
-                    {project.description && <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>({project.description})</span>}
+                    <span style={{ fontSize: '0.7rem', color: '#22c55e', marginLeft: '10px' }}>🟢 Conectado ao Supabase (Realtime)</span>
                 </div>
                 <Button size="sm" style={{ background: '#475569', color: '#fff' }} onClick={onBackToDashboard}>Voltar aos Projetos</Button>
             </div>
+
+            {errorMsg && (
+                <div role="alert" style={{ background: '#fef2f2', color: '#b91c1c', borderBottom: '1px solid #fecaca', padding: '8px 15px', fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>⚠️ {errorMsg}</span>
+                    <button type="button" onClick={() => setErrorMsg('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', fontWeight: 'bold' }}>✕</button>
+                </div>
+            )}
 
             <NocTemplate
                 todayAlertText={getTodayAlert()}
                 percentage={calculateProgress()}
                 connectionStatus="online"
-                connectionText="Armazenamento Local"
+                connectionText="Supabase Cloud"
                 isEditMode={isEditMode}
                 onToggleEdit={() => setIsEditMode(!isEditMode)}
                 onNewRow={handleAddNewRow}
                 onNewCol={() => setColModalOpen(true)}
-                onExport={() => {
-                    let backup = { equipments, columnConfig, schedules, projectInfo: project };
-                    let blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'json' });
-                    let a = document.createElement('a');
-                    a.href = URL.createObjectURL(blob);
-                    a.download = `${project.name.toLowerCase().replace(/\s+/g, '-')}-backup.json`;
-                    a.click();
-                }}
-                onImport={(e) => {
-                    let file = e.target.files[0];
-                    if (!file) return;
-                    let reader = new FileReader();
-                    reader.onload = (event) => {
-                        let backup = JSON.parse(event.target.result);
-                        setEquipments(backup.equipments || []);
-                        setColumnConfig(backup.columnConfig || []);
-                        setSchedules(backup.schedules || {});
-                        saveProjectData(backup.equipments, backup.columnConfig, backup.schedules);
-                        alert('Projeto importado/restaurado com sucesso!');
-                    };
-                    reader.readAsText(file);
-                }}
+                onNewGroup={handleAddNewGroup}
+                selectedRowIds={selectedRowIds}
+                onToggleSelectRow={handleToggleSelectRow}
+                onGroupSelectedRows={handleGroupSelectedRows}
+                onDeleteProject={handleDeleteProject}
                 columnConfig={columnConfig}
                 equipments={equipments}
                 onUpdateField={handleUpdateField}

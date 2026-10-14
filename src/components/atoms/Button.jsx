@@ -1,4 +1,4 @@
-export function Button({ children, onClick, variant = 'primary', size = 'sm', style = {}, className = '' }) {
+export function Button({ children, onClick, variant = 'primary', size = 'sm', style = {}, className = '', type = 'button', disabled = false }) {
     const baseClass = 'btn';
     const variantClass = `btn-${variant}`;
     const sizeClass = size === 'sm' ? 'btn-sm' : '';
@@ -16,7 +16,7 @@ export function Button({ children, onClick, variant = 'primary', size = 'sm', st
         : style;
 
     return (
-        <button className={`${baseClass} ${variantClass} ${sizeClass} ${className}`} onClick={onClick} style={parsedStyle}>
+        <button type={type} disabled={disabled} className={`${baseClass} ${variantClass} ${sizeClass} ${className}`} onClick={onClick} style={parsedStyle}>
             {children}
         </button>
     );

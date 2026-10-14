@@ -1,16 +1,40 @@
-# React + Vite
+# Painel NOC
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Gestão de programação de rede: projetos com tabelas de equipamentos configuráveis (colunas, cores, agrupamento em eventos), importação de Excel e calendário de serviços, com sincronização em tempo real.
 
-Currently, two official plugins are available:
+**Stack:** React 19 · Vite · Supabase (Auth, Postgres, Realtime) · SheetJS (`xlsx`)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Como executar
 
-## React Compiler
+```bash
+npm install
+cp .env.example .env.local   # preencha com a URL e a chave anon do seu projeto Supabase
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Outros comandos: `npm run build`, `npm run preview`, `npm run lint`.
 
-## Expanding the ESLint configuration
+## Configuração do Supabase (obrigatória)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. Em **Authentication → Providers**, ative *Email*. (Opcional: desative "Allow new users to sign up" depois de criar as contas necessárias.)
+2. Em **SQL Editor**, execute o ficheiro [`supabase/seguranca.sql`](supabase/seguranca.sql). Ele:
+   - ativa **Row Level Security** em todas as tabelas, para que cada utilizador veja apenas os seus projetos;
+   - bloqueia o acesso de visitantes sem login;
+   - cria as funções `update_equipment_field` e `replace_column_configs` (gravações atómicas).
+3. Se já tem projetos criados com o login antigo (`user_email = 'admin'`), atribua-os à sua conta — o comando está no fim do ficheiro SQL.
+
+> A chave `anon` é pública por desenho; quem protege os dados é a RLS. **Nunca** coloque a chave `service_role` no frontend.
+
+## Estrutura
+
+```
+src/
+├── pages/           AuthPage, DashboardPage (projetos), NocPage (tabela + calendário)
+├── components/
+│   ├── atoms/       Button, Input, Checkbox, StatusDot
+│   ├── molecules/   ConnectionStatus, ProgressBar
+│   ├── organisms/   TopBar, NocTable, Modals, FloatingCalendar, CalendarWidget
+│   └── templates/   NocTemplate
+└── services/        supabase.js (cliente), supabaseService.js (acesso a dados)
+supabase/seguranca.sql   RLS + funções SQL
+```

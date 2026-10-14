@@ -1,27 +1,43 @@
-import { useState } from 'react';
-import { storageService } from '../services/storageService';
+import { useState, useEffect } from 'react';
+import { supabaseService } from '../services/supabaseService';
 import { Button } from '../components/atoms/Button';
 import { Input } from '../components/atoms/Input';
 import * as XLSX from 'xlsx';
 
 export function DashboardPage({ user, onSelectProject, onLogout }) {
-    const [projects, setProjects] = useState(storageService.getProjects(user.email));
+    const [projects, setProjects] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Estados do formulário
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [hasCalendar, setHasCalendar] = useState(true);
     const [isPrivate, setIsPrivate] = useState(false);
-    const [projectType, setProjectType] = useState('tabela');
-    const [tableSource, setTableSource] = useState('manual'); // 'manual' ou 'exportar'
+    const [tableSource, setTableSource] = useState('manual');
     const [numRows, setNumRows] = useState(3);
     const [numCols, setNumCols] = useState(4);
     
-    // Estado para guardar os dados do ficheiro importado
     const [importedData, setImportedData] = useState({ columns: [], rows: [] });
 
-    // Função para ler o ficheiro Excel enviado via upload
+    const loadProjects = async () => {
+        setLoading(true);
+        try {
+            const data = await supabaseService.getProjects(user.email);
+            setProjects(data);
+            setLoadError('');
+        } catch (err) {
+            setLoadError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadProjects();
+    }, [user.email]);
+
+    // Detecção automática de linhas de eventos no Excel
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -44,10 +60,23 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                     width: 150
                 }));
 
-                // As linhas seguintes são filtradas para ignorar linhas totalmente em branco
                 const rows = data.slice(1)
                     .filter(r => r.some(cell => cell !== undefined && String(cell).trim() !== ''))
                     .map((r, rIdx) => {
+                        // Conta quantas colunas possuem conteúdo preenchido
+                        const filledCells = r.filter(c => c !== undefined && String(c).trim() !== '');
+
+                        // Se a linha tiver apenas 1 coluna preenchida, considera como Título de Evento / Seção Cinza
+                        if (filledCells.length === 1) {
+                            return {
+                                id: `eq_imp_${rIdx}_${Date.now()}`,
+                                isGroupHeader: true,
+                                groupName: String(filledCells[0]).trim(),
+                                color: 'cinza'
+                            };
+                        }
+
+                        // Linha normal de dados
                         let rowObj = { id: `eq_imp_${rIdx}_${Date.now()}`, color: 'padrao' };
                         headers.forEach((col, cIdx) => {
                             rowObj[col.id] = r[cIdx] !== undefined ? String(r[cIdx]) : '';
@@ -56,13 +85,13 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                     });
 
                 setImportedData({ columns: headers, rows: rows.length > 0 ? rows : [] });
-                alert(`Ficheiro carregado com sucesso! ${headers.length} colunas e ${rows.length} registos válidos detetados.`);
+                alert(`Ficheiro lido com sucesso! ${headers.length} colunas e ${rows.length} registos/eventos identificados.`);
             }
         };
         reader.readAsBinaryString(file);
     };
 
-    const handleCreateProject = (e) => {
+    const handleCreateProject = async (e) => {
         e.preventDefault();
         if (!name.trim()) return;
 
@@ -73,7 +102,6 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             initialColumns = importedData.columns;
             initialEquipments = importedData.rows;
         } else {
-            // Criação manual
             for (let i = 1; i <= parseInt(numCols); i++) {
                 initialColumns.push({
                     id: `col_${i}_${Date.now()}`,
@@ -93,38 +121,26 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             }
         }
 
-        const newProject = {
-            id: 'proj_' + Date.now(),
-            name: name.trim(),
-            description: description.trim(),
-            hasCalendar,
-            isPrivate,
-            projectType,
-            tableSource,
-            columnConfig: initialColumns,
-            equipments: initialEquipments,
-            schedules: {}
-        };
+        try {
+            await supabaseService.createProject({
+                name: name.trim(),
+                description: description.trim(),
+                hasCalendar,
+                isPrivate,
+                columnConfig: initialColumns,
+                equipments: initialEquipments
+            }, user.email);
 
-        const updated = [...projects, newProject];
-        storageService.saveProjects(user.email, updated);
-        setProjects(updated);
-        
-        // Limpa e fecha modal
-        setName('');
-        setDescription('');
-        setHasCalendar(true);
-        setIsPrivate(false);
-        setImportedData({ columns: [], rows: [] });
-        setIsModalOpen(false);
-    };
-
-    const handleDeleteProject = (projId, e) => {
-        e.stopPropagation();
-        if (confirm('Tem certeza que deseja apagar este projeto?')) {
-            const updated = projects.filter(p => p.id !== projId);
-            storageService.saveProjects(user.email, updated);
-            setProjects(updated);
+            await loadProjects();
+            
+            setName('');
+            setDescription('');
+            setHasCalendar(true);
+            setIsPrivate(false);
+            setImportedData({ columns: [], rows: [] });
+            setIsModalOpen(false);
+        } catch (err) {
+            alert('Erro ao criar projeto no Supabase: ' + err.message);
         }
     };
 
@@ -133,62 +149,72 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #cbd5e1', paddingBottom: '15px', marginBottom: '25px' }}>
                 <div>
                     <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.4rem' }}>Meus Projetos e Serviços</h2>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Gerencie os seus quadros e agendamentos de forma profissional.</p>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Sincronização em tempo real ativada.</p>
                 </div>
                 <Button style={{ background: '#dc2626', color: '#fff' }} onClick={onLogout}>Terminar Sessão</Button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px' }}>
-                <div 
-                    onClick={() => setIsModalOpen(true)}
-                    style={{
-                        background: '#ffffff', border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '20px',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', height: '140px', transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-6px)';
-                        e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.08)';
-                        e.currentTarget.style.borderColor = '#2563eb';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.02)';
-                        e.currentTarget.style.borderColor = '#cbd5e1';
-                    }}
-                >
-                    <div style={{ fontSize: '1.8rem', color: '#2563eb', fontWeight: 'bold', marginBottom: '4px' }}>+</div>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#1e293b' }}>Criar Novo Projeto</span>
-                </div>
+            {loadError && (
+                <p role="alert" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem' }}>
+                    ⚠️ {loadError}
+                </p>
+            )}
 
-                {projects.map(proj => (
+            {loading ? (
+                <p style={{ textAlign: 'center', color: '#64748b' }}>A carregar projetos...</p>
+            ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px' }}>
+                    
                     <div 
-                        key={proj.id} 
-                        onClick={() => onSelectProject(proj)}
-                        style={{ 
-                            background: '#fff', border: '1px solid #cbd5e1', padding: '18px', borderRadius: '12px', 
-                            cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.04)', transition: '0.2s', 
-                            display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '140px', position: 'relative'
+                        onClick={() => setIsModalOpen(true)}
+                        style={{
+                            background: 'linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(90deg, #07aeea 0%, #2bf598 100%) border-box',
+                            border: '2px solid transparent',
+                            borderRadius: '12px', 
+                            padding: '20px',
+                            display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+                            gap: '12px', cursor: 'pointer', height: '140px', 
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                            transition: 'transform 0.3s ease, box-shadow 0.3s ease'
                         }}
                     >
-                        <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontSize: '1rem' }}>{proj.name}</h4>
-                                {proj.isPrivate && <span title="Projeto Privado">🔒</span>}
-                            </div>
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                {proj.description || 'Sem descrição informada.'}
-                            </p>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '8px' }}>
-                            <span style={{ fontSize: '0.65rem', color: '#94a3b8', background: '#f8fafc', padding: '2px 6px', borderRadius: '4px' }}>
-                                {proj.hasCalendar ? '📅 Com Calendário' : '📋 Apenas Tabela'}
-                            </span>
-                            <Button variant="danger" size="sm" onClick={(e) => handleDeleteProject(proj.id, e)}>Excluir</Button>
+                        <span style={{ fontSize: '4.5rem', color: '#07aeea', fontFamily: "'Playfair Display', serif", lineHeight: '1', marginTop: '-4px' }}>+</span>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontFamily: "'Playfair Display', serif", color: '#0f172a', fontWeight: '700', fontSize: '1.25rem', lineHeight: '1.15' }}>Novo</span>
+                            <span style={{ fontFamily: "'Playfair Display', serif", color: '#0f172a', fontWeight: '700', fontSize: '1.25rem', lineHeight: '1.15' }}>Projeto</span>
                         </div>
                     </div>
-                ))}
-            </div>
+
+                    {projects.map(proj => (
+                        <div 
+                            key={proj.id} 
+                            onClick={() => onSelectProject(proj)}
+                            style={{ 
+                                background: 'linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(45deg, #fada61 0%, #ff9188 50%, #ff5acd 100%) border-box',
+                                border: '2px solid transparent',
+                                padding: '18px', borderRadius: '12px', cursor: 'pointer', 
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.04)', 
+                                display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '140px'
+                            }}
+                        >
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontSize: '1rem' }}>{proj.name}</h4>
+                                    {proj.isPrivate && <span title="Projeto Privado">🔒</span>}
+                                </div>
+                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                    {proj.description || 'Sem descrição informada.'}
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '8px' }}>
+                                <span style={{ fontSize: '0.65rem', color: '#94a3b8', background: '#f8fafc', padding: '2px 6px', borderRadius: '4px' }}>
+                                    {proj.hasCalendar ? '📅 Com Calendário' : '📋 Apenas Tabela'}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {isModalOpen && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, backdropFilter: 'blur(2px)' }}>
@@ -202,25 +228,20 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                             <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' }}>Descrição</label>
                             <textarea 
                                 value={description} onChange={(e) => setDescription(e.target.value)} 
-                                placeholder="Breve resumo sobre o projeto..." 
-                                style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', borderRadius: '4px', fontSize: '0.8rem', fontFamily: 'inherit', resize: 'none', height: '50px' }}
+                                placeholder="Breve resumo..." 
+                                style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', borderRadius: '4px', fontSize: '0.8rem', resize: 'none', height: '50px' }}
                             />
 
                             <div style={{ display: 'flex', gap: '15px', margin: '2px 0' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: '#334155' }}>
-                                    <input type="checkbox" checked={hasCalendar} onChange={(e) => setHasCalendar(e.target.checked)} style={{ width: '14px', height: '14px' }} />
+                                    <input type="checkbox" checked={hasCalendar} onChange={(e) => setHasCalendar(e.target.checked)} />
                                     Usar Calendário
                                 </label>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: '#334155' }}>
-                                    <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} style={{ width: '14px', height: '14px' }} />
+                                    <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
                                     Projeto Privado 🔒
                                 </label>
                             </div>
-
-                            <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' }}>Tipo de Projeto</label>
-                            <select value={projectType} onChange={(e) => setProjectType(e.target.value)} style={{ padding: '7px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem' }}>
-                                <option value="tabela">Tabela de Gestão</option>
-                            </select>
 
                             <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' }}>Origem dos Dados da Tabela</label>
                             <select value={tableSource} onChange={(e) => setTableSource(e.target.value)} style={{ padding: '7px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem' }}>
@@ -245,7 +266,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                                     <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} style={{ fontSize: '0.75rem', width: '100%' }} />
                                     {importedData.rows.length > 0 && (
                                         <p style={{ fontSize: '0.7rem', color: '#16a34a', margin: '5px 0 0 0', fontWeight: 'bold' }}>
-                                            ✔ {importedData.rows.length} registos prontos para importar!
+                                            ✔ {importedData.rows.length} registos/eventos prontos para importar!
                                         </p>
                                     )}
                                 </div>
@@ -253,7 +274,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
 
                             <div style={{ textAlign: 'right', marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                                 <Button style={{ background: '#e2e8f0', color: '#1e293b' }} onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                                <Button variant="primary">Criar Projeto</Button>
+                                <Button type="submit" variant="primary">Criar Projeto no Supabase</Button>
                             </div>
                         </form>
                     </div>
