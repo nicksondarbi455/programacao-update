@@ -3,6 +3,7 @@ import { supabaseService } from '../services/supabaseService';
 import { supabase } from '../services/supabase';
 import { NocTemplate } from '../components/templates/NocTemplate';
 import { Button } from '../components/atoms/Button';
+import { isRowCompleted } from '../components/organisms/NocTable';
 
 export function NocPage({ project, userEmail, onBackToDashboard }) {
     const [equipments, setEquipments] = useState(project.equipments || []);
@@ -142,21 +143,18 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         }
     };
 
+    // Itens que o calendário agenda: eventos (faixas cinzas) se existirem, senão as linhas sem grupo
+    const getTrackableItems = () => {
+        const hasHeaders = equipments.some(eq => eq.isGroupHeader);
+        return equipments.filter(eq => hasHeaders ? eq.isGroupHeader : !eq.groupId);
+    };
+
+    // Percentual = itens marcados como feito no calendário / total de itens
     const calculateProgress = () => {
-        let total = 0, done = 0;
-        equipments.forEach(eq => {
-            if (eq.isGroupHeader) return;
-            total++;
-            if (eq.status) done++;
-            columnConfig.forEach(col => {
-                if (col.type === 'checkbox' && col.id !== 'status') {
-                    total++;
-                    let val = eq[col.id] !== undefined ? eq[col.id] : false;
-                    if (val) done++;
-                }
-            });
-        });
-        return total > 0 ? Math.round((done / total) * 100) : 0;
+        const items = getTrackableItems();
+        if (items.length === 0) return 0;
+        const done = items.filter(eq => isRowCompleted(eq, schedules, columnConfig)).length;
+        return Math.round((done / items.length) * 100);
     };
 
     const getTodayAlert = () => {

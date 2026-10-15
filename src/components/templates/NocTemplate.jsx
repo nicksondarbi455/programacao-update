@@ -63,6 +63,7 @@ export function NocTemplate({
         <div style={{ paddingBottom: '160px', minHeight: '100vh', boxSizing: 'border-box' }}>
             <TopBar
                 todayAlertText={todayAlertText}
+                percentage={percentage}
                 isEditMode={isEditMode}
                 onToggleEdit={onToggleEdit}
                 onNewRow={onNewRow}

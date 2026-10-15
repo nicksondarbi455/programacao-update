@@ -11,8 +11,7 @@ const colorMap = {
 const CHECK_COL_WIDTH = 70;
 
 // Verifica se a linha ou evento possui status de concluído nos agendamentos
-function isRowCompleted(eq, schedules, columnConfig) {
-    if (eq.status) return true;
+export function isRowCompleted(eq, schedules, columnConfig) {
 
     let label = eq.isGroupHeader ? eq.groupName : (columnConfig[0] ? eq[columnConfig[0].id] : '');
     if (!label) return false;
@@ -54,10 +53,12 @@ export function NocTable({
 }) {
     
     const filteredEquipments = equipments.filter(eq => {
-        if (eq.isGroupHeader) return true;
+        // Concluído = agendamento marcado como feito no calendário
+        const done = isRowCompleted(eq, schedules, columnConfig);
+        if (statusFilter === 'pending' && done) return false;
+        if (statusFilter === 'completed' && !done) return false;
 
-        if (statusFilter === 'pending' && eq.status) return false;
-        if (statusFilter === 'completed' && !eq.status) return false;
+        if (eq.isGroupHeader) return true;
 
         if (!searchTerm.trim()) return true;
         const term = searchTerm.toLowerCase();
