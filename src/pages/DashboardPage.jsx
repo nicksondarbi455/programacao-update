@@ -275,7 +275,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
 
                             <div style={{ textAlign: 'right', marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                                 <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                                <Button variant="primary">Criar Projeto no Supabase</Button>
+                                <Button type="submit" variant="primary">Criar Projeto no Supabase</Button>
                             </div>
                         </form>
                     </div>
