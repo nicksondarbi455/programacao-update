@@ -7,7 +7,6 @@ const inputStyle = { padding: '8px 10px', borderRadius: '6px', border: '1px soli
 const selectStyle = { padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', background: '#fff' };
 const cardStyle = { background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' };
 const rowStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '8px 10px', background: '#f8fafc', borderRadius: '6px', flexWrap: 'wrap' };
-const greyButton = { background: '#e2e8f0', color: '#1e293b' };
 const EMPTY_NEW_USER = { name: '', email: '', password: '', confirmPassword: '' };
 
 function Feedback({ message }) {
@@ -64,17 +63,6 @@ export function UsersPage({ currentUserEmail }) {
         reload();
     }, [reload]);
 
-    const tabStyle = (active) => ({
-        padding: '8px 16px',
-        border: 'none',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontWeight: 700,
-        fontSize: '0.8rem',
-        background: active ? '#2914c8' : '#e2e8f0',
-        color: active ? '#ffffff' : '#1e293b'
-    });
-
     return (
         <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px' }}>
             <div>
@@ -85,8 +73,8 @@ export function UsersPage({ currentUserEmail }) {
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
-                <button type="button" style={tabStyle(tab === 'usuarios')} onClick={() => setTab('usuarios')}>Usuários</button>
-                <button type="button" style={tabStyle(tab === 'departamentos')} onClick={() => setTab('departamentos')}>Departamentos</button>
+                <Button size="sm" className={tab === 'usuarios' ? '' : 'btn-inactive'} onClick={() => setTab('usuarios')}>Usuários</Button>
+                <Button size="sm" className={tab === 'departamentos' ? '' : 'btn-inactive'} onClick={() => setTab('departamentos')}>Departamentos</Button>
             </div>
 
             {loaded && !isAdmin && (
@@ -407,7 +395,7 @@ function DepartmentsTab({ isAdmin, departments, onChange }) {
                                 <div style={{ display: 'flex', gap: '6px', flex: 1 }}>
                                     <input value={editName} onChange={(e) => setEditName(e.target.value)} style={inputStyle} />
                                     <Button size="sm" variant="success" onClick={() => handleRename(dep.id)} disabled={busy}>Salvar</Button>
-                                    <Button size="sm" style={greyButton} onClick={() => setEditingId(null)}>Cancelar</Button>
+                                    <Button size="sm" onClick={() => setEditingId(null)}>Cancelar</Button>
                                 </div>
                             ) : (
                                 <button

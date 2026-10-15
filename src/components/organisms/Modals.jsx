@@ -79,7 +79,7 @@ export function Modals({
                                 <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem' }}>Gerenciar Agendamentos do Dia</h3>
                                 <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>Data: <strong>{modalData.friendlyDate || modalData.dateStr}</strong></p>
                             </div>
-                            <Button size="sm" style={{ background: '#cbd5e1', color: '#1e293b' }} onClick={closeDayModal}>X</Button>
+                            <Button size="sm" onClick={closeDayModal}>X</Button>
                         </div>
 
                         {/* Lista dos Agendamentos do Dia */}
@@ -163,7 +163,7 @@ export function Modals({
                             </span>
 
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '5px' }}>
-                                <Button style={{ background: '#e2e8f0', color: '#1e293b' }} onClick={closeDayModal}>Fechar</Button>
+                                <Button onClick={closeDayModal}>Fechar</Button>
                                 <Button variant="primary" type="submit">+ Agendar Evento</Button>
                             </div>
                         </form>
@@ -222,7 +222,7 @@ export function Modals({
                             </div>
 
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
-                                <Button style={{ background: '#e2e8f0', color: '#1e293b' }} onClick={onCloseCol}>Cancelar</Button>
+                                <Button onClick={onCloseCol}>Cancelar</Button>
                                 <Button variant="primary" type="submit">Adicionar Coluna</Button>
                             </div>
                         </form>

@@ -1,3 +1,4 @@
+import { Button } from '../atoms/Button';
 import { TopBar } from '../organisms/TopBar';
 import { NocTable } from '../organisms/NocTable';
 import { CalendarWidget } from '../organisms/CalendarWidget';
@@ -76,24 +77,16 @@ export function NocTemplate({
                     />
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '0.8rem' }}>
                         <span style={{ color: '#64748b', fontWeight: 'bold' }}>Filtrar:</span>
-                        <button 
-                            onClick={() => setStatusFilter('all')} 
-                            style={{ padding: '4px 10px', borderRadius: '4px', border: 'none', background: statusFilter === 'all' ? '#1e293b' : '#e2e8f0', color: statusFilter === 'all' ? '#fff' : '#1e293b', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
-                        >
-                            Todos
-                        </button>
-                        <button 
-                            onClick={() => setStatusFilter('pending')} 
-                            style={{ padding: '4px 10px', borderRadius: '4px', border: 'none', background: statusFilter === 'pending' ? '#1e293b' : '#e2e8f0', color: statusFilter === 'pending' ? '#fff' : '#1e293b', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
-                        >
-                            Pendentes
-                        </button>
-                        <button 
-                            onClick={() => setStatusFilter('completed')} 
-                            style={{ padding: '4px 10px', borderRadius: '4px', border: 'none', background: statusFilter === 'completed' ? '#1e293b' : '#e2e8f0', color: statusFilter === 'completed' ? '#fff' : '#1e293b', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
-                        >
-                            Concluídos
-                        </button>
+                        {[['all', 'Todos'], ['pending', 'Pendentes'], ['completed', 'Concluídos']].map(([value, label]) => (
+                            <Button
+                                key={value}
+                                size="sm"
+                                className={statusFilter === value ? '' : 'btn-inactive'}
+                                onClick={() => setStatusFilter(value)}
+                            >
+                                {label}
+                            </Button>
+                        ))}
                     </div>
                 </div>
 

@@ -1,3 +1,5 @@
+import { Button } from '../atoms/Button';
+
 // Menu lateral exibido após o login
 const MENU_ITEMS = [
     { id: 'projetos', label: 'Projetos' },
@@ -9,37 +11,24 @@ const MENU_ITEMS = [
 
 export function SideMenu({ active, onSelect, userEmail, onLogout }) {
     return (
-        <aside style={{ width: '220px', flexShrink: 0, height: '100vh', boxSizing: 'border-box', background: '#1e293b', color: '#ffffff', display: 'flex', flexDirection: 'column', padding: '20px 12px', gap: '6px' }}>
+        <aside className="side-menu" style={{ width: '220px', flexShrink: 0, height: '100vh', boxSizing: 'border-box', color: '#ffffff', display: 'flex', flexDirection: 'column', padding: '20px 12px', gap: '6px' }}>
             {MENU_ITEMS.map((item) => (
                 <button
                     key={item.id}
                     type="button"
                     onClick={() => onSelect(item.id)}
-                    style={{
-                        padding: '10px 12px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        background: active === item.id ? '#2914c8' : 'transparent',
-                        color: '#e2e8f0'
-                    }}
+                    className={active === item.id ? 'btn' : 'nav-item'}
+                    style={active === item.id ? { textAlign: 'left', width: '100%' } : undefined}
                 >
                     {item.label}
                 </button>
             ))}
 
             <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <p style={{ margin: '0 4px', fontSize: '0.7rem', color: '#94a3b8', wordBreak: 'break-all' }}>{userEmail}</p>
-                <button
-                    type="button"
-                    onClick={onLogout}
-                    style={{ padding: '8px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, background: '#dc2626', color: '#ffffff' }}
-                >
+                <p style={{ margin: '0 4px', fontSize: '0.7rem', color: '#cbd5e1', wordBreak: 'break-all' }}>{userEmail}</p>
+                <Button variant="danger" size="md" onClick={onLogout} style={{ width: '100%', padding: '8px 12px' }}>
                     Terminar Sessão
-                </button>
+                </Button>
             </div>
         </aside>
     );

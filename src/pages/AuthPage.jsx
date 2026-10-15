@@ -99,26 +99,19 @@ export function AuthPage() {
     ];
 
     return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', fontFamily: 'DM Sans, sans-serif', padding: '20px', boxSizing: 'border-box' }}>
-            <div style={{
-                background: '#ffffff',
-                padding: '35px 30px',
-                borderRadius: '16px',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
-                width: '360px',
-                maxWidth: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '18px',
-                boxSizing: 'border-box'
-            }}>
-                <div style={{ textAlign: 'center' }}>
-                    {isLogin && <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.4rem', fontWeight: '800' }}>Painel NOC</h2>}
-                    <p style={{ margin: isLogin ? '4px 0 0 0' : 0, fontSize: '0.8rem', color: '#64748b' }}>
-                        {isLogin ? 'Acesse a gestão de programação de rede' : 'Crie a sua conta'}
-                    </p>
+        <div className="auth-page">
+            <div className="auth-card">
+                <div className="auth-logo">
+                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Painel Abacaxi" />
                 </div>
+
+                <div className="auth-form-panel">
+                    <div style={{ textAlign: 'center' }}>
+                        {isLogin && <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.4rem', fontWeight: '800' }}>Login</h2>}
+                        <p style={{ margin: isLogin ? '4px 0 0 0' : 0, fontSize: '0.8rem', color: '#64748b' }}>
+                            {isLogin ? 'Acesse a gestão de programação de rede' : 'Crie a sua conta'}
+                        </p>
+                    </div>
 
                 <form onSubmit={handleAuth} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'center' }}>
                     {fields.map((field) => (
@@ -146,19 +139,9 @@ export function AuthPage() {
                     <Button
                         type="submit"
                         variant="primary"
+                        size="md"
                         disabled={loading}
-                        style={{
-                            width: '180px',
-                            height: '38px',
-                            marginTop: '8px',
-                            borderRadius: '8px',
-                            fontWeight: 'bold',
-                            fontSize: '0.85rem',
-                            boxShadow: '0 4px 12px rgba(41, 20, 200, 0.25)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}
+                        style={{ width: '100%', marginTop: '8px' }}
                     >
                         {loading ? 'Aguarde...' : isLogin ? 'Entrar' : 'Criar conta'}
                     </Button>
@@ -171,6 +154,7 @@ export function AuthPage() {
                 >
                     {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Iniciar sessão'}
                 </button>
+                </div>
             </div>
         </div>
     );
