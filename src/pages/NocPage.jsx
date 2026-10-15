@@ -22,6 +22,9 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     // Modal com nome e cor ao unir linhas em 1 evento
     const [groupModalOpen, setGroupModalOpen] = useState(false);
 
+    // Nº de gravações em curso; enquanto > 0 o realtime não substitui o estado local
+    const pendingWritesRef = useRef(0);
+
     const columnConfigRef = useRef(columnConfig);
     useEffect(() => {
         columnConfigRef.current = columnConfig;
@@ -43,6 +46,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
 
     // Executa uma gravação; se falhar, avisa o utilizador e recarrega o estado real do servidor
     const persist = async (action) => {
+        pendingWritesRef.current += 1;
         try {
             await action();
             setErrorMsg('');
@@ -51,15 +55,22 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
             setErrorMsg(err.message || 'Não foi possível guardar as alterações.');
             await refreshData();
             return false;
+        } finally {
+            pendingWritesRef.current -= 1;
         }
+    };
+
+    // Atualização vinda do servidor; ignorada enquanto existe gravação local pendente
+    const refreshIfIdle = () => {
+        if (pendingWritesRef.current === 0) refreshData();
     };
 
     useEffect(() => {
         const channel = supabase
             .channel(`realtime-project-${project.id}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'equipments', filter: `project_id=eq.${project.id}` }, () => refreshData())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'column_configs', filter: `project_id=eq.${project.id}` }, () => refreshData())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules', filter: `project_id=eq.${project.id}` }, () => refreshData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'equipments', filter: `project_id=eq.${project.id}` }, refreshIfIdle)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'column_configs', filter: `project_id=eq.${project.id}` }, refreshIfIdle)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules', filter: `project_id=eq.${project.id}` }, refreshIfIdle)
             .subscribe();
 
         return () => {
@@ -221,7 +232,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         let updated = [...columnConfig, newCol];
         setColumnConfig(updated);
         setColModalOpen(false);
-        await supabaseService.updateColumnConfig(project.id, updated);
+        await persist(() => supabaseService.updateColumnConfig(project.id, updated));
     };
 
     const handleDeleteCol = async (colId) => {

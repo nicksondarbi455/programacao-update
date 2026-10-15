@@ -2,21 +2,11 @@ import { useState, useEffect } from 'react';
 import { supabaseService } from '../services/supabaseService';
 import { Button } from '../components/atoms/Button';
 import { Input } from '../components/atoms/Input';
-import { SideMenu } from '../components/organisms/SideMenu';
-import { UsersPage } from './UsersPage';
 import * as XLSX from 'xlsx';
 
-const PLACEHOLDER_TITLES = {
-    historico: 'Histórico',
-    personalizacao: 'Personalização',
-    sobre: 'Sobre'
-};
-
 export function DashboardPage({ user, onSelectProject, onLogout }) {
-    const [section, setSection] = useState('projetos');
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [loadError, setLoadError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const [name, setName] = useState('');
@@ -26,27 +16,20 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
     const [tableSource, setTableSource] = useState('manual');
     const [numRows, setNumRows] = useState(3);
     const [numCols, setNumCols] = useState(4);
-
+    
     const [importedData, setImportedData] = useState({ columns: [], rows: [] });
 
     const loadProjects = async () => {
         setLoading(true);
-        try {
-            const data = await supabaseService.getProjects(user.email);
-            setProjects(data);
-            setLoadError('');
-        } catch (err) {
-            setLoadError(err.message);
-        } finally {
-            setLoading(false);
-        }
+        const data = await supabaseService.getProjects(user.email);
+        setProjects(data);
+        setLoading(false);
     };
 
     useEffect(() => {
         loadProjects();
     }, [user.email]);
 
-    // Detecção automática de linhas de eventos no Excel
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -60,7 +43,6 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
             if (data.length > 0) {
-                // A primeira linha vira o cabeçalho
                 const headers = data[0].map((h, i) => ({
                     id: `col_imp_${i}_${Date.now()}`,
                     name: String(h || `Coluna ${i + 1}`),
@@ -72,10 +54,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                 const rows = data.slice(1)
                     .filter(r => r.some(cell => cell !== undefined && String(cell).trim() !== ''))
                     .map((r, rIdx) => {
-                        // Conta quantas colunas possuem conteúdo preenchido
                         const filledCells = r.filter(c => c !== undefined && String(c).trim() !== '');
-
-                        // Se a linha tiver apenas 1 coluna preenchida, considera como Título de Evento / Seção Cinza
                         if (filledCells.length === 1) {
                             return {
                                 id: `eq_imp_${rIdx}_${Date.now()}`,
@@ -85,7 +64,6 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                             };
                         }
 
-                        // Linha normal de dados
                         let rowObj = { id: `eq_imp_${rIdx}_${Date.now()}`, color: 'padrao' };
                         headers.forEach((col, cIdx) => {
                             rowObj[col.id] = r[cIdx] !== undefined ? String(r[cIdx]) : '';
@@ -141,7 +119,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             }, user.email);
 
             await loadProjects();
-
+            
             setName('');
             setDescription('');
             setHasCalendar(true);
@@ -153,35 +131,41 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
         }
     };
 
-    const renderProjects = () => (
-        <>
-            <div style={{ borderBottom: '1px solid #cbd5e1', paddingBottom: '15px', marginBottom: '25px' }}>
-                <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.4rem' }}>Meus Projetos e Serviços</h2>
-                <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Sincronização em tempo real ativada.</p>
+    return (
+        <div style={{ padding: '30px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'DM Sans, sans-serif' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #cbd5e1', paddingBottom: '15px', marginBottom: '25px' }}>
+                <div>
+                    <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.4rem' }}>Meus Projetos e Serviços</h2>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Sincronização em tempo real ativada.</p>
+                </div>
+                <Button style={{ background: '#dc2626', color: '#fff' }} onClick={onLogout}>Terminar Sessão</Button>
             </div>
-
-            {loadError && (
-                <p role="alert" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem' }}>
-                    ⚠️ {loadError}
-                </p>
-            )}
 
             {loading ? (
                 <p style={{ textAlign: 'center', color: '#64748b' }}>A carregar projetos...</p>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px' }}>
-
-                    <div
+                    
+                    {/* Cartão: Novo Projeto */}
+                    <div 
                         onClick={() => setIsModalOpen(true)}
                         style={{
                             background: 'linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(90deg, #07aeea 0%, #2bf598 100%) border-box',
                             border: '2px solid transparent',
-                            borderRadius: '12px',
+                            borderRadius: '12px', 
                             padding: '20px',
                             display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-                            gap: '12px', cursor: 'pointer', height: '140px',
+                            gap: '12px', cursor: 'pointer', height: '140px', 
                             boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
                             transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 16px rgba(7, 174, 234, 0.2)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.04)';
                         }}
                     >
                         <span style={{ fontSize: '4.5rem', color: '#07aeea', fontFamily: "'Playfair Display', serif", lineHeight: '1', marginTop: '-4px' }}>+</span>
@@ -191,16 +175,26 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                         </div>
                     </div>
 
+                    {/* Cartões dos Projetos Criados */}
                     {projects.map(proj => (
-                        <div
-                            key={proj.id}
+                        <div 
+                            key={proj.id} 
                             onClick={() => onSelectProject(proj)}
-                            style={{
+                            style={{ 
                                 background: 'linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(45deg, #fada61 0%, #ff9188 50%, #ff5acd 100%) border-box',
                                 border: '2px solid transparent',
-                                padding: '18px', borderRadius: '12px', cursor: 'pointer',
-                                boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                                padding: '18px', borderRadius: '12px', cursor: 'pointer', 
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.04)', 
+                                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                                 display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '140px'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 6px 16px rgba(255, 90, 205, 0.2)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.04)';
                             }}
                         >
                             <div>
@@ -222,19 +216,20 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                 </div>
             )}
 
+            {/* Modal de Criação */}
             {isModalOpen && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, backdropFilter: 'blur(2px)' }}>
                     <div style={{ background: '#fff', padding: '25px', borderRadius: '12px', width: '440px', maxWidth: '90%', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <h3 style={{ margin: '0 0 5px 0', fontSize: '1.1rem', color: '#0f172a' }}>Configurar Novo Projeto</h3>
-
+                        
                         <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' }}>Nome do Projeto</label>
                             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Gestão de Ativos NOC" required />
 
                             <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' }}>Descrição</label>
-                            <textarea
-                                value={description} onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Breve resumo..."
+                            <textarea 
+                                value={description} onChange={(e) => setDescription(e.target.value)} 
+                                placeholder="Breve resumo..." 
                                 style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', borderRadius: '4px', fontSize: '0.8rem', resize: 'none', height: '50px' }}
                             />
 
@@ -279,30 +274,13 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                             )}
 
                             <div style={{ textAlign: 'right', marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                <Button onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                                <Button type="submit" variant="primary">Criar Projeto no Supabase</Button>
+                                <Button style={{ background: '#e2e8f0', color: '#1e293b' }} onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+                                <Button variant="primary">Criar Projeto no Supabase</Button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
-        </>
-    );
-
-    return (
-        <div style={{ display: 'flex', height: '100vh', width: '100%', fontFamily: 'DM Sans, sans-serif' }}>
-            <SideMenu
-                active={section}
-                onSelect={setSection}
-                userEmail={user.email}
-                onLogout={onLogout}
-            />
-
-            <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '30px', boxSizing: 'border-box' }}>
-                {section === 'projetos' && <div style={{ maxWidth: '1000px', margin: '0 auto' }}>{renderProjects()}</div>}
-                {section === 'usuario' && <UsersPage currentUserEmail={user.email} />}
-                {PLACEHOLDER_TITLES[section] && <h2 style={{ fontSize: '1.4rem', color: '#0f172a' }}>{PLACEHOLDER_TITLES[section]}</h2>}
-            </main>
         </div>
     );
 }

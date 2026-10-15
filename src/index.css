@@ -95,15 +95,13 @@ input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--success)
 th .col-title-display { background: transparent; border: none; color: var(--header-text); font-weight: bold; width: 100%; display: block; overflow: hidden; text-overflow: ellipsis; text-align: center; }
 th .col-title-display.editable { background: var(--color3); border: 1px solid var(--color1); padding: 1px 3px; color: #fff; border-radius: 3px; }
 
-/* ===== BOTÕES PADRONIZADOS (gradiente) ===== */
+/* ===== BOTÕES PADRONIZADOS (cor sólida) ===== */
 .btn {
-    background-image: linear-gradient(to right, #00c6ff 0%, #0072ff 51%, #00c6ff 100%);
-    background-size: 200% auto;
-    background-position: left center;
+    background: #0072ff;
     padding: 10px 24px;
     text-align: center;
     text-transform: uppercase;
-    transition: 0.5s;
+    transition: opacity 0.2s;
     color: white;
     box-shadow: none;
     border-radius: 10px;
@@ -114,39 +112,38 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
     font-weight: bold;
     font-size: 0.75rem;
 }
-.btn:hover:not(:disabled) { background-position: right center; color: #fff; text-decoration: none; }
+.btn:hover:not(:disabled) { color: #fff; text-decoration: none; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-sm { padding: 4px 10px; font-size: 0.7rem; border-radius: 8px; }
 .btn-inactive { opacity: 0.55; }
 .btn-inactive:hover:not(:disabled) { opacity: 1; }
 
-/* variantes semânticas: mesma estrutura, só muda a cor */
-.btn-danger  { background-image: linear-gradient(to right, #ff5f6d 0%, #c8102e 51%, #ff5f6d 100%); }
-.btn-success { background-image: linear-gradient(to right, #34d399 0%, #15803d 51%, #34d399 100%); }
-.btn-warning { background-image: linear-gradient(to right, #fbbf24 0%, #d97706 51%, #fbbf24 100%); }
+/* variantes: todas usam a mesma cor azul sólida */
+.btn-primary, .btn-danger, .btn-success, .btn-warning { background: #0072ff; }
 
 /* ===== LOGIN ===== */
 .auth-page {
     position: fixed; inset: 0; overflow-y: auto;
     display: flex; justify-content: center; align-items: center;
     padding: 20px;
-    background: linear-gradient(225deg, #000040 0.000%, #001154 25.000%, #002671 50.000%, #003f96 75.000%, #005dc3 100.000%);
+    background: linear-gradient(225deg, #76b6ed 0.000%, #5d98e7 20.000%, #477fc5 40.000%, #366b9b 60.000%, #2b5d82 80.000%, #245487 100.000%);
     font-family: 'DM Sans', sans-serif;
 }
+/* Card menor (~78% do tamanho anterior, mantendo a proporção entre logo e formulário) */
 .auth-card {
-    display: flex; width: 900px; max-width: 100%; min-height: 540px;
+    display: flex; width: 700px; max-width: 100%; min-height: 420px;
     background: #fff; border-radius: 16px; overflow: hidden;
     box-shadow: 0 20px 40px rgba(0,0,0,0.35);
 }
 .auth-logo { flex: 1.5; min-width: 0; background: #0a3fa8; }
 .auth-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .auth-form-panel {
-    flex: 1; min-width: 320px; padding: 35px 30px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+    flex: 1; min-width: 260px; padding: 26px 22px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
 }
 @media (max-width: 760px) {
-    .auth-card { flex-direction: column; min-height: 0; width: 400px; }
-    .auth-logo { flex: none; height: 200px; }
+    .auth-card { flex-direction: column; min-height: 0; width: 320px; }
+    .auth-logo { flex: none; height: 150px; }
     .auth-form-panel { min-width: 0; }
 }
 

@@ -25,7 +25,9 @@ export const supabaseService = {
         check('Erro ao buscar projetos', { error });
 
         return data.map(p => {
-            const cols = (p.column_configs || []).sort((a, b) => a.position - b.position);
+            const cols = (p.column_configs || [])
+                .sort((a, b) => a.position - b.position)
+                .map(c => ({ ...c, targetScope: c.target_scope || 'all' }));
 
             const equips = (p.equipments || []).map(eq => ({
                 id: eq.id,
@@ -75,7 +77,8 @@ export const supabaseService = {
                     name: col.name,
                     type: col.type || 'text',
                     position: idx,
-                    width: col.width || 150
+                    width: col.width || 150,
+                    target_scope: col.targetScope || 'all'
                 }));
                 check('Erro ao criar colunas', await supabase.from('column_configs').insert(colsPayload));
             }
@@ -142,7 +145,8 @@ export const supabaseService = {
             name: col.name,
             type: col.type || 'text',
             position: idx,
-            width: parseInt(col.width) || 150
+            width: parseInt(col.width) || 150,
+            target_scope: col.targetScope || 'all'
         }));
         check('Erro ao atualizar colunas', await supabase.rpc('replace_column_configs', {
             p_project_id: projId,

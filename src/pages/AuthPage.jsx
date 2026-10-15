@@ -107,8 +107,9 @@ export function AuthPage() {
 
                 <div className="auth-form-panel">
                     <div style={{ textAlign: 'center' }}>
-                        {isLogin && <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.4rem', fontWeight: '800' }}>Login</h2>}
-                        <p style={{ margin: isLogin ? '4px 0 0 0' : 0, fontSize: '0.8rem', color: '#64748b' }}>
+                        {isLogin && <h1 style={{ margin: 0, color: '#0f172a', fontSize: '1.3rem', fontWeight: '800', letterSpacing: '0.5px' }}>Painel NOC</h1>}
+                        {isLogin && <h2 style={{ margin: '10px 0 0 0', color: '#0f172a', fontSize: '1.1rem', fontWeight: '700' }}>Login</h2>}
+                        <p style={{ margin: isLogin ? '3px 0 0 0' : 0, fontSize: '0.75rem', color: '#64748b' }}>
                             {isLogin ? 'Acesse a gestão de programação de rede' : 'Crie a sua conta'}
                         </p>
                     </div>
