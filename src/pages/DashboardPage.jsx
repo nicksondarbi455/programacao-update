@@ -138,7 +138,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                     <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.4rem' }}>Meus Projetos e Serviços</h2>
                     <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Sincronização em tempo real ativada.</p>
                 </div>
-                <Button style={{ background: '#dc2626', color: '#fff' }} onClick={onLogout}>Terminar Sessão</Button>
+                <Button variant="danger" onClick={onLogout}>Terminar Sessão</Button>
             </div>
 
             {loading ? (
@@ -274,7 +274,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                             )}
 
                             <div style={{ textAlign: 'right', marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                <Button style={{ background: '#e2e8f0', color: '#1e293b' }} onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+                                <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
                                 <Button variant="primary">Criar Projeto no Supabase</Button>
                             </div>
                         </form>

@@ -18,7 +18,7 @@ export function TopBar({
 
             <div className="action-bar" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <Button
-                    variant={isEditMode ? 'success' : 'primary'}
+                    variant={isEditMode ? 'success' : 'warning'}
                     size="sm"
                     onClick={onToggleEdit}
                 >
@@ -32,19 +32,7 @@ export function TopBar({
 
                         {/* Botão para unir linhas que surge assim que marcar 1 ou mais caixas */}
                         {selectedRowsCount > 0 && (
-                            <Button
-                                size="sm"
-                                style={{
-                                    background: '#7c3aed',
-                                    color: '#ffffff',
-                                    fontWeight: 'bold',
-                                    boxShadow: '0 2px 8px rgba(124, 58, 237, 0.35)',
-                                    border: 'none',
-                                    padding: '6px 12px',
-                                    borderRadius: '6px'
-                                }}
-                                onClick={onGroupSelectedRows}
-                            >
+                            <Button variant="info" size="sm" onClick={onGroupSelectedRows}>
                                 🔗 Unir {selectedRowsCount} Linha{selectedRowsCount > 1 ? 's' : ''} em 1 Evento
                             </Button>
                         )}

@@ -118,8 +118,13 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
 .btn-inactive { opacity: 0.55; }
 .btn-inactive:hover:not(:disabled) { opacity: 1; }
 
-/* variantes: todas usam a mesma cor azul sólida */
-.btn-primary, .btn-danger, .btn-success, .btn-warning { background: #0072ff; }
+/* cores por função (sólidas, sem gradiente e sem efeito de luz no hover) */
+.btn-primary   { background: #0072ff; }  /* ação principal: criar, adicionar, entrar */
+.btn-success   { background: #16a34a; }  /* confirmar / concluir */
+.btn-warning   { background: #d97706; }  /* entrar em modo de edição */
+.btn-danger    { background: #dc2626; }  /* excluir, remover, terminar sessão */
+.btn-info      { background: #7c3aed; }  /* agrupar linhas em evento */
+.btn-secondary { background: #64748b; }  /* cancelar, fechar, voltar */
 
 /* ===== LOGIN ===== */
 .auth-page {

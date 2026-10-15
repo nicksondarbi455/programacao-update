@@ -103,7 +103,8 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
             id: headerId,
             isGroupHeader: true,
             groupName: eventTitle.toUpperCase(),
-            color: eventColor
+            color: eventColor,
+            position: Math.min(...equipments.map(eq => eq.position ?? 0)) - 1
         };
 
         // 2. Associa o groupId às linhas selecionadas
@@ -205,7 +206,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
 
     const handleAddNewRow = async () => {
         let newId = 'eq_' + Date.now();
-        let newEq = { id: newId, color: 'padrao' };
+        let newEq = { id: newId, color: 'padrao', position: Date.now() };
         columnConfig.forEach(col => {
             newEq[col.id] = col.type === 'checkbox' ? false : '';
         });
@@ -348,7 +349,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
                     <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Projeto: {project.name} {project.isPrivate ? '🔒' : ''}</span>
                     <span style={{ fontSize: '0.7rem', color: '#22c55e', marginLeft: '10px' }}>🟢 Conectado ao Supabase (Realtime)</span>
                 </div>
-                <Button size="sm" onClick={onBackToDashboard}>Voltar aos Projetos</Button>
+                <Button variant="secondary" size="sm" onClick={onBackToDashboard}>Voltar aos Projetos</Button>
             </div>
 
             {errorMsg && (

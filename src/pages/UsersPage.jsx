@@ -395,7 +395,7 @@ function DepartmentsTab({ isAdmin, departments, onChange }) {
                                 <div style={{ display: 'flex', gap: '6px', flex: 1 }}>
                                     <input value={editName} onChange={(e) => setEditName(e.target.value)} style={inputStyle} />
                                     <Button size="sm" variant="success" onClick={() => handleRename(dep.id)} disabled={busy}>Salvar</Button>
-                                    <Button size="sm" onClick={() => setEditingId(null)}>Cancelar</Button>
+                                    <Button variant="secondary" size="sm" onClick={() => setEditingId(null)}>Cancelar</Button>
                                 </div>
                             ) : (
                                 <button

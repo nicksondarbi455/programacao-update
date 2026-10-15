@@ -29,11 +29,15 @@ export const supabaseService = {
                 .sort((a, b) => a.position - b.position)
                 .map(c => ({ ...c, targetScope: c.target_scope || 'all' }));
 
-            const equips = (p.equipments || []).map(eq => ({
-                id: eq.id,
-                color: eq.color,
-                ...(eq.data || {})
-            }));
+            // Ordem estável: o Supabase não garante ordem ao devolver linhas atualizadas
+            const equips = (p.equipments || [])
+                .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+                .map(eq => ({
+                    id: eq.id,
+                    color: eq.color,
+                    ...(eq.data || {}),
+                    position: eq.position
+                }));
 
             const schedsObj = {};
             (p.schedules || []).forEach(s => {
@@ -86,12 +90,13 @@ export const supabaseService = {
             // 3. Inserir as Linhas/Dados
             if (projectData.equipments && projectData.equipments.length > 0) {
                 const equipsPayload = projectData.equipments.map((eq, idx) => {
-                    const { id, color, ...restData } = eq;
+                    const { id, color, position, ...restData } = eq;
                     return {
                         id: id || `eq_${idx}_${Date.now()}`,
                         project_id: projId,
                         color: color || 'padrao',
-                        data: restData
+                        data: restData,
+                        position: position ?? idx + 1
                     };
                 });
                 check('Erro ao criar linhas', await supabase.from('equipments').insert(equipsPayload));
@@ -124,12 +129,13 @@ export const supabaseService = {
     },
 
     async addEquipment(projId, newEq) {
-        const { id, color, ...restData } = newEq;
+        const { id, color, position, ...restData } = newEq;
         check('Erro ao adicionar linha', await supabase.from('equipments').insert([{
             id,
             project_id: projId,
             color: color || 'padrao',
-            data: restData
+            data: restData,
+            position: position ?? Date.now()
         }]));
     },
 

@@ -66,7 +66,7 @@ export function GroupEventModal({ rowsCount, onConfirm, onCancel }) {
                 {error && <p role="alert" style={{ margin: 0, fontSize: '0.8rem', color: '#dc2626', fontWeight: 600 }}>{error}</p>}
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                    <Button onClick={onCancel}>Cancelar</Button>
+                    <Button variant="secondary" onClick={onCancel}>Cancelar</Button>
                     <Button type="submit" variant="primary">Criar evento</Button>
                 </div>
             </form>
