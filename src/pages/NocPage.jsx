@@ -24,6 +24,10 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
 
     // Nº de gravações em curso; enquanto > 0 o realtime não substitui o estado local
     const pendingWritesRef = useRef(0);
+    // Alterações feitas em modo de edição, ainda não enviadas: { [rowId]: { [campo]: valor } }
+    const pendingCellsRef = useRef({});
+    // Espelho do estado isEditMode para ser lido dentro de callbacks (realtime, handlers)
+    const isEditModeRef = useRef(false);
 
     const columnConfigRef = useRef(columnConfig);
     useEffect(() => {
@@ -61,8 +65,9 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     };
 
     // Atualização vinda do servidor; ignorada enquanto existe gravação local pendente
+    // Não substitui a tela enquanto há gravações pendentes ou enquanto a tabela está em edição
     const refreshIfIdle = () => {
-        if (pendingWritesRef.current === 0) refreshData();
+        if (pendingWritesRef.current === 0 && !isEditModeRef.current) refreshData();
     };
 
     useEffect(() => {
@@ -192,9 +197,61 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     };
 
     const handleUpdateField = async (id, field, value) => {
-        let updated = equipments.map(eq => eq.id === id ? { ...eq, [field]: value } : eq);
-        setEquipments(updated);
+        setEquipments(prev => prev.map(eq => eq.id === id ? { ...eq, [field]: value } : eq));
+
+        // Em modo de edição guarda só localmente; o Supabase é atualizado ao concluir a edição
+        if (isEditModeRef.current) {
+            pendingCellsRef.current[id] = { ...(pendingCellsRef.current[id] || {}), [field]: value };
+            return;
+        }
         await persist(() => supabaseService.updateEquipmentField(id, project.id, field, value));
+    };
+
+    // Inicia a edição ou, ao concluir, envia todas as alterações de uma vez
+    const handleToggleEdit = async () => {
+        if (!isEditModeRef.current) {
+            isEditModeRef.current = true;
+            setIsEditMode(true);
+            return;
+        }
+
+        const pending = pendingCellsRef.current;
+        pendingCellsRef.current = {};
+        isEditModeRef.current = false;
+        setIsEditMode(false);
+
+        await persist(async () => {
+            await Promise.all(
+                Object.entries(pending).flatMap(([rowId, fields]) =>
+                    Object.entries(fields).map(([field, value]) =>
+                        supabaseService.updateEquipmentField(rowId, project.id, field, value)
+                    )
+                )
+            );
+        });
+        await refreshData();
+    };
+
+    // Troca a posição da linha com a vizinha (direction: -1 sobe, 1 desce)
+    const handleMoveRow = async (id, direction) => {
+        const idx = equipments.findIndex(eq => eq.id === id);
+        const targetIdx = idx + direction;
+        if (idx < 0 || targetIdx < 0 || targetIdx >= equipments.length) return;
+
+        const a = equipments[idx];
+        const b = equipments[targetIdx];
+        const posA = a.position ?? idx + 1;
+        const posB = b.position ?? targetIdx + 1;
+
+        const next = [...equipments];
+        next[idx] = { ...b, position: posA };
+        next[targetIdx] = { ...a, position: posB };
+        setEquipments(next);
+
+        await persist(async () => {
+            await supabaseService.updateEquipmentPosition(a.id, posB);
+            await supabaseService.updateEquipmentPosition(b.id, posA);
+        });
     };
 
     const handleUpdateColName = async (colId, newName) => {
@@ -365,7 +422,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
                 connectionStatus="online"
                 connectionText="Supabase Cloud"
                 isEditMode={isEditMode}
-                onToggleEdit={() => setIsEditMode(!isEditMode)}
+                onToggleEdit={handleToggleEdit}
                 onNewRow={handleAddNewRow}
                 onNewCol={() => setColModalOpen(true)}
                 selectedRowIds={selectedRowIds}
@@ -381,6 +438,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
                 onUpdateColName={handleUpdateColName}
                 onDeleteCol={handleDeleteCol}
                 onDeleteRow={handleDeleteRow}
+                onMoveRow={handleMoveRow}
                 onDragStart={handleDragStart}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}

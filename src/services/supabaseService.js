@@ -128,6 +128,10 @@ export const supabaseService = {
         }));
     },
 
+    async updateEquipmentPosition(eqId, position) {
+        check('Erro ao mover linha', await supabase.from('equipments').update({ position }).eq('id', eqId));
+    },
+
     async addEquipment(projId, newEq) {
         const { id, color, position, ...restData } = newEq;
         check('Erro ao adicionar linha', await supabase.from('equipments').insert([{

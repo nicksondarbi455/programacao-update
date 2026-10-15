@@ -71,7 +71,7 @@ tr { background-color: #ffffff; }
 
 th { 
     background: var(--header-bg); color: var(--header-text); font-weight: 600; position: sticky; top: 0; 
-    cursor: grab; user-select: none; position: relative; text-align: center; z-index: 10;
+    cursor: grab; user-select: none; text-align: center; z-index: 10;
     border-bottom: 2px solid var(--color1) !important;
 }
 th:active { cursor: grabbing; }

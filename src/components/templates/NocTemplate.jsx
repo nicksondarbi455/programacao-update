@@ -24,6 +24,7 @@ export function NocTemplate({
     onUpdateColName,
     onDeleteCol,
     onDeleteRow,
+    onMoveRow,
     onDragStart,
     onDragOver,
     onDrop,
@@ -100,6 +101,7 @@ export function NocTemplate({
                     onUpdateColName={onUpdateColName}
                     onDeleteCol={onDeleteCol}
                     onDeleteRow={onDeleteRow}
+                    onMoveRow={onMoveRow}
                     onDragStart={onDragStart}
                     onDragOver={onDragOver}
                     onDrop={onDrop}

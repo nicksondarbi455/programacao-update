@@ -43,6 +43,7 @@ export function NocTable({
     onUpdateColName, 
     onDeleteCol, 
     onDeleteRow, 
+    onMoveRow,
     onDragStart, 
     onDragOver, 
     onDrop, 
@@ -68,7 +69,15 @@ export function NocTable({
         });
     });
 
-    const totalWidth = columnConfig.reduce((acc, col) => acc + (parseInt(col.width) || 150), 0) + CHECK_COL_WIDTH + (isEditMode ? 180 : 0);
+    // Botões ▲ ▼ para reordenar as linhas (apenas no modo de edição)
+    const renderMoveButtons = (eq) => (
+        <>
+            <Button variant="secondary" size="sm" style={{ padding: '2px 6px' }} onClick={() => onMoveRow(eq.id, -1)} title="Mover para cima">▲</Button>
+            <Button variant="secondary" size="sm" style={{ padding: '2px 6px' }} onClick={() => onMoveRow(eq.id, 1)} title="Mover para baixo">▼</Button>
+        </>
+    );
+
+    const totalWidth = columnConfig.reduce((acc, col) => acc + (parseInt(col.width) || 150), 0) + CHECK_COL_WIDTH + (isEditMode ? 220 : 0);
 
     /**
      * Monta as células de uma faixa de Evento Único respeitando a MESMA ordem das colunas
@@ -188,7 +197,7 @@ export function NocTable({
                                     </th>
                                 );
                             })}
-                            {isEditMode && <th style={{ textAlign: 'center', width: '140px', minWidth: '140px' }}>Prioridade / Ações</th>}
+                            {isEditMode && <th style={{ textAlign: 'center', width: '200px', minWidth: '200px' }}>Prioridade / Ações</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -213,7 +222,8 @@ export function NocTable({
                                             {renderGroupCells(eq, completed)}
 
                                             {isEditMode && (
-                                                <td style={{ textAlign: 'center', width: '140px' }}>
+                                                <td style={{ textAlign: 'center', width: '200px' }}>
+                                                    {renderMoveButtons(eq)}
                                                     <Button variant="danger" size="sm" style={{ padding: '2px 8px' }} onClick={() => onDeleteRow(eq.id)}>Excluir Evento</Button>
                                                 </td>
                                             )}
@@ -270,7 +280,7 @@ export function NocTable({
                                         })}
 
                                         {isEditMode && (
-                                            <td style={{ textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '4px', alignItems: 'center', height: '32px', width: '140px' }}>
+                                            <td style={{ textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '4px', alignItems: 'center', height: '32px', width: '200px' }}>
                                                 <select 
                                                     className="color-select" 
                                                     value={eq.color || 'padrao'} 
@@ -283,6 +293,7 @@ export function NocTable({
                                                     <option value="verde">🟢 Baixa</option>
                                                     <option value="azul">🔵 Info</option>
                                                 </select>
+                                                {renderMoveButtons(eq)}
                                                 <Button variant="danger" size="sm" style={{ padding: '2px 5px' }} onClick={() => onDeleteRow(eq.id)}>X</Button>
                                             </td>
                                         )}
