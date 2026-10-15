@@ -66,7 +66,6 @@ export function FloatingCalendar({ isOpen, onToggle, schedules, equipments, onOp
                                     key={idx}
                                     className={`schedule-item ${item.completed ? 'completed' : ''}`}
                                     style={{ backgroundColor: itemColor }}
-                                    onClick={(ev) => { ev.stopPropagation(); onToggleComplete(dateStr, idx); }}
                                 >
                                     {item.text}
                                 </div>

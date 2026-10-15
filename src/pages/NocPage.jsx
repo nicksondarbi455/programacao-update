@@ -11,6 +11,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     const [isEditMode, setIsEditMode] = useState(false);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     const [colModalOpen, setColModalOpen] = useState(false);
+    const [rowModalOpen, setRowModalOpen] = useState(false);
     const [modalData, setModalData] = useState({ isOpen: false, dateStr: '', friendlyDate: '', items: [], equipments: [] });
     const [draggedIndex, setDraggedIndex] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -96,8 +97,8 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     };
 
     // Recebe o nome e a cor escolhidos no modal
+    // Sem linhas selecionadas, cria apenas o evento vazio (botão "+ Item")
     const handleConfirmGroup = async (eventTitle, eventColor) => {
-        if (selectedRowIds.length === 0) return;
         setGroupModalOpen(false);
 
         const groupId = 'grp_' + Date.now();
@@ -109,7 +110,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
             isGroupHeader: true,
             groupName: eventTitle.toUpperCase(),
             color: eventColor,
-            position: Math.min(...equipments.map(eq => eq.position ?? 0)) - 1
+            position: Math.min(0, ...equipments.map(eq => eq.position ?? 0)) - 1
         };
 
         // 2. Associa o groupId às linhas selecionadas
@@ -261,14 +262,23 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         await persist(() => supabaseService.updateColumnConfig(project.id, updated));
     };
 
-    const handleAddNewRow = async () => {
-        let newId = 'eq_' + Date.now();
-        let newEq = { id: newId, color: 'padrao', position: Date.now() };
-        columnConfig.forEach(col => {
-            newEq[col.id] = col.type === 'checkbox' ? false : '';
+    // Cria uma ou mais linhas de uma vez (quantidade escolhida no modal)
+    const handleAddNewRows = async (qty = 1) => {
+        setRowModalOpen(false);
+        const base = Date.now();
+        const newRows = Array.from({ length: qty }, (_, i) => {
+            const row = { id: 'eq_' + base + '_' + i, color: 'padrao', position: base + i };
+            columnConfig.forEach(col => {
+                row[col.id] = col.type === 'checkbox' ? false : '';
+            });
+            return row;
         });
-        setEquipments(prev => [...prev, newEq]);
-        await persist(() => supabaseService.addEquipment(project.id, newEq));
+        setEquipments(prev => [...prev, ...newRows]);
+        await persist(async () => {
+            for (const row of newRows) {
+                await supabaseService.addEquipment(project.id, row);
+            }
+        });
     };
 
     const handleDeleteRow = async (id) => {
@@ -276,18 +286,19 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         await persist(() => supabaseService.deleteEquipment(id));
     };
 
-    const handleSaveNewCol = async (name, type, targetScope = 'all') => {
+    // Cria uma ou mais colunas; com quantidade > 1 os nomes ganham número (Nome 1, Nome 2...)
+    const handleSaveNewCol = async (name, type, targetScope = 'all', qty = 1) => {
         if (!name) return alert('Digite o nome da coluna!');
-        let colId = 'col_' + Date.now();
-        let newCol = { 
-            id: colId, 
-            name, 
-            type, 
+        const base = Date.now();
+        const newCols = Array.from({ length: qty }, (_, i) => ({
+            id: 'col_' + base + '_' + i,
+            name: qty > 1 ? `${name} ${i + 1}` : name,
+            type,
             targetScope, // 'all' ou 'events'
-            position: columnConfig.length, 
-            width: 150 
-        };
-        let updated = [...columnConfig, newCol];
+            position: columnConfig.length + i,
+            width: 150
+        }));
+        let updated = [...columnConfig, ...newCols];
         setColumnConfig(updated);
         setColModalOpen(false);
         await persist(() => supabaseService.updateColumnConfig(project.id, updated));
@@ -423,11 +434,15 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
                 connectionText="Supabase Cloud"
                 isEditMode={isEditMode}
                 onToggleEdit={handleToggleEdit}
-                onNewRow={handleAddNewRow}
+                onNewRow={() => setRowModalOpen(true)}
+                rowModalOpen={rowModalOpen}
+                onConfirmRows={handleAddNewRows}
+                onCloseRowModal={() => setRowModalOpen(false)}
                 onNewCol={() => setColModalOpen(true)}
                 selectedRowIds={selectedRowIds}
                 onToggleSelectRow={handleToggleSelectRow}
                 onGroupSelectedRows={handleOpenGroupModal}
+                onNewItem={() => setGroupModalOpen(true)}
                 groupModalOpen={groupModalOpen}
                 onConfirmGroup={handleConfirmGroup}
                 onCloseGroupModal={() => setGroupModalOpen(false)}

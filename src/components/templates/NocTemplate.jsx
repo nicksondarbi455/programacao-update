@@ -4,6 +4,7 @@ import { NocTable } from '../organisms/NocTable';
 import { CalendarWidget } from '../organisms/CalendarWidget';
 import { Modals } from '../organisms/Modals';
 import { GroupEventModal } from '../organisms/GroupEventModal';
+import { RowQuantityModal } from '../organisms/RowQuantityModal';
 
 export function NocTemplate({
     todayAlertText,
@@ -17,6 +18,10 @@ export function NocTemplate({
     selectedRowIds = [],
     onToggleSelectRow,
     onGroupSelectedRows,
+    onNewItem,
+    rowModalOpen,
+    onConfirmRows,
+    onCloseRowModal,
     onDeleteProject,
     columnConfig,
     equipments,
@@ -64,6 +69,7 @@ export function NocTemplate({
                 onNewCol={onNewCol}
                 selectedRowsCount={selectedRowIds.length}
                 onGroupSelectedRows={onGroupSelectedRows}
+                onNewItem={onNewItem}
                 onDeleteProject={onDeleteProject}
             />
 
@@ -122,6 +128,13 @@ export function NocTemplate({
                     onToggleComplete={onToggleComplete}
                     weekCount={weekCount}
                     tomorrowCount={tomorrowCount}
+                />
+            )}
+
+            {rowModalOpen && (
+                <RowQuantityModal
+                    onConfirm={onConfirmRows}
+                    onCancel={onCloseRowModal}
                 />
             )}
 

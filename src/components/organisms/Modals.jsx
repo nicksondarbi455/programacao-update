@@ -16,6 +16,7 @@ export function Modals({
     const [customColName, setCustomColName] = useState('');
     const [customColType, setCustomColType] = useState('text');
     const [customColScope, setCustomColScope] = useState('all');
+    const [customColQty, setCustomColQty] = useState(1);
     const [eventSearch, setEventSearch] = useState('');
 
     if (!modalData?.isOpen && !colModalOpen) return null;
@@ -31,10 +32,11 @@ export function Modals({
     const handleAddColSubmit = (e) => {
         e.preventDefault();
         if (!customColName.trim()) return alert('Digite o nome da coluna!');
-        onSaveCol(customColName.trim(), customColType, customColScope);
+        onSaveCol(customColName.trim(), customColType, customColScope, customColQty);
         setCustomColName('');
         setCustomColType('text');
         setCustomColScope('all');
+        setCustomColQty(1);
     };
 
     // Verifica se existem Eventos Únicos (faixas cinzas) na tabela
@@ -205,6 +207,20 @@ export function Modals({
                                     <option value="text">📝 Texto Livre</option>
                                     <option value="checkbox">☑️ Caixa de Seleção (Check)</option>
                                 </select>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>
+                                    Quantidade de colunas (máx. 20):
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="20"
+                                    value={customColQty}
+                                    onChange={(e) => setCustomColQty(Math.min(20, Math.max(1, parseInt(e.target.value, 10) || 1)))}
+                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                                />
                             </div>
 
                             <div>
