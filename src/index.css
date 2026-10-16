@@ -131,7 +131,7 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
     position: fixed; inset: 0; overflow-y: auto;
     display: flex; justify-content: center; align-items: center;
     padding: 20px;
-    background: linear-gradient(225deg, #76b6ed 0.000%, #5d98e7 20.000%, #477fc5 40.000%, #366b9b 60.000%, #2b5d82 80.000%, #245487 100.000%);
+    background: linear-gradient(45deg, #8ec5fc 0.000%, #8dd3ff 25.000%, #a1d8ff 50.000%, #c1d2ff 75.000%, #e0c3ff 100.000%);
     font-family: 'DM Sans', sans-serif;
 }
 /* Card menor (~78% do tamanho anterior, mantendo a proporção entre logo e formulário) */
