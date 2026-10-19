@@ -13,8 +13,8 @@ const inputStyle = {
     width: '100%'
 };
 
-// Modal para unir linhas selecionadas em 1 evento, pedindo nome e cor
-export function GroupEventModal({ rowsCount, onConfirm, onCancel }) {
+// Modal para criar um evento (faixa), pedindo nome e cor
+export function GroupEventModal({ onConfirm, onCancel }) {
     const [title, setTitle] = useState('');
     const [color, setColor] = useState('cinza');
     const [error, setError] = useState('');
@@ -32,8 +32,7 @@ export function GroupEventModal({ rowsCount, onConfirm, onCancel }) {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100000, backdropFilter: 'blur(2px)' }}>
             <form onSubmit={handleSubmit} style={{ background: '#ffffff', padding: '24px', borderRadius: '12px', width: '380px', maxWidth: '92%', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '14px', fontFamily: 'DM Sans, sans-serif' }}>
                 <div>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#0f172a' }}>Unir linhas em 1 evento</h3>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>{rowsCount} linha(s) selecionada(s)</p>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#0f172a' }}>Novo evento</h3>
                 </div>
 
                 <label style={labelStyle}>Nome do evento</label>

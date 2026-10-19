@@ -18,10 +18,10 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [errorMsg, setErrorMsg] = useState('');
+    // Guarda o id da linha que está sendo arrastada
+    const dragRowRef = useRef(null);
 
-    // Estado para guardar os IDs das linhas selecionadas para unificação
-    const [selectedRowIds, setSelectedRowIds] = useState([]);
-    // Modal com nome e cor ao unir linhas em 1 evento
+    // Modal para criar um evento (botão + Evento)
     const [groupModalOpen, setGroupModalOpen] = useState(false);
 
     // Nº de gravações em curso; enquanto > 0 o realtime não substitui o estado local
@@ -85,55 +85,21 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         };
     }, [project.id]);
 
-    const handleToggleSelectRow = (rowId) => {
-        setSelectedRowIds(prev => 
-            prev.includes(rowId) ? prev.filter(id => id !== rowId) : [...prev, rowId]
-        );
-    };
-
-    // UNIFICA AS LINHAS SELECIONADAS EM 1 EVENTO ÚNICO
-    const handleOpenGroupModal = () => {
-        if (selectedRowIds.length === 0) return;
-        setGroupModalOpen(true);
-    };
-
-    // Recebe o nome e a cor escolhidos no modal
-    // Sem linhas selecionadas, cria apenas o evento vazio (botão "+ Item")
+    // Cria um evento (faixa) com o nome e a cor escolhidos no modal
     const handleConfirmGroup = async (eventTitle, eventColor) => {
         setGroupModalOpen(false);
 
-        const groupId = 'grp_' + Date.now();
-        const headerId = 'eq_grp_' + Date.now();
-
-        // 1. Cria a linha de Evento Pai
         const groupHeaderRow = {
-            id: headerId,
+            id: 'eq_grp_' + Date.now(),
             isGroupHeader: true,
             groupName: eventTitle.toUpperCase(),
             color: eventColor,
-            position: Math.min(0, ...equipments.map(eq => eq.position ?? 0)) - 1
+            position: Math.max(0, ...equipments.map((eq, i) => eq.position ?? i + 1)) + 1
         };
 
-        // 2. Associa o groupId às linhas selecionadas
-        const updatedEquipments = equipments.map(eq => {
-            if (selectedRowIds.includes(eq.id)) {
-                return { ...eq, groupId: groupId };
-            }
-            return eq;
-        });
-
-        // Insere o cabeçalho do evento acima das linhas
-        const newEquipmentsList = [groupHeaderRow, ...updatedEquipments];
-        setEquipments(newEquipmentsList);
-        setSelectedRowIds([]);
-
-        // Salva no Supabase
-        await persist(async () => {
-            await supabaseService.addEquipment(project.id, groupHeaderRow);
-            for (const rowId of selectedRowIds) {
-                await supabaseService.updateEquipmentField(rowId, project.id, 'groupId', groupId);
-            }
-        });
+        // Adiciona o evento no fim da tabela e salva no Supabase
+        setEquipments([...equipments, groupHeaderRow]);
+        await persist(() => supabaseService.addEquipment(project.id, groupHeaderRow));
     };
 
     const handleDeleteProject = async () => {
@@ -232,24 +198,65 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     };
 
     // Troca a posição da linha com a vizinha (direction: -1 sobe, 1 desce)
-    const handleMoveRow = async (id, direction) => {
-        const idx = equipments.findIndex(eq => eq.id === id);
-        const targetIdx = idx + direction;
-        if (idx < 0 || targetIdx < 0 || targetIdx >= equipments.length) return;
+    // ARRASTAR LINHAS: guarda a linha que está sendo arrastada
+    const handleRowDragStart = (id) => {
+        dragRowRef.current = id;
+    };
 
-        const a = equipments[idx];
-        const b = equipments[targetIdx];
-        const posA = a.position ?? idx + 1;
-        const posB = b.position ?? targetIdx + 1;
+    // Solta a linha arrastada antes ou depois da linha alvo.
+    // Se a linha for um evento, o bloco inteiro (evento + linhas abaixo dele) é movido.
+    const handleRowDrop = async (targetId) => {
+        const srcId = dragRowRef.current;
+        dragRowRef.current = null;
+        if (!srcId || srcId === targetId) return;
 
-        const next = [...equipments];
-        next[idx] = { ...b, position: posA };
-        next[targetIdx] = { ...a, position: posB };
-        setEquipments(next);
+        const srcIdx = equipments.findIndex(eq => eq.id === srcId);
+        const targetIdx = equipments.findIndex(eq => eq.id === targetId);
+        if (srcIdx < 0 || targetIdx < 0) return;
+
+        let endIdx = srcIdx + 1;
+        if (equipments[srcIdx].isGroupHeader) {
+            while (endIdx < equipments.length && !equipments[endIdx].isGroupHeader) endIdx++;
+        }
+        // Não solta o bloco dentro dele mesmo
+        if (targetIdx >= srcIdx && targetIdx < endIdx) return;
+
+        const block = equipments.slice(srcIdx, endIdx);
+        const rest = [...equipments.slice(0, srcIdx), ...equipments.slice(endIdx)];
+        let insertAt = rest.findIndex(eq => eq.id === targetId);
+        if (srcIdx < targetIdx) insertAt += 1; // arrastando para baixo: solta depois da alvo
+        const next = [...rest.slice(0, insertAt), ...block, ...rest.slice(insertAt)];
+
+        // Recalcula posições só da faixa que mudou, reaproveitando as posições já existentes
+        const lo = next.findIndex((eq, i) => eq.id !== equipments[i].id);
+        if (lo < 0) return;
+        let hi = next.length - 1;
+        while (hi > lo && next[hi].id === equipments[hi].id) hi--;
+
+        const updated = next.map((eq, i) =>
+            i >= lo && i <= hi ? { ...eq, position: equipments[i].position ?? i + 1 } : eq
+        );
+        setEquipments(updated);
 
         await persist(async () => {
-            await supabaseService.updateEquipmentPosition(a.id, posB);
-            await supabaseService.updateEquipmentPosition(b.id, posA);
+            for (let i = lo; i <= hi; i++) {
+                await supabaseService.updateEquipmentPosition(updated[i].id, updated[i].position);
+            }
+        });
+    };
+
+    // MARCAR / DESMARCAR LINHA COMO EVENTO (o nome do evento vem da primeira coluna)
+    const handleToggleEventRow = async (eq) => {
+        const firstColId = columnConfig[0]?.id;
+        const changes = eq.isGroupHeader
+            ? { isGroupHeader: false, color: 'padrao', ...(firstColId ? { [firstColId]: eq.groupName || '' } : {}) }
+            : { isGroupHeader: true, groupName: String(eq[firstColId] || '').trim() || 'EVENTO', color: 'cinza' };
+
+        setEquipments(prev => prev.map(e => e.id === eq.id ? { ...e, ...changes } : e));
+        await persist(async () => {
+            for (const [field, value] of Object.entries(changes)) {
+                await supabaseService.updateEquipmentField(eq.id, project.id, field, value);
+            }
         });
     };
 
@@ -437,9 +444,6 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
                 onConfirmRows={handleAddNewRows}
                 onCloseRowModal={() => setRowModalOpen(false)}
                 onNewCol={() => setColModalOpen(true)}
-                selectedRowIds={selectedRowIds}
-                onToggleSelectRow={handleToggleSelectRow}
-                onGroupSelectedRows={handleOpenGroupModal}
                 onNewItem={() => setGroupModalOpen(true)}
                 groupModalOpen={groupModalOpen}
                 onConfirmGroup={handleConfirmGroup}
@@ -451,7 +455,9 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
                 onUpdateColName={handleUpdateColName}
                 onDeleteCol={handleDeleteCol}
                 onDeleteRow={handleDeleteRow}
-                onMoveRow={handleMoveRow}
+                onRowDragStart={handleRowDragStart}
+                onRowDrop={handleRowDrop}
+                onToggleEventRow={handleToggleEventRow}
                 onDragStart={handleDragStart}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}

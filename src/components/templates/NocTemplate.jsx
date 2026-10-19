@@ -15,9 +15,6 @@ export function NocTemplate({
     onToggleEdit,
     onNewRow,
     onNewCol,
-    selectedRowIds = [],
-    onToggleSelectRow,
-    onGroupSelectedRows,
     onNewItem,
     rowModalOpen,
     onConfirmRows,
@@ -29,7 +26,9 @@ export function NocTemplate({
     onUpdateColName,
     onDeleteCol,
     onDeleteRow,
-    onMoveRow,
+    onRowDragStart,
+    onRowDrop,
+    onToggleEventRow,
     onDragStart,
     onDragOver,
     onDrop,
@@ -68,8 +67,6 @@ export function NocTemplate({
                 onToggleEdit={onToggleEdit}
                 onNewRow={onNewRow}
                 onNewCol={onNewCol}
-                selectedRowsCount={selectedRowIds.length}
-                onGroupSelectedRows={onGroupSelectedRows}
                 onNewItem={onNewItem}
                 onDeleteProject={onDeleteProject}
             />
@@ -102,13 +99,13 @@ export function NocTemplate({
                     columnConfig={columnConfig}
                     equipments={equipments}
                     isEditMode={isEditMode}
-                    selectedRowIds={selectedRowIds}
-                    onToggleSelectRow={onToggleSelectRow}
                     onUpdateField={onUpdateField}
                     onUpdateColName={onUpdateColName}
                     onDeleteCol={onDeleteCol}
                     onDeleteRow={onDeleteRow}
-                    onMoveRow={onMoveRow}
+                    onRowDragStart={onRowDragStart}
+                    onRowDrop={onRowDrop}
+                    onToggleEventRow={onToggleEventRow}
                     onDragStart={onDragStart}
                     onDragOver={onDragOver}
                     onDrop={onDrop}
@@ -141,7 +138,6 @@ export function NocTemplate({
 
             {groupModalOpen && (
                 <GroupEventModal
-                    rowsCount={selectedRowIds.length}
                     onConfirm={onConfirmGroup}
                     onCancel={onCloseGroupModal}
                 />

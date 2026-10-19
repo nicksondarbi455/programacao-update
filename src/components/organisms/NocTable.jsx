@@ -36,13 +36,13 @@ export function NocTable({
     columnConfig, 
     equipments, 
     isEditMode, 
-    selectedRowIds = [],
-    onToggleSelectRow,
     onUpdateField, 
     onUpdateColName, 
     onDeleteCol, 
     onDeleteRow, 
-    onMoveRow,
+    onRowDragStart,
+    onRowDrop,
+    onToggleEventRow,
     onDragStart, 
     onDragOver, 
     onDrop, 
@@ -74,12 +74,34 @@ export function NocTable({
         });
     });
 
-    // Botões ▲ ▼ para reordenar as linhas (apenas no modo de edição)
-    const renderMoveButtons = (eq) => (
-        <>
-            <Button variant="secondary" size="sm" style={{ padding: '2px 6px' }} onClick={() => onMoveRow(eq.id, -1)} title="Mover para cima">▲</Button>
-            <Button variant="secondary" size="sm" style={{ padding: '2px 6px' }} onClick={() => onMoveRow(eq.id, 1)} title="Mover para baixo">▼</Button>
-        </>
+    // Alça para arrastar a linha (apenas no modo de edição)
+    const renderGrip = (eq) => (
+        <span
+            draggable
+            title="Segure para arrastar e mover a linha"
+            onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', eq.id);
+                e.dataTransfer.setDragImage(e.currentTarget.closest('tr'), 20, 10);
+                onRowDragStart(eq.id);
+            }}
+            style={{ cursor: 'grab', color: '#475569', fontSize: '1rem', padding: '0 4px' }}
+        >
+            <i className="fa-solid fa-grip-vertical"></i>
+        </span>
+    );
+
+    // Marca ou desmarca a linha como evento (apenas no modo de edição)
+    const renderToggleEvent = (eq) => (
+        <Button
+            variant="secondary"
+            size="sm"
+            style={{ padding: '2px 6px' }}
+            onClick={() => onToggleEventRow(eq)}
+            title={eq.isGroupHeader ? 'Desmarcar como evento' : 'Marcar como evento'}
+        >
+            <i className="fa-regular fa-flag"></i>
+        </Button>
     );
 
     const totalWidth = columnConfig.reduce((acc, col) => acc + (parseInt(col.width) || 150), 0) + CHECK_COL_WIDTH + (isEditMode ? 220 : 0);
@@ -158,7 +180,7 @@ export function NocTable({
         <div className="section-panel">
             <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h2>Gestão de Dados ({filteredEquipments.length} registos)</h2>
-                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>💡 No modo de edição, marque as caixas das linhas desejadas e clique em "Unir em 1 Evento"</span>
+                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>💡 No modo de edição, arraste pelo ícone ⋮⋮ para mover linhas e use a bandeira para marcar um evento.</span>
             </div>
             <div className="table-container">
                 <table id="noc-table" style={{ width: `${totalWidth}px` }}>
@@ -219,16 +241,16 @@ export function NocTable({
                                 // FAIXA CINZA DE EVENTO ÚNICO
                                 if (eq.isGroupHeader) {
                                     return (
-                                        <tr key={eq.id} style={{ backgroundColor: completed ? '#86efac' : '#94a3b8', borderBottom: '2px solid #64748b' }}>
+                                        <tr key={eq.id} style={{ backgroundColor: completed ? '#86efac' : '#94a3b8', borderBottom: '2px solid #64748b' }} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); onRowDrop(eq.id); }}>
                                             <td style={{ textAlign: 'center', fontSize: '1rem' }}>
-                                                {completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null}
+                                                {isEditMode ? renderGrip(eq) : (completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null)}
                                             </td>
 
                                             {renderGroupCells(eq, completed)}
 
                                             {isEditMode && (
                                                 <td style={{ textAlign: 'center', width: '200px' }}>
-                                                    {renderMoveButtons(eq)}
+                                                    {renderToggleEvent(eq)}
                                                     <Button variant="danger" size="sm" style={{ padding: '2px 8px' }} onClick={() => onDeleteRow(eq.id)}>Excluir evento</Button>
                                                 </td>
                                             )}
@@ -238,21 +260,11 @@ export function NocTable({
 
                                 // LINHA DE DADOS PADRÃO
                                 let rowBg = completed ? '#f0fdf4' : (colorMap[eq.color] || '#ffffff');
-                                const isSelected = selectedRowIds.includes(eq.id);
 
                                 return (
-                                    <tr key={eq.id} style={{ backgroundColor: rowBg, borderLeft: eq.groupId ? '4px solid #8b5cf6' : 'none' }}>
+                                    <tr key={eq.id} style={{ backgroundColor: rowBg, borderLeft: eq.groupId ? '4px solid #8b5cf6' : 'none' }} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); onRowDrop(eq.id); }}>
                                         <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                                            {isEditMode ? (
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={isSelected} 
-                                                    onChange={() => onToggleSelectRow(eq.id)} 
-                                                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                                                />
-                                            ) : (
-                                                completed ? <i className="fa-solid fa-circle-check" title="Concluído" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null
-                                            )}
+                                            {isEditMode ? renderGrip(eq) : (completed ? <i className="fa-solid fa-circle-check" title="Concluído" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null)}
                                         </td>
 
                                         {columnConfig.map(col => {
@@ -298,7 +310,7 @@ export function NocTable({
                                                     <option value="verde">🟢 Baixa</option>
                                                     <option value="azul">🔵 Info</option>
                                                 </select>
-                                                {renderMoveButtons(eq)}
+                                                {renderToggleEvent(eq)}
                                                 <Button variant="danger" size="sm" style={{ padding: '2px 5px' }} onClick={() => onDeleteRow(eq.id)}>X</Button>
                                             </td>
                                         )}

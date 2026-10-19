@@ -7,8 +7,6 @@ export function TopBar({
     onToggleEdit,
     onNewRow,
     onNewCol,
-    selectedRowsCount = 0,
-    onGroupSelectedRows,
     onNewItem,
     onDeleteProject,
     percentage = 0
@@ -33,14 +31,7 @@ export function TopBar({
                     <>
                         <Button variant="primary" size="sm" onClick={onNewRow}><i className="fa-regular fa-plus"></i> Linha</Button>
                         <Button variant="primary" size="sm" onClick={onNewCol}><i className="fa-regular fa-plus"></i> Coluna</Button>
-                        <Button variant="primary" size="sm" onClick={onNewItem}><i className="fa-regular fa-plus"></i> Item</Button>
-
-                        {/* Botão para unir linhas que surge assim que marcar 1 ou mais caixas */}
-                        {selectedRowsCount > 0 && (
-                            <Button variant="info" size="sm" onClick={onGroupSelectedRows}>
-                                🔗 Unir {selectedRowsCount} linha{selectedRowsCount > 1 ? 's' : ''} em 1 evento
-                            </Button>
-                        )}
+                        <Button variant="primary" size="sm" onClick={onNewItem}><i className="fa-regular fa-plus"></i> Evento</Button>
 
                         <Button variant="danger" size="sm" onClick={onDeleteProject}>🗑️ Excluir projeto</Button>
                     </>
