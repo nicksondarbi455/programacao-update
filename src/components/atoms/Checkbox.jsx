@@ -14,12 +14,12 @@ export function Checkbox({ checked, onChange }) {
                 cursor: 'pointer',
                 display: 'block',
                 margin: '0 auto',
-                fontSize: '14px',
+                fontSize: '18px',
                 lineHeight: 1
             }}
         >
             {isChecked
-                ? <i className="fa-solid fa-square-check" style={{ color: 'rgb(99, 230, 190)' }}></i>
+                ? <i className="fa-solid fa-square-check" style={{ color: '#16a34a' }}></i>
                 : <i className="fa-regular fa-square"></i>
             }
         </button>
