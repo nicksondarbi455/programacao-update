@@ -52,10 +52,13 @@ export function NocTable({
     statusFilter = 'all' 
 }) {
     
+    // Só aplica a regra de eventos quando a planilha possui faixas de evento
+    const hasGroupHeaders = equipments.some(eq => eq.isGroupHeader);
+
     const filteredEquipments = equipments.filter(eq => {
         // Concluído = agendamento marcado como feito no calendário
         const done = isRowCompleted(eq, schedules, columnConfig);
-        if (statusFilter !== 'all' && !eq.isGroupHeader) return false;
+        if (hasGroupHeaders && statusFilter !== 'all' && !eq.isGroupHeader) return false;
         if (statusFilter === 'pending' && done) return false;
         if (statusFilter === 'completed' && !done) return false;
 
