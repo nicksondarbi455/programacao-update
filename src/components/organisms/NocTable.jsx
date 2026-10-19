@@ -123,7 +123,7 @@ export function NocTable({
                                 }}
                             />
                         ) : (
-                            <span>📌 {eq.groupName || 'EVENTO SEM NOME'} {completed ? '(CONCLUÍDO ✅)' : ''}</span>
+                            <span>📌 {eq.groupName || 'EVENTO SEM NOME'} {completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a' }}></i> : ''}</span>
                         ))}
                     </td>
                 );
@@ -217,7 +217,7 @@ export function NocTable({
                                     return (
                                         <tr key={eq.id} style={{ backgroundColor: completed ? '#d1fae5' : '#94a3b8', borderBottom: '2px solid #64748b' }}>
                                             <td style={{ textAlign: 'center', fontSize: '1rem' }}>
-                                                {completed ? '✅' : '📌'}
+                                                {completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a' }}></i> : '📌'}
                                             </td>
 
                                             {renderGroupCells(eq, completed)}
@@ -247,7 +247,7 @@ export function NocTable({
                                                     style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                                                 />
                                             ) : (
-                                                completed ? <span style={{ fontSize: '1.1rem' }} title="Concluído">✅</span> : null
+                                                completed ? <i className="fa-solid fa-circle-check" title="Concluído" style={{ color: '#16a34a', fontSize: '1.1rem' }}></i> : null
                                             )}
                                         </td>
 
