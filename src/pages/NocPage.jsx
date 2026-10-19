@@ -421,7 +421,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
             {errorMsg && (
                 <div role="alert" style={{ background: '#fef2f2', color: '#b91c1c', borderBottom: '1px solid #fecaca', padding: '8px 15px', fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>⚠️ {errorMsg}</span>
-                    <button type="button" onClick={() => setErrorMsg('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', fontWeight: 'bold' }><i className="fa-regular fa-circle-xmark" style={{ color: '#6b7280' }}></i></button>
+                    <button type="button" onClick={() => setErrorMsg('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', fontWeight: 'bold' }}><i className="fa-regular fa-circle-xmark" style={{ color: '#6b7280' }}></i></button>
                 </div>
             )}
 
