@@ -138,7 +138,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                     <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.4rem' }}>Meus Projetos e Serviços</h2>
                     <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Sincronização em tempo real ativada.</p>
                 </div>
-                <Button variant="danger" onClick={onLogout}>Terminar Sessão</Button>
+                <Button variant="danger" onClick={onLogout}>Terminar sessão</Button>
             </div>
 
             {loading ? (
@@ -168,7 +168,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                             e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.04)';
                         }}
                     >
-                        <span style={{ fontSize: '4.5rem', color: '#07aeea', fontFamily: "'Playfair Display', serif", lineHeight: '1', marginTop: '-4px' }}>+</span>
+                        <i className="fa-regular fa-plus" style={{ fontSize: '4rem', color: '#07aeea', lineHeight: '1', marginTop: '-4px' }}></i>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <span style={{ fontFamily: "'Playfair Display', serif", color: '#0f172a', fontWeight: '700', fontSize: '1.25rem', lineHeight: '1.15' }}>Novo</span>
                             <span style={{ fontFamily: "'Playfair Display', serif", color: '#0f172a', fontWeight: '700', fontSize: '1.25rem', lineHeight: '1.15' }}>Projeto</span>
@@ -208,7 +208,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '8px' }}>
                                 <span style={{ fontSize: '0.65rem', color: '#94a3b8', background: '#f8fafc', padding: '2px 6px', borderRadius: '4px' }}>
-                                    {proj.hasCalendar ? '📅 Com Calendário' : '📋 Apenas Tabela'}
+                                    {proj.hasCalendar ? <><i className="fa-regular fa-calendar-days"></i> Com Calendário</> : <><i className="fa-regular fa-clipboard"></i> Apenas Tabela</>}
                                 </span>
                             </div>
                         </div>
@@ -275,7 +275,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
 
                             <div style={{ textAlign: 'right', marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                                 <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                                <Button type="submit" variant="primary">Criar Projeto no Supabase</Button>
+                                <Button type="submit" variant="primary">Criar projeto no Supabase</Button>
                             </div>
                         </form>
                     </div>

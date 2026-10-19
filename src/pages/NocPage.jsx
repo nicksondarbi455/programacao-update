@@ -415,13 +415,13 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
                     <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Projeto: {project.name} {project.isPrivate ? '🔒' : ''}</span>
                     <span style={{ fontSize: '0.7rem', color: '#22c55e', marginLeft: '10px' }}>🟢 Conectado ao Supabase (Realtime)</span>
                 </div>
-                <Button variant="secondary" size="sm" onClick={onBackToDashboard}>Voltar aos Projetos</Button>
+                <Button variant="secondary" size="sm" onClick={onBackToDashboard}>Voltar</Button>
             </div>
 
             {errorMsg && (
                 <div role="alert" style={{ background: '#fef2f2', color: '#b91c1c', borderBottom: '1px solid #fecaca', padding: '8px 15px', fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>⚠️ {errorMsg}</span>
-                    <button type="button" onClick={() => setErrorMsg('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', fontWeight: 'bold' }}>✕</button>
+                    <button type="button" onClick={() => setErrorMsg('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', fontWeight: 'bold' }><i className="fa-regular fa-circle-xmark" style={{ color: '#6b7280' }}></i></button>
                 </div>
             )}
 

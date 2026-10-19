@@ -54,7 +54,7 @@ export function Modals({
     const eventOptions = availableEvents.map((eq) => ({
         id: eq.id,
         label: eq.isGroupHeader
-            ? `📌 ${eq.groupName || 'Sem Nome'}`
+            ? (eq.groupName || 'Sem Nome')
             : (columnConfig[0] ? String(eq[columnConfig[0].id] || 'Sem Nome') : 'Equipamento')
     }));
 
@@ -81,7 +81,6 @@ export function Modals({
                                 <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem' }}>Gerenciar Agendamentos do Dia</h3>
                                 <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>Data: <strong>{modalData.friendlyDate || modalData.dateStr}</strong></p>
                             </div>
-                            <Button variant="secondary" size="sm" onClick={closeDayModal}>X</Button>
                         </div>
 
                         {/* Lista dos Agendamentos do Dia */}
@@ -166,7 +165,7 @@ export function Modals({
 
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '5px' }}>
                                 <Button variant="secondary" onClick={closeDayModal}>Fechar</Button>
-                                <Button variant="primary" type="submit">+ Agendar Evento</Button>
+                                <Button variant="primary" type="submit"><i className="fa-regular fa-plus"></i> Agendar evento</Button>
                             </div>
                         </form>
 
@@ -233,13 +232,13 @@ export function Modals({
                                     style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff', color: '#0f172a' }}
                                 >
                                     <option value="all">🌐 Em Todas as Linhas da Tabela</option>
-                                    <option value="events">📌 Apenas nas Faixas de Evento (Eventos Únicos)</option>
+                                    <option value="events">Apenas nas Faixas de Evento (Eventos Únicos)</option>
                                 </select>
                             </div>
 
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
                                 <Button variant="secondary" onClick={onCloseCol}>Cancelar</Button>
-                                <Button variant="primary" type="submit">Adicionar Coluna</Button>
+                                <Button variant="primary" type="submit">Adicionar coluna</Button>
                             </div>
                         </form>
                     </div>

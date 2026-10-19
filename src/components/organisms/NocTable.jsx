@@ -55,6 +55,7 @@ export function NocTable({
     const filteredEquipments = equipments.filter(eq => {
         // Concluído = agendamento marcado como feito no calendário
         const done = isRowCompleted(eq, schedules, columnConfig);
+        if (statusFilter !== 'all' && !eq.isGroupHeader) return false;
         if (statusFilter === 'pending' && done) return false;
         if (statusFilter === 'completed' && !done) return false;
 
@@ -123,7 +124,7 @@ export function NocTable({
                                 }}
                             />
                         ) : (
-                            <span>📌 {eq.groupName || 'EVENTO SEM NOME'} {completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a' }}></i> : ''}</span>
+                            <span>{eq.groupName || 'EVENTO SEM NOME'} {completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a', fontSize: '18px' }}></i> : ''}</span>
                         ))}
                     </td>
                 );
@@ -184,7 +185,7 @@ export function NocTable({
                                             <Button variant="danger" size="sm" style={{ padding: '0 2px', float: 'right' }} onClick={() => onDeleteCol(col.id)}>X</Button>
                                         )}
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            {isEventScope && <span style={{ fontSize: '0.7rem' }} title="Apenas Eventos">📌</span>}
+                                            
                                             <span
                                                 className={isEditMode ? "col-title-display editable" : "col-title-display"}
                                                 contentEditable={isEditMode}
@@ -217,7 +218,7 @@ export function NocTable({
                                     return (
                                         <tr key={eq.id} style={{ backgroundColor: completed ? '#d1fae5' : '#94a3b8', borderBottom: '2px solid #64748b' }}>
                                             <td style={{ textAlign: 'center', fontSize: '1rem' }}>
-                                                {completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a' }}></i> : '📌'}
+                                                {completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null}
                                             </td>
 
                                             {renderGroupCells(eq, completed)}
@@ -225,7 +226,7 @@ export function NocTable({
                                             {isEditMode && (
                                                 <td style={{ textAlign: 'center', width: '200px' }}>
                                                     {renderMoveButtons(eq)}
-                                                    <Button variant="danger" size="sm" style={{ padding: '2px 8px' }} onClick={() => onDeleteRow(eq.id)}>Excluir Evento</Button>
+                                                    <Button variant="danger" size="sm" style={{ padding: '2px 8px' }} onClick={() => onDeleteRow(eq.id)}>Excluir evento</Button>
                                                 </td>
                                             )}
                                         </tr>
@@ -247,7 +248,7 @@ export function NocTable({
                                                     style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                                                 />
                                             ) : (
-                                                completed ? <i className="fa-solid fa-circle-check" title="Concluído" style={{ color: '#16a34a', fontSize: '1.1rem' }}></i> : null
+                                                completed ? <i className="fa-solid fa-circle-check" title="Concluído" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null
                                             )}
                                         </td>
 

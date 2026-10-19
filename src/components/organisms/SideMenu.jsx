@@ -27,7 +27,7 @@ export function SideMenu({ active, onSelect, userEmail, onLogout }) {
             <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <p style={{ margin: '0 4px', fontSize: '0.7rem', color: '#cbd5e1', wordBreak: 'break-all' }}>{userEmail}</p>
                 <Button variant="danger" size="md" onClick={onLogout} style={{ width: '100%', padding: '8px 12px' }}>
-                    Terminar Sessão
+                    Terminar sessão
                 </Button>
             </div>
         </aside>

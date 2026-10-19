@@ -100,7 +100,7 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
     background: #0072ff;
     padding: 10px 24px;
     text-align: center;
-    text-transform: uppercase;
+    text-transform: none;
     transition: opacity 0.2s;
     color: white;
     box-shadow: none;

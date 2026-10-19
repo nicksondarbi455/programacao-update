@@ -26,23 +26,23 @@ export function TopBar({
                     size="sm"
                     onClick={onToggleEdit}
                 >
-                    {isEditMode ? '✔ Concluir Edição' : '✏️ Editar Tabela'}
+                    {isEditMode ? 'Concluir edição' : <><i className="fa-regular fa-pen-to-square"></i> Editar tabela</>}
                 </Button>
 
                 {isEditMode && (
                     <>
-                        <Button variant="primary" size="sm" onClick={onNewRow}>+ Linha</Button>
-                        <Button variant="primary" size="sm" onClick={onNewCol}>+ Coluna</Button>
-                        <Button variant="primary" size="sm" onClick={onNewItem}>+ Item</Button>
+                        <Button variant="primary" size="sm" onClick={onNewRow}><i className="fa-regular fa-plus"></i> Linha</Button>
+                        <Button variant="primary" size="sm" onClick={onNewCol}><i className="fa-regular fa-plus"></i> Coluna</Button>
+                        <Button variant="primary" size="sm" onClick={onNewItem}><i className="fa-regular fa-plus"></i> Item</Button>
 
                         {/* Botão para unir linhas que surge assim que marcar 1 ou mais caixas */}
                         {selectedRowsCount > 0 && (
                             <Button variant="info" size="sm" onClick={onGroupSelectedRows}>
-                                🔗 Unir {selectedRowsCount} Linha{selectedRowsCount > 1 ? 's' : ''} em 1 Evento
+                                🔗 Unir {selectedRowsCount} linha{selectedRowsCount > 1 ? 's' : ''} em 1 evento
                             </Button>
                         )}
 
-                        <Button variant="danger" size="sm" onClick={onDeleteProject}>🗑️ Excluir Projeto</Button>
+                        <Button variant="danger" size="sm" onClick={onDeleteProject}>🗑️ Excluir projeto</Button>
                     </>
                 )}
             </div>

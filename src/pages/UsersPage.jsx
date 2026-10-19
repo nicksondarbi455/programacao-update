@@ -279,7 +279,7 @@ function UsersTab({ isAdmin, departments, currentUserEmail, onChange }) {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>Criar usuário</strong>
                         <Button size="sm" variant="primary" onClick={() => setShowCreate(!showCreate)}>
-                            {showCreate ? 'Fechar' : '+ Novo usuário'}
+                            {showCreate ? 'Fechar' : <><i className="fa-regular fa-plus"></i> Novo usuário</>}
                         </Button>
                     </div>
 
@@ -374,7 +374,7 @@ function DepartmentsTab({ isAdmin, departments, onChange }) {
                         <label style={labelStyle}>Novo departamento</label>
                         <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ex: NOC Turno A" required style={inputStyle} />
                     </div>
-                    <Button type="submit" variant="primary" disabled={busy}>+ Criar departamento</Button>
+                    <Button type="submit" variant="primary" disabled={busy}><i className="fa-regular fa-plus"></i> Criar departamento</Button>
                 </form>
             )}
 
