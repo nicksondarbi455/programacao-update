@@ -124,7 +124,7 @@ export function NocTable({
                                 }}
                             />
                         ) : (
-                            <span>{eq.groupName || 'EVENTO SEM NOME'} {completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a', fontSize: '18px' }}></i> : ''}</span>
+                            <span>{eq.groupName || 'EVENTO SEM NOME'}</span>
                         ))}
                     </td>
                 );
@@ -216,7 +216,7 @@ export function NocTable({
                                 // FAIXA CINZA DE EVENTO ÚNICO
                                 if (eq.isGroupHeader) {
                                     return (
-                                        <tr key={eq.id} style={{ backgroundColor: completed ? '#d1fae5' : '#94a3b8', borderBottom: '2px solid #64748b' }}>
+                                        <tr key={eq.id} style={{ backgroundColor: completed ? '#86efac' : '#94a3b8', borderBottom: '2px solid #64748b' }}>
                                             <td style={{ textAlign: 'center', fontSize: '1rem' }}>
                                                 {completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null}
                                             </td>

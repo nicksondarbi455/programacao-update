@@ -93,7 +93,7 @@ export function FloatingCalendar({ isOpen, onToggle, schedules, equipments, onOp
             <div className="floating-calendar-box" style={{ display: isOpen ? 'flex' : 'none' }}>
                 <div className="floating-calendar-header">
                     <h3 style={{ margin: 0, fontSize: '0.85rem', color: '#fff' }}>Calendário de Serviços</h3>
-                    <Button variant="secondary" size="sm" onClick={onToggle}><i className="fa-regular fa-circle-xmark" style={{ color: '#6b7280' }}></i></Button>
+                    <button type="button" onClick={onToggle} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1 }}><i className="fa-regular fa-circle-xmark" style={{ color: '#9ca3af' }}></i></button>
                 </div>
                 <div className="calendar-scroll-area" onScroll={hideHover}>
                     <div className="months-grid">{renderMonths()}</div>
