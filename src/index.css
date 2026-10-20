@@ -177,6 +177,7 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
     position: absolute; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
     font-size: 0.6rem; font-weight: bold; color: white; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     animation: bounce-pulse 1.8s infinite ease-in-out;
+    z-index: 5;
 }
 .badge-week { background-color: var(--success); top: -8px; right: -8px; }
 .badge-tomorrow { background-color: var(--danger); top: -8px; right: 22px; }
@@ -309,4 +310,9 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
 /* Botões de filtro inativos mantêm a aparência mais clara */
 .btn.btn-inactive {
   opacity: 0.55;
+}
+
+/* Badges do calendário sempre por cima do botão */
+.calendar-btn-wrapper {
+  position: relative;
 }

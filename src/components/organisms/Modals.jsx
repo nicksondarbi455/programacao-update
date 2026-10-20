@@ -18,6 +18,8 @@ export function Modals({
     const [customColScope, setCustomColScope] = useState('all');
     const [customColQty, setCustomColQty] = useState(1);
     const [eventSearch, setEventSearch] = useState('');
+    // Agendamento aguardando confirmação (marcar ou desmarcar como feito)
+    const [confirmItem, setConfirmItem] = useState(null);
 
     if (!modalData?.isOpen && !colModalOpen) return null;
 
@@ -96,7 +98,7 @@ export function Modals({
                                             <input 
                                                 type="checkbox" 
                                                 checked={item.completed || false} 
-                                                onChange={() => onToggleCompleteSchedule(modalData.dateStr, idx)}
+                                                onChange={() => setConfirmItem({ idx, completed: !item.completed })}
                                                 style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                                             />
                                             <span style={{ fontSize: '0.85rem', fontWeight: '600', color: item.completed ? '#16a34a' : '#1e293b', textDecoration: item.completed ? 'line-through' : 'none', userSelect: 'none' }}>
@@ -251,6 +253,24 @@ export function Modals({
                                 <Button variant="primary" type="submit">Adicionar coluna</Button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            {confirmItem && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 100002, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ background: '#fff', borderRadius: '10px', padding: '18px 20px', width: '280px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+                        <p style={{ margin: '0 0 14px 0', fontSize: '0.85rem', color: '#1e293b', fontWeight: 600, textAlign: 'center' }}>
+                            {confirmItem.completed
+                                ? 'Tem certeza que deseja marcar este agendamento como feito?'
+                                : 'Tem certeza que deseja desmarcar este agendamento?'}
+                        </p>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                            <Button variant="secondary" className="btn-modal" onClick={() => setConfirmItem(null)}><span>Cancelar</span></Button>
+                            <Button variant="success" className="btn-modal" onClick={() => {
+                                onToggleCompleteSchedule(modalData.dateStr, confirmItem.idx);
+                                setConfirmItem(null);
+                            }}><span>Sim</span></Button>
+                        </div>
                     </div>
                 </div>
             )}
