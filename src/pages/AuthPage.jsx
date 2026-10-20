@@ -55,15 +55,19 @@ const authStyles = `
 .auth-page .auth-submit {
   background-color: #ffffff00;
   color: #3654ff;
-  width: 8.5em;
+  min-width: 8.5em;
   height: 2.9em;
   border: #3654ff 0.2em solid;
   border-radius: 11px;
-  text-align: right;
   transition: all 0.6s ease;
-  position: relative;
   cursor: pointer;
   margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  padding: 0 1em;
+  white-space: nowrap;
 }
 
 .auth-page .auth-submit:hover:not(:disabled) {
@@ -78,9 +82,7 @@ const authStyles = `
 
 .auth-page .auth-submit svg {
   width: 1.6em;
-  margin: -0.2em 0.8em 1em;
-  position: absolute;
-  display: flex;
+  flex-shrink: 0;
   transition: all 0.6s ease;
 }
 
@@ -89,7 +91,7 @@ const authStyles = `
 }
 
 .auth-page .auth-submit .text {
-  margin: 0 1.5em;
+  margin: 0;
 }
 
 .auth-page .input-container input:focus ~ .underline,

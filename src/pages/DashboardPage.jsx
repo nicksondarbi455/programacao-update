@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabaseService } from '../services/supabaseService';
 import { Button } from '../components/atoms/Button';
 import { Input } from '../components/atoms/Input';
+import { Checkbox } from '../components/atoms/Checkbox';
 import * as XLSX from 'xlsx';
 
 export function DashboardPage({ user, onSelectProject, onLogout }) {
@@ -235,11 +236,11 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
 
                             <div style={{ display: 'flex', gap: '15px', margin: '2px 0' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: '#334155' }}>
-                                    <input type="checkbox" checked={hasCalendar} onChange={(e) => setHasCalendar(e.target.checked)} />
+                                    <Checkbox checked={hasCalendar} onChange={(e) => setHasCalendar(e.target.checked)} />
                                     Usar Calendário
                                 </label>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: '#334155' }}>
-                                    <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
+                                    <Checkbox checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
                                     Projeto Privado 🔒
                                 </label>
                             </div>
@@ -254,11 +255,11 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     <div style={{ flex: 1 }}>
                                         <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Qtd. Linhas</label>
-                                        <Input type="number" min="1" max="50" value={numRows} onChange={(e) => setNumRows(e.target.value)} />
+                                        <Input type="number" className="num-input" min="1" max="50" value={numRows} onChange={(e) => setNumRows(e.target.value)} />
                                     </div>
                                     <div style={{ flex: 1 }}>
                                         <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Qtd. Colunas</label>
-                                        <Input type="number" min="1" max="10" value={numCols} onChange={(e) => setNumCols(e.target.value)} />
+                                        <Input type="number" className="num-input" min="1" max="10" value={numCols} onChange={(e) => setNumCols(e.target.value)} />
                                     </div>
                                 </div>
                             ) : (
@@ -274,8 +275,8 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                             )}
 
                             <div style={{ textAlign: 'right', marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                                <Button type="submit" variant="primary">Criar projeto no Supabase</Button>
+                                <Button variant="secondary" className="btn-shape" onClick={() => setIsModalOpen(false)}><span>Cancelar</span></Button>
+                                <Button type="submit" variant="primary" className="btn-shape"><span><i className="fa-regular fa-plus"></i> Criar projeto</span></Button>
                             </div>
                         </form>
                     </div>

@@ -164,8 +164,8 @@ export function Modals({
                             </span>
 
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '5px' }}>
-                                <Button variant="secondary" onClick={closeDayModal}>Fechar</Button>
-                                <Button variant="primary" type="submit"><i className="fa-regular fa-plus"></i> Agendar evento</Button>
+                                <Button variant="secondary" onClick={closeDayModal} style={{ height: '40px' }}>Fechar</Button>
+                                <button type="submit" className="btn-agendar"><i className="fa-regular fa-calendar-days"></i> Agendar evento</button>
                             </div>
                         </form>
 

@@ -213,3 +213,59 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
 .modal-content input[type="text"] { width: 100%; padding: 6px; margin: 5px 0; background: #f8fafc; border: 1px solid var(--border); color: #1e293b; border-radius: 4px; font-size: 0.8rem; }
 
 .action-bar { display: flex; gap: 6px; align-items: center; }
+
+/* ===== Modal Novo Projeto: botões com o padrão de forma (mantém as cores do tema) ===== */
+.btn.btn-shape {
+  padding: 0.8em 1.2em 0.8em 1em;
+  border-radius: 0.9em;
+  font-size: 16px;
+}
+
+.btn.btn-shape span {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== Campos numéricos sem setas e maiores ===== */
+.num-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #0f172a;
+  box-sizing: border-box;
+  -moz-appearance: textfield;
+}
+
+.num-input::-webkit-outer-spin-button,
+.num-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ===== Botão Agendar evento (calendário) ===== */
+.btn-agendar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 9px 12px;
+  gap: 8px;
+  height: 40px;
+  width: 201px;
+  border: none;
+  background: #FF342B;
+  border-radius: 20px;
+  cursor: pointer;
+  color: #fff;
+  font-family: sans-serif;
+  font-size: 17px;
+  letter-spacing: 1px;
+}
+
+.btn-agendar:hover {
+  background: #e52e26;
+}
