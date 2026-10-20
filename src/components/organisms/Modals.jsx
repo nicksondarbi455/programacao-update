@@ -164,7 +164,7 @@ export function Modals({
                             </span>
 
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '5px' }}>
-                                <Button variant="secondary" onClick={closeDayModal} style={{ height: '40px', padding: '9px 20px', fontSize: '17px', fontFamily: 'sans-serif', letterSpacing: '1px' }}>Fechar</Button>
+                                <Button variant="secondary" className="btn-modal" onClick={closeDayModal}>Fechar</Button>
                                 <button type="submit" className="btn-agendar">
                                     <svg className="svg-icon" width="24" height="24" viewBox="0 0 24 24" fill="none">
                                         <g strokeWidth="2" strokeLinecap="round" stroke="currentColor">

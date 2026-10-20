@@ -275,8 +275,8 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                             )}
 
                             <div style={{ textAlign: 'right', marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                <Button variant="secondary" className="btn-shape" onClick={() => setIsModalOpen(false)}><span>Cancelar</span></Button>
-                                <Button type="submit" variant="primary" className="btn-shape"><span><i className="fa-regular fa-plus"></i> Criar projeto</span></Button>
+                                <Button variant="secondary" className="btn-modal" onClick={() => setIsModalOpen(false)}><span>Cancelar</span></Button>
+                                <Button type="submit" variant="primary" className="btn-modal"><span><i className="fa-regular fa-plus"></i> Criar projeto</span></Button>
                             </div>
                         </form>
                     </div>
