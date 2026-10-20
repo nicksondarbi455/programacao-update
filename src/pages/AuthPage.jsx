@@ -2,18 +2,62 @@ import { useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Button } from '../components/atoms/Button';
 
-const labelStyle = { fontSize: '0.75rem', color: '#475569', fontWeight: '700' };
-const inputStyle = {
-    width: '100%',
-    height: '38px',
-    padding: '0 12px',
-    borderRadius: '6px',
-    border: '1px solid #cbd5e1',
-    fontSize: '0.85rem',
-    boxSizing: 'border-box',
-    outline: 'none',
-    background: '#f8fafc'
-};
+// Cadastro de conta oculto por enquanto. Para reativar, troque para true.
+const SHOW_REGISTER = false;
+
+// Modelo de input: o nome do campo fica dentro do input e sobe ao focar ou preencher
+const authStyles = `
+.auth-page .input-container {
+  position: relative;
+  margin: 28px auto;
+  width: 100%;
+  max-width: 260px;
+}
+
+.auth-page .input-container input {
+  font-size: 14px;
+  width: 100%;
+  border: none;
+  border-bottom: 2px solid #ccc;
+  padding: 5px 0;
+  background-color: transparent;
+  outline: none;
+  box-sizing: border-box;
+  color: #0f172a;
+}
+
+.auth-page .input-container .label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: #ccc;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.auth-page .input-container input:focus ~ .label,
+.auth-page .input-container input:not(:placeholder-shown) ~ .label {
+  top: -20px;
+  font-size: 12px;
+  color: #333;
+}
+
+.auth-page .input-container .underline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background-color: #333;
+  transform: scaleX(0);
+  transition: all 0.3s ease;
+}
+
+.auth-page .input-container input:focus ~ .underline,
+.auth-page .input-container input:not(:placeholder-shown) ~ .underline {
+  transform: scaleX(1);
+}
+`;
 
 const EMPTY_FORM = { name: '', email: '', password: '', confirmPassword: '' };
 
@@ -92,14 +136,15 @@ export function AuthPage() {
     };
 
     const fields = [
-        ...(!isLogin ? [{ key: 'name', label: 'Nome', type: 'text', autoComplete: 'name', placeholder: 'Seu nome completo' }] : []),
-        { key: 'email', label: 'E-mail', type: 'email', autoComplete: 'email', placeholder: 'voce@empresa.com' },
-        { key: 'password', label: 'Senha', type: 'password', autoComplete: isLogin ? 'current-password' : 'new-password', placeholder: '********', minLength: 6 },
-        ...(!isLogin ? [{ key: 'confirmPassword', label: 'Confirmar senha', type: 'password', autoComplete: 'new-password', placeholder: '********', minLength: 6 }] : [])
+        ...(!isLogin ? [{ key: 'name', label: 'Nome', type: 'text', autoComplete: 'name' }] : []),
+        { key: 'email', label: 'E-mail', type: 'email', autoComplete: 'email' },
+        { key: 'password', label: 'Senha', type: 'password', autoComplete: isLogin ? 'current-password' : 'new-password', minLength: 6 },
+        ...(!isLogin ? [{ key: 'confirmPassword', label: 'Confirmar senha', type: 'password', autoComplete: 'new-password', minLength: 6 }] : [])
     ];
 
     return (
         <div className="auth-page">
+            <style>{authStyles}</style>
             <div className="auth-card">
                 <div className="auth-logo">
                     <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Painel Abacaxi" />
@@ -109,52 +154,53 @@ export function AuthPage() {
                     <div style={{ textAlign: 'center' }}>
                         {isLogin && <h1 style={{ margin: 0, color: '#0f172a', fontSize: '1.3rem', fontWeight: '800', letterSpacing: '0.5px' }}>Painel NOC</h1>}
                         {isLogin && <h2 style={{ margin: '10px 0 0 0', color: '#0f172a', fontSize: '1.1rem', fontWeight: '700' }}>Login</h2>}
-                        <p style={{ margin: isLogin ? '3px 0 0 0' : 0, fontSize: '0.75rem', color: '#64748b' }}>
-                            {isLogin ? 'Acesse a gestão de programação de rede' : 'Crie a sua conta'}
-                        </p>
+                        {!isLogin && <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Crie a sua conta</p>}
                     </div>
 
-                <form onSubmit={handleAuth} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'center' }}>
-                    {fields.map((field) => (
-                        <div key={field.key} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <label style={labelStyle}>{field.label}</label>
-                            <input
-                                type={field.type}
-                                value={form[field.key]}
-                                onChange={updateField(field.key)}
-                                placeholder={field.placeholder}
-                                autoComplete={field.autoComplete}
-                                minLength={field.minLength}
-                                required
-                                style={inputStyle}
-                            />
-                        </div>
-                    ))}
+                    <form onSubmit={handleAuth} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        {fields.map((field) => (
+                            <div key={field.key} className="input-container">
+                                <input
+                                    id={field.key}
+                                    type={field.type}
+                                    value={form[field.key]}
+                                    onChange={updateField(field.key)}
+                                    placeholder=" "
+                                    autoComplete={field.autoComplete}
+                                    minLength={field.minLength}
+                                    required
+                                />
+                                <label htmlFor={field.key} className="label">{field.label}</label>
+                                <div className="underline"></div>
+                            </div>
+                        ))}
 
-                    {message && (
-                        <p role="alert" style={{ fontSize: '0.75rem', color: message.type === 'error' ? '#dc2626' : '#16a34a', margin: '2px 0 0 0', textAlign: 'center', fontWeight: '600' }}>
-                            {message.text}
-                        </p>
+                        {message && (
+                            <p role="alert" style={{ fontSize: '0.75rem', color: message.type === 'error' ? '#dc2626' : '#16a34a', margin: '2px 0 0 0', textAlign: 'center', fontWeight: '600' }}>
+                                {message.text}
+                            </p>
+                        )}
+
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            size="md"
+                            disabled={loading}
+                            style={{ width: '100%', maxWidth: '260px', marginTop: '8px' }}
+                        >
+                            {loading ? 'Aguarde...' : isLogin ? 'Entrar' : 'Criar conta'}
+                        </Button>
+                    </form>
+
+                    {SHOW_REGISTER && (
+                        <button
+                            type="button"
+                            onClick={switchMode}
+                            style={{ background: 'none', border: 'none', color: '#2914c8', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '600', marginTop: '16px' }}
+                        >
+                            {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Iniciar sessão'}
+                        </button>
                     )}
-
-                    <Button
-                        type="submit"
-                        variant="primary"
-                        size="md"
-                        disabled={loading}
-                        style={{ width: '100%', marginTop: '8px' }}
-                    >
-                        {loading ? 'Aguarde...' : isLogin ? 'Entrar' : 'Criar conta'}
-                    </Button>
-                </form>
-
-                <button
-                    type="button"
-                    onClick={switchMode}
-                    style={{ background: 'none', border: 'none', color: '#2914c8', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '600' }}
-                >
-                    {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Iniciar sessão'}
-                </button>
                 </div>
             </div>
         </div>
