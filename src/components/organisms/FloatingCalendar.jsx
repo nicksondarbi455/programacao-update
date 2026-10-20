@@ -148,7 +148,7 @@ export function FloatingCalendar({ isOpen, onToggle, schedules, equipments, onOp
             <div className="calendar-btn-wrapper">
                 {tomorrowCount > 0 && <div className="notif-badge badge-tomorrow">{tomorrowCount}</div>}
                 {weekCount > 0 && <div className="notif-badge badge-week">{weekCount}</div>}
-                <Button variant="primary" className="calendar-toggle-btn" onClick={onToggle}>Calendário</Button>
+                <Button variant="primary" className="calendar-toggle-btn" onClick={onToggle}><i className="fa-regular fa-calendar-days"></i> Calendário</Button>
             </div>
         </div>
     );

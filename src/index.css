@@ -269,3 +269,17 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
 .btn-agendar:hover {
   background: #e52e26;
 }
+
+.btn-agendar .svg-icon {
+  transition: all 0.6s ease;
+}
+
+.btn-agendar:hover .svg-icon {
+  animation: slope 1s linear infinite;
+}
+
+@keyframes slope {
+  0% {}
+  50% { transform: rotate(10deg); }
+  100% {}
+}
