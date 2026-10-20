@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { supabase } from '../services/supabase';
-import { Button } from '../components/atoms/Button';
 
 // Cadastro de conta oculto por enquanto. Para reativar, troque para true.
 const SHOW_REGISTER = false;
@@ -51,6 +50,45 @@ const authStyles = `
   background-color: #333;
   transform: scaleX(0);
   transition: all 0.3s ease;
+}
+
+.auth-page .auth-submit {
+  background-color: #ffffff00;
+  color: #fff;
+  width: 8.5em;
+  height: 2.9em;
+  border: #3654ff 0.2em solid;
+  border-radius: 11px;
+  text-align: right;
+  transition: all 0.6s ease;
+  position: relative;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.auth-page .auth-submit:hover:not(:disabled) {
+  background-color: #3654ff;
+}
+
+.auth-page .auth-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.auth-page .auth-submit svg {
+  width: 1.6em;
+  margin: -0.2em 0.8em 1em;
+  position: absolute;
+  display: flex;
+  transition: all 0.6s ease;
+}
+
+.auth-page .auth-submit:hover:not(:disabled) svg {
+  transform: translateX(5px);
+}
+
+.auth-page .auth-submit .text {
+  margin: 0 1.5em;
 }
 
 .auth-page .input-container input:focus ~ .underline,
@@ -181,15 +219,14 @@ export function AuthPage() {
                             </p>
                         )}
 
-                        <Button
-                            type="submit"
-                            variant="primary"
-                            size="md"
-                            disabled={loading}
-                            style={{ width: '100%', maxWidth: '260px', marginTop: '8px' }}
-                        >
-                            {loading ? 'Aguarde...' : isLogin ? 'Entrar' : 'Criar conta'}
-                        </Button>
+                        <button type="submit" className="auth-submit" disabled={loading}>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75" />
+                            </svg>
+                            <div className="text">
+                                {loading ? 'Aguarde...' : isLogin ? 'Entrar' : 'Criar conta'}
+                            </div>
+                        </button>
                     </form>
 
                     {SHOW_REGISTER && (
