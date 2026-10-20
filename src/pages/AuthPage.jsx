@@ -54,7 +54,7 @@ const authStyles = `
 
 .auth-page .auth-submit {
   background-color: #ffffff00;
-  color: #fff;
+  color: #3654ff;
   width: 8.5em;
   height: 2.9em;
   border: #3654ff 0.2em solid;
@@ -68,6 +68,7 @@ const authStyles = `
 
 .auth-page .auth-submit:hover:not(:disabled) {
   background-color: #3654ff;
+  color: #fff;
 }
 
 .auth-page .auth-submit:disabled {
