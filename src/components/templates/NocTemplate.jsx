@@ -55,6 +55,7 @@ export function NocTemplate({
     statusFilter,
     setStatusFilter,
     hasCalendar,
+    scheduledLabels,
     groupModalOpen,
     onConfirmGroup,
     onCloseGroupModal
@@ -157,6 +158,7 @@ export function NocTemplate({
                 onSaveCol={onSaveCol}
                 onCloseCol={onCloseCol}
                 columnConfig={columnConfig}
+                scheduledLabels={scheduledLabels}
             />
         </div>
     );

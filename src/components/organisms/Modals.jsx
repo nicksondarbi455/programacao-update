@@ -10,7 +10,8 @@ export function Modals({
     colModalOpen, 
     onSaveCol, 
     onCloseCol, 
-    columnConfig 
+    columnConfig,
+    scheduledLabels = new Set()
 }) {
     const [selectedItem, setSelectedItem] = useState('');
     const [customColName, setCustomColName] = useState('');
@@ -61,9 +62,9 @@ export function Modals({
     }));
 
     const term = eventSearch.trim().toLowerCase();
-    // Esconde da busca os eventos que já foram marcados como feito neste dia
+    // Esconde da busca os eventos já agendados em qualquer dia ou marcados como feito
     const completedLabels = new Set((modalData.items || []).filter(i => i.completed).map(i => i.text));
-    const filteredOptions = eventOptions.filter(opt => !completedLabels.has(opt.label) && opt.label.toLowerCase().includes(term));
+    const filteredOptions = eventOptions.filter(opt => !scheduledLabels.has(opt.label) && !completedLabels.has(opt.label) && opt.label.toLowerCase().includes(term));
 
     const closeDayModal = () => {
         setSelectedItem('');

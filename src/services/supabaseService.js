@@ -66,6 +66,7 @@ export const supabaseService = {
         if (fields.description !== undefined) payload.description = fields.description;
         if (fields.isPrivate !== undefined) payload.is_private = fields.isPrivate;
         if (fields.showProgress !== undefined) payload.show_progress = fields.showProgress;
+        if (fields.hasCalendar !== undefined) payload.has_calendar = fields.hasCalendar;
         if (fields.progress !== undefined) payload.progress = fields.progress;
         check('Erro ao atualizar projeto', await supabase.from('projects').update(payload).eq('id', projId));
     },

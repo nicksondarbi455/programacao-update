@@ -530,6 +530,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
                 statusFilter={statusFilter}
                 setStatusFilter={setStatusFilter}
                 hasCalendar={project.hasCalendar}
+                scheduledLabels={new Set(Object.values(schedules).flat().map(i => i.text))}
             />
         </div>
     );

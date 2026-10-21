@@ -15,13 +15,14 @@ export function ProjectSettingsModal({ project, onSave, onClose }) {
     const [description, setDescription] = useState(project.description || '');
     const [showProgress, setShowProgress] = useState(!!project.showProgress);
     const [isPrivate, setIsPrivate] = useState(!!project.isPrivate);
+    const [hasCalendar, setHasCalendar] = useState(project.hasCalendar !== false);
     const [saving, setSaving] = useState(false);
 
     const handleSave = async () => {
         if (!name.trim()) return;
         setSaving(true);
         try {
-            await onSave({ name: name.trim(), description: description.trim(), showProgress, isPrivate });
+            await onSave({ name: name.trim(), description: description.trim(), showProgress, isPrivate, hasCalendar });
         } finally {
             setSaving(false);
         }
@@ -42,7 +43,11 @@ export function ProjectSettingsModal({ project, onSave, onClose }) {
                     <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} style={{ ...fieldStyle, resize: 'vertical' }} />
                 </div>
 
-                <div style={{ display: 'flex', gap: '15px' }}>
+                <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: '#334155' }}>
+                        <Checkbox checked={hasCalendar} onChange={(e) => setHasCalendar(e.target.checked)} />
+                        Usar calendário
+                    </label>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: '#334155' }}>
                         <Checkbox checked={showProgress} onChange={(e) => setShowProgress(e.target.checked)} />
                         Mostrar progresso
