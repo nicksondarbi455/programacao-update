@@ -6,8 +6,9 @@ import { Button } from '../components/atoms/Button';
 import { isRowCompleted } from '../components/organisms/NocTable';
 import { logAction, LOG_ACTIONS } from '../services/logService';
 import { NoteModal } from '../components/organisms/NoteModal';
+import { ProjectSettingsModal } from '../components/organisms/ProjectSettingsModal';
 
-export function NocPage({ project, userEmail, onBackToDashboard }) {
+export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdated }) {
     const [equipments, setEquipments] = useState(project.equipments || []);
     const [columnConfig, setColumnConfig] = useState(project.columnConfig || []);
     const [schedules, setSchedules] = useState(project.schedules || {});
@@ -24,6 +25,8 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     const dragRowRef = useRef(null);
     // Evento cuja nota está aberta
     const [noteTarget, setNoteTarget] = useState(null);
+    // Modal de configurações do projeto
+    const [settingsOpen, setSettingsOpen] = useState(false);
 
     // Modal para criar um evento (botão + Evento)
     const [groupModalOpen, setGroupModalOpen] = useState(false);
@@ -125,6 +128,23 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         if (items.length === 0) return 0;
         const done = items.filter(eq => isRowCompleted(eq, schedules, columnConfig)).length;
         return Math.round((done / items.length) * 100);
+    };
+
+    // Guarda o progresso no projeto (mostrado no card do dashboard)
+    useEffect(() => {
+        if (project.progressAuto === false) return; // progresso manual: não recalcula
+        const pct = calculateProgress();
+        if (pct !== project.progress) {
+            supabaseService.updateProject(project.id, { progress: pct }).catch(() => {});
+            if (onProjectUpdated) onProjectUpdated({ ...project, progress: pct });
+        }
+    }, [schedules, equipments]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Salva título, descrição, progresso e privacidade do projeto
+    const handleSaveSettings = async (fields) => {
+        await persist(() => supabaseService.updateProject(project.id, fields));
+        setSettingsOpen(false);
+        if (onProjectUpdated) onProjectUpdated({ ...project, ...fields });
     };
 
     const getTodayAlert = () => {
@@ -437,6 +457,9 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
 
     return (
         <div>
+            {settingsOpen && (
+                <ProjectSettingsModal project={project} onSave={handleSaveSettings} onClose={() => setSettingsOpen(false)} />
+            )}
             <NoteModal target={noteTarget} readOnly={!isEditMode} onSave={handleSaveNote} onClose={() => setNoteTarget(null)} />
             <div style={{ background: '#1e293b', padding: '8px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -479,6 +502,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
                 onRowDragStart={handleRowDragStart}
                 onRowDrop={handleRowDrop}
                 onToggleEventRow={handleToggleEventRow}
+                onOpenSettings={() => setSettingsOpen(true)}
                 onOpenNote={(eq) => setNoteTarget({
                     ...eq,
                     _title: eq.isGroupHeader ? (eq.groupName || 'Evento sem nome') : String(eq[columnConfig[0]?.id] || 'Linha sem nome')

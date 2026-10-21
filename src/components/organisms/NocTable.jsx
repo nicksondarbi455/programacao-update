@@ -44,6 +44,7 @@ export function NocTable({
     onRowDrop,
     onToggleEventRow,
     onOpenNote,
+    onOpenSettings,
     onDragStart, 
     onDragOver, 
     onDrop, 
@@ -196,7 +197,12 @@ export function NocTable({
     return (
         <div className="section-panel">
             <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2>Gestão de Dados ({filteredEquipments.length} registos)</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h2>Gestão de Dados ({filteredEquipments.length} registos)</h2>
+                    <button type="button" title="Configurações do projeto" onClick={onOpenSettings} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: '0.95rem', padding: 0, lineHeight: 1 }}>
+                        <i className="fa-solid fa-gear"></i>
+                    </button>
+                </div>
                 <span style={{ fontSize: '0.7rem', color: '#64748b' }}>💡 No modo de edição, arraste pelo ícone ⋮⋮ para mover linhas e use a bandeira para marcar um evento.</span>
             </div>
             <div className="table-container">

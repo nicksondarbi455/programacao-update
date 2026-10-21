@@ -1,103 +1,95 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from './services/supabase';
 import { AuthPage } from './pages/AuthPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { NocPage } from './pages/NocPage';
+import { UsersPage } from './pages/UsersPage';
+import { PlaceholderPage } from './pages/PlaceholderPage';
 import { SideMenu } from './components/organisms/SideMenu';
+import { logAction, LOG_ACTIONS } from './services/logService';
 
-// IMPORTANTE: Importe o seu componente de Logs aqui (exemplo abaixo)
-// import { LogsPage } from './pages/LogsPage'; 
+// Textos das seções que ainda não têm conteúdo
+const PLACEHOLDERS = {
+    configuracoes: { title: 'Configurações', description: 'Em breve.' },
+    sobre: { title: 'Sobre', description: 'Painel NOC: acompanhamento de programação de rede.' },
+    logs: { title: 'Logs', description: 'Histórico de ações em preparação. O local de exibição ainda será definido.' }
+};
 
 export default function App() {
-    const [user, setUser] = useState(() => {
-        const saved = localStorage.getItem('noc_user');
-        return saved ? JSON.parse(saved) : null;
-    });
+    // undefined = a verificar sessão | null = sem sessão | objeto = sessão ativa
+    const [session, setSession] = useState(undefined);
     const [currentProject, setCurrentProject] = useState(null);
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const [section, setSection] = useState('pastas');
 
-    const handleLogin = (loggedInUser) => {
-        localStorage.setItem('noc_user', JSON.stringify(loggedInUser));
-        setUser(loggedInUser);
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data }) => setSession(data.session));
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+            if (_event === 'SIGNED_IN') logAction(LOG_ACTIONS.LOGIN);
+            setSession(newSession);
+            if (!newSession) {
+                setCurrentProject(null);
+                setSection('pastas');
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    const handleLogout = async () => {
+        await logAction(LOG_ACTIONS.LOGOUT);
+        await supabase.auth.signOut();
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem('noc_user');
-        setUser(null);
+    // Trocar de seção fecha qualquer projeto aberto
+    const handleSelectSection = (id) => {
+        setSection(id);
         setCurrentProject(null);
     };
 
-    // 1. Tela de Login continua a ser a primeira coisa apresentada
-    if (!user) {
-        return <AuthPage onLoginSuccess={handleLogin} />;
+    if (session === undefined) {
+        return <p style={{ textAlign: 'center', marginTop: '40vh', color: '#64748b', fontFamily: 'DM Sans, sans-serif' }}>A carregar...</p>;
     }
 
-    // 2. Layout Principal Pós-Login
+    if (!session) {
+        return <AuthPage />;
+    }
+
+    const user = { email: session.user.email };
+
+    let content;
+    if (section === 'pastas') {
+        content = currentProject ? (
+            <NocPage
+                project={currentProject}
+                userEmail={user.email}
+                onBackToDashboard={() => setCurrentProject(null)}
+            onProjectUpdated={(p) => setCurrentProject(p)}
+            />
+        ) : (
+            <DashboardPage
+                user={user}
+                onSelectProject={(proj) => setCurrentProject(proj)}
+                onLogout={handleLogout}
+            />
+        );
+    } else if (section === 'usuarios') {
+        content = <UsersPage currentUserEmail={user.email} />;
+    } else {
+        content = <PlaceholderPage {...PLACEHOLDERS[section]} />;
+    }
+
     return (
-        <div style={{ display: 'flex', height: '100vh', background: '#f8fafc', overflow: 'hidden' }}>
-            
-            {/* Menu Lateral Fixo na Esquerda */}
-            <SideMenu activeTab={activeTab} onSelectTab={setActiveTab} />
-            
-            {/* Conteúdo Central Dinâmico */}
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-                
-                {/* 📊 CONTEÚDO ATUAL: Painel e Tabela (mantido intacto) */}
-                {activeTab === 'dashboard' && !currentProject && (
-                    <DashboardPage 
-                        user={user} 
-                        onSelectProject={(proj) => setCurrentProject(proj)} 
-                        onLogout={handleLogout} 
-                    />
-                )}
-
-                {activeTab === 'dashboard' && currentProject && (
-                    <NocPage 
-                        project={currentProject} 
-                        userEmail={user.email} 
-                        onBackToDashboard={() => setCurrentProject(null)} 
-                    />
-                )}
-
-                {/* 📝 ABA LOGS: Vinculando sua implementação existente */}
-                {activeTab === 'logs' && (
-                    <div style={{ padding: '30px' }}>
-                        {/* Se o seu arquivo for LogsPage, descomente a linha abaixo */}
-                        {/* <LogsPage /> */}
-                        
-                        <h2>📝 Logs do Sistema</h2>
-                        <p>Aqui carrega o seu componente de Logs já implementado.</p>
-                    </div>
-                )}
-
-                {/* 🚧 ABAS EM CONSTRUÇÃO (Apenas visuais, sem função por enquanto) */}
-                {activeTab === 'users' && (
-                    <div style={{ padding: '30px' }}>
-                        <h2>👥 Usuários</h2>
-                        <p>Funcionalidade em desenvolvimento...</p>
-                    </div>
-                )}
-
-                {activeTab === 'folders' && (
-                    <div style={{ padding: '30px' }}>
-                        <h2>📁 Pastas</h2>
-                        <p>Funcionalidade em desenvolvimento...</p>
-                    </div>
-                )}
-
-                {activeTab === 'settings' && (
-                    <div style={{ padding: '30px' }}>
-                        <h2>⚙️ Configurações</h2>
-                        <p>Funcionalidade em desenvolvimento...</p>
-                    </div>
-                )}
-
-                {activeTab === 'about' && (
-                    <div style={{ padding: '30px' }}>
-                        <h2>ℹ️ Sobre</h2>
-                        <p>Painel NOC - Versão 1.0. Sistema de gestão integrado.</p>
-                    </div>
-                )}
-            </div>
+        <div style={{ display: 'flex', minHeight: '100vh' }}>
+            <SideMenu
+                active={section}
+                onSelect={handleSelectSection}
+                userEmail={user.email}
+                onLogout={handleLogout}
+            />
+            <main style={{ flex: 1, minWidth: 0 }}>
+                {content}
+            </main>
         </div>
     );
 }

@@ -3,6 +3,7 @@ import { supabaseService } from '../services/supabaseService';
 import { Button } from '../components/atoms/Button';
 import { Input } from '../components/atoms/Input';
 import { Checkbox } from '../components/atoms/Checkbox';
+import { ProgressCircle } from '../components/molecules/ProgressCircle';
 import * as XLSX from 'xlsx';
 
 export function DashboardPage({ user, onSelectProject, onLogout }) {
@@ -14,6 +15,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
     const [description, setDescription] = useState('');
     const [hasCalendar, setHasCalendar] = useState(true);
     const [isPrivate, setIsPrivate] = useState(false);
+    const [showProgress, setShowProgress] = useState(false);
     const [tableSource, setTableSource] = useState('manual');
     const [numRows, setNumRows] = useState(3);
     const [numCols, setNumCols] = useState(4);
@@ -115,6 +117,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                 description: description.trim(),
                 hasCalendar,
                 isPrivate,
+                showProgress,
                 columnConfig: initialColumns,
                 equipments: initialEquipments
             }, user.email);
@@ -198,7 +201,8 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                                 e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.04)';
                             }}
                         >
-                            <div>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                     <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontSize: '1rem' }}>{proj.name}</h4>
                                     {proj.isPrivate && <span title="Projeto Privado">🔒</span>}
@@ -206,6 +210,8 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                                 <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                     {proj.description || 'Sem descrição informada.'}
                                 </p>
+                                </div>
+                                {proj.showProgress && <ProgressCircle value={proj.progress} size={64} />}
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '8px' }}>
                                 <span style={{ fontSize: '0.65rem', color: '#94a3b8', background: '#f8fafc', padding: '2px 6px', borderRadius: '4px' }}>
@@ -242,6 +248,10 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: '#334155' }}>
                                     <Checkbox checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
                                     Projeto Privado 🔒
+                                </label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: '#334155' }}>
+                                    <Checkbox checked={showProgress} onChange={(e) => setShowProgress(e.target.checked)} />
+                                    Mostrar progresso
                                 </label>
                             </div>
 
