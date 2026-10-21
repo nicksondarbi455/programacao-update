@@ -479,7 +479,10 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
                 onRowDragStart={handleRowDragStart}
                 onRowDrop={handleRowDrop}
                 onToggleEventRow={handleToggleEventRow}
-                onOpenNote={(eq) => setNoteTarget(eq)}
+                onOpenNote={(eq) => setNoteTarget({
+                    ...eq,
+                    _title: eq.isGroupHeader ? (eq.groupName || 'Evento sem nome') : String(eq[columnConfig[0]?.id] || 'Linha sem nome')
+                })}
                 onDragStart={handleDragStart}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}

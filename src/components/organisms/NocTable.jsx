@@ -92,6 +92,22 @@ export function NocTable({
         </span>
     );
 
+    // Coluna de nota no fim de todas as linhas (edição: sempre; visualização: só quando há nota)
+    const renderNoteCell = (eq) => (
+        <td style={{ width: '40px', minWidth: '40px', textAlign: 'center', padding: '0 4px' }}>
+            {(isEditMode || eq.note) && (
+                <button
+                    type="button"
+                    title={eq.note ? 'Ver nota' : 'Adicionar nota'}
+                    onClick={() => onOpenNote(eq)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0f172a', fontSize: '0.95rem', padding: 0, lineHeight: 1, opacity: eq.note ? 1 : 0.55 }}
+                >
+                    <i className={eq.note ? 'fa-solid fa-note-sticky' : 'fa-regular fa-note-sticky'}></i>
+                </button>
+            )}
+        </td>
+    );
+
     // Marca ou desmarca a linha como evento (apenas no modo de edição)
     const renderToggleEvent = (eq) => (
         <Button
@@ -137,35 +153,21 @@ export function NocTable({
                         colSpan={seg.span}
                         style={{ textAlign: 'center', padding: '6px 12px', fontWeight: 'bold', color: '#0f172a', letterSpacing: '1px', textTransform: 'uppercase' }}
                     >
-                        {isTitle && (
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                {isEditMode ? (
-                                    <input
-                                        type="text"
-                                        value={eq.groupName || ''}
-                                        onChange={(e) => onUpdateField(eq.id, 'groupName', e.target.value)}
-                                        placeholder="NOME DO EVENTO"
-                                        style={{
-                                            fontWeight: '800', textAlign: 'center', background: '#e2e8f0', borderRadius: '4px',
-                                            border: '1px solid #475569', color: '#0f172a', flex: '0 1 260px', minWidth: 0,
-                                            boxSizing: 'border-box', padding: '3px 6px', margin: 0
-                                        }}
-                                    />
-                                ) : (
-                                    <span>{eq.groupName || 'EVENTO SEM NOME'}</span>
-                                )}
-                                {(isEditMode || eq.note) && (
-                                    <button
-                                        type="button"
-                                        title={eq.note ? 'Ver nota' : 'Adicionar nota'}
-                                        onClick={() => onOpenNote(eq)}
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0f172a', fontSize: '0.95rem', padding: 0, lineHeight: 1, opacity: eq.note ? 1 : 0.55 }}
-                                    >
-                                        <i className={eq.note ? 'fa-solid fa-note-sticky' : 'fa-regular fa-note-sticky'}></i>
-                                    </button>
-                                )}
-                            </div>
-                        )}
+                        {isTitle && (isEditMode ? (
+                            <input
+                                type="text"
+                                value={eq.groupName || ''}
+                                onChange={(e) => onUpdateField(eq.id, 'groupName', e.target.value)}
+                                placeholder="NOME DO EVENTO"
+                                style={{
+                                    fontWeight: '800', textAlign: 'center', background: '#e2e8f0', borderRadius: '4px',
+                                    border: '1px solid #475569', color: '#0f172a', width: '100%', maxWidth: '100%',
+                                    boxSizing: 'border-box', display: 'block', padding: '3px 6px', margin: 0
+                                }}
+                            />
+                        ) : (
+                            <span>{eq.groupName || 'EVENTO SEM NOME'}</span>
+                        ))}
                     </td>
                 );
             }
@@ -240,6 +242,7 @@ export function NocTable({
                                 );
                             })}
                             {isEditMode && <th style={{ textAlign: 'center', width: '200px', minWidth: '200px' }}>Prioridade / Ações</th>}
+                            <th style={{ width: '40px', minWidth: '40px' }}></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -269,6 +272,7 @@ export function NocTable({
                                                     <Button variant="danger" size="sm" style={{ padding: '2px 8px' }} onClick={() => onDeleteRow(eq.id)}>Excluir evento</Button>
                                                 </td>
                                             )}
+                                            {renderNoteCell(eq)}
                                         </tr>
                                     );
                                 }
@@ -329,6 +333,7 @@ export function NocTable({
                                                 <Button variant="danger" size="sm" style={{ padding: '2px 5px' }} onClick={() => onDeleteRow(eq.id)}>X</Button>
                                             </td>
                                         )}
+                                        {renderNoteCell(eq)}
                                     </tr>
                                 );
                             })

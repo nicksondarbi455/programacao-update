@@ -14,8 +14,8 @@ export function NoteModal({ target, readOnly, onSave, onClose }) {
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 100003, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ background: '#fff', borderRadius: '10px', padding: '18px 20px', width: '340px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>Nota do evento</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '10px' }}>{target.groupName || 'Evento sem nome'}</div>
+                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>Nota</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '10px' }}>{target._title || 'Sem título'}</div>
                 <textarea
                     value={text}
                     onChange={(e) => setText(e.target.value)}
