@@ -52,7 +52,6 @@ export const supabaseService = {
                 isPrivate: p.is_private,
                 showProgress: p.show_progress,
                 progress: p.progress ?? 0,
-                progressAuto: p.progress_auto ?? true,
                 projectType: p.project_type,
                 columnConfig: cols,
                 equipments: equips,
@@ -68,7 +67,6 @@ export const supabaseService = {
         if (fields.isPrivate !== undefined) payload.is_private = fields.isPrivate;
         if (fields.showProgress !== undefined) payload.show_progress = fields.showProgress;
         if (fields.progress !== undefined) payload.progress = fields.progress;
-        if (fields.progressAuto !== undefined) payload.progress_auto = fields.progressAuto;
         check('Erro ao atualizar projeto', await supabase.from('projects').update(payload).eq('id', projId));
     },
 

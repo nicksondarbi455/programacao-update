@@ -132,7 +132,6 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
 
     // Guarda o progresso no projeto (mostrado no card do dashboard)
     useEffect(() => {
-        if (project.progressAuto === false) return; // progresso manual: não recalcula
         const pct = calculateProgress();
         if (pct !== project.progress) {
             supabaseService.updateProject(project.id, { progress: pct }).catch(() => {});

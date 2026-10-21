@@ -9,13 +9,11 @@ const fieldStyle = {
     fontFamily: 'inherit', outline: 'none'
 };
 
-// Configurações do projeto: título, descrição, progresso, exibição no card e privacidade
+// Configurações do projeto: título, descrição, exibição do progresso e privacidade
 export function ProjectSettingsModal({ project, onSave, onClose }) {
     const [name, setName] = useState(project.name || '');
     const [description, setDescription] = useState(project.description || '');
     const [showProgress, setShowProgress] = useState(!!project.showProgress);
-    const [progressAuto, setProgressAuto] = useState(project.progressAuto !== false);
-    const [progress, setProgress] = useState(project.progress ?? 0);
     const [isPrivate, setIsPrivate] = useState(!!project.isPrivate);
     const [saving, setSaving] = useState(false);
 
@@ -23,16 +21,7 @@ export function ProjectSettingsModal({ project, onSave, onClose }) {
         if (!name.trim()) return;
         setSaving(true);
         try {
-            const fields = {
-                name: name.trim(),
-                description: description.trim(),
-                showProgress,
-                isPrivate,
-                progressAuto
-            };
-            // Só grava o valor digitado quando o progresso está em modo manual
-            if (!progressAuto) fields.progress = Math.max(0, Math.min(100, Number(progress) || 0));
-            await onSave(fields);
+            await onSave({ name: name.trim(), description: description.trim(), showProgress, isPrivate });
         } finally {
             setSaving(false);
         }
@@ -51,24 +40,6 @@ export function ProjectSettingsModal({ project, onSave, onClose }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <label style={labelStyle}>Descrição</label>
                     <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} style={{ ...fieldStyle, resize: 'vertical' }} />
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={labelStyle}>Progresso (%)</label>
-                    <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        className="num-input"
-                        value={progressAuto ? (project.progress ?? 0) : progress}
-                        disabled={progressAuto}
-                        onChange={(e) => setProgress(e.target.value)}
-                        style={{ opacity: progressAuto ? 0.5 : 1 }}
-                    />
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: '#334155' }}>
-                        <Checkbox checked={progressAuto} onChange={(e) => setProgressAuto(e.target.checked)} />
-                        Calcular automaticamente pelos agendamentos
-                    </label>
                 </div>
 
                 <div style={{ display: 'flex', gap: '15px' }}>
