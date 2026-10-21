@@ -61,7 +61,9 @@ export function Modals({
     }));
 
     const term = eventSearch.trim().toLowerCase();
-    const filteredOptions = eventOptions.filter(opt => opt.label.toLowerCase().includes(term));
+    // Esconde da busca os eventos que já foram marcados como feito neste dia
+    const completedLabels = new Set((modalData.items || []).filter(i => i.completed).map(i => i.text));
+    const filteredOptions = eventOptions.filter(opt => !completedLabels.has(opt.label) && opt.label.toLowerCase().includes(term));
 
     const closeDayModal = () => {
         setSelectedItem('');
@@ -69,7 +71,8 @@ export function Modals({
         onCloseModal();
     };
 
-    const pickOption = (label) => setSelectedItem(label);
+    // Clicar no evento já selecionado desmarca ele
+    const pickOption = (label) => setSelectedItem(prev => (prev === label ? '' : label));
 
     return (
         <>
@@ -98,14 +101,14 @@ export function Modals({
                                             <input 
                                                 type="checkbox" 
                                                 checked={item.completed || false} 
-                                                onChange={() => setConfirmItem({ idx, completed: !item.completed })}
+                                                onChange={() => setConfirmItem({ type: 'toggle', idx, completed: !item.completed })}
                                                 style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                                             />
                                             <span style={{ fontSize: '0.85rem', fontWeight: '600', color: item.completed ? '#16a34a' : '#1e293b', textDecoration: item.completed ? 'line-through' : 'none', userSelect: 'none' }}>
                                                 {item.text}
                                             </span>
                                         </div>
-                                        <Button variant="danger" size="sm" onClick={() => onDeleteSchedule(modalData.dateStr, idx)}>Remover</Button>
+                                        <Button variant="danger" size="sm" onClick={() => setConfirmItem({ type: 'remove', idx })}>Remover</Button>
                                     </div>
                                 ))
                             )}
@@ -260,14 +263,17 @@ export function Modals({
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 100002, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ background: '#fff', borderRadius: '10px', padding: '18px 20px', width: '280px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
                         <p style={{ margin: '0 0 14px 0', fontSize: '0.85rem', color: '#1e293b', fontWeight: 600, textAlign: 'center' }}>
-                            {confirmItem.completed
-                                ? 'Tem certeza que deseja marcar este agendamento como feito?'
-                                : 'Tem certeza que deseja desmarcar este agendamento?'}
+                            {confirmItem.type === 'remove'
+                                ? 'Tem certeza que deseja remover este agendamento?'
+                                : confirmItem.completed
+                                    ? 'Tem certeza que deseja marcar este agendamento como feito?'
+                                    : 'Tem certeza que deseja desmarcar este agendamento?'}
                         </p>
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
                             <Button variant="secondary" className="btn-modal" onClick={() => setConfirmItem(null)}><span>Cancelar</span></Button>
-                            <Button variant="success" className="btn-modal" onClick={() => {
-                                onToggleCompleteSchedule(modalData.dateStr, confirmItem.idx);
+                            <Button variant={confirmItem.type === 'remove' ? 'danger' : 'success'} className="btn-modal" onClick={() => {
+                                if (confirmItem.type === 'remove') onDeleteSchedule(modalData.dateStr, confirmItem.idx);
+                                else onToggleCompleteSchedule(modalData.dateStr, confirmItem.idx);
                                 setConfirmItem(null);
                             }}><span>Sim</span></Button>
                         </div>

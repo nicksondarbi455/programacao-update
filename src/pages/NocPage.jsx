@@ -4,6 +4,8 @@ import { supabase } from '../services/supabase';
 import { NocTemplate } from '../components/templates/NocTemplate';
 import { Button } from '../components/atoms/Button';
 import { isRowCompleted } from '../components/organisms/NocTable';
+import { logAction, LOG_ACTIONS } from '../services/logService';
+import { NoteModal } from '../components/organisms/NoteModal';
 
 export function NocPage({ project, userEmail, onBackToDashboard }) {
     const [equipments, setEquipments] = useState(project.equipments || []);
@@ -20,6 +22,8 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     const [errorMsg, setErrorMsg] = useState('');
     // Guarda o id da linha que está sendo arrastada
     const dragRowRef = useRef(null);
+    // Evento cuja nota está aberta
+    const [noteTarget, setNoteTarget] = useState(null);
 
     // Modal para criar um evento (botão + Evento)
     const [groupModalOpen, setGroupModalOpen] = useState(false);
@@ -198,6 +202,13 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     };
 
     // Troca a posição da linha com a vizinha (direction: -1 sobe, 1 desce)
+    // SALVAR NOTA DO EVENTO
+    const handleSaveNote = async (eqId, text) => {
+        setEquipments(prev => prev.map(e => e.id === eqId ? { ...e, note: text } : e));
+        setNoteTarget(null);
+        await persist(() => supabaseService.updateEquipmentField(eqId, project.id, 'note', text));
+    };
+
     // ARRASTAR LINHAS: guarda a linha que está sendo arrastada
     const handleRowDragStart = (id) => {
         dragRowRef.current = id;
@@ -376,6 +387,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
         if (daySched.some(i => i.text === title)) return alert('Este item já está agendado para este dia!');
 
         let newSchedItems = [...daySched, { text: title, completed: false, statusText: 'Agendado' }];
+        logAction(LOG_ACTIONS.SCHEDULE_ADD, { entityType: 'agendamento', entityId: dateStr, projectId: project.id, details: { data: dateStr, evento: title } });
         let newSchedules = { ...schedules, [dateStr]: newSchedItems };
         setSchedules(newSchedules);
         setModalData(prev => ({ ...prev, items: newSchedItems }));
@@ -383,6 +395,10 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     };
 
     const handleToggleCompleteSchedule = async (dateStr, itemIdx) => {
+        const target = (schedules[dateStr] || [])[itemIdx];
+        if (target) {
+            logAction(target.completed ? LOG_ACTIONS.SCHEDULE_UNCOMPLETE : LOG_ACTIONS.SCHEDULE_COMPLETE, { entityType: 'agendamento', entityId: dateStr, projectId: project.id, details: { data: dateStr, evento: target.text } });
+        }
         let daySched = (schedules[dateStr] || []).map((item, idx) => {
             if (idx === itemIdx) {
                 const nextCompleted = !item.completed;
@@ -402,6 +418,10 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
     };
 
     const handleDeleteSchedule = async (dateStr, idx) => {
+        const removed = (schedules[dateStr] || [])[idx];
+        if (removed) {
+            logAction(LOG_ACTIONS.SCHEDULE_REMOVE, { entityType: 'agendamento', entityId: dateStr, projectId: project.id, details: { data: dateStr, evento: removed.text } });
+        }
         let daySched = [...(schedules[dateStr] || [])];
         daySched.splice(idx, 1);
         let newSchedules = { ...schedules };
@@ -417,6 +437,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
 
     return (
         <div>
+            <NoteModal target={noteTarget} readOnly={!isEditMode} onSave={handleSaveNote} onClose={() => setNoteTarget(null)} />
             <div style={{ background: '#1e293b', padding: '8px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Projeto: {project.name} {project.isPrivate ? '🔒' : ''}</span>
@@ -458,6 +479,7 @@ export function NocPage({ project, userEmail, onBackToDashboard }) {
                 onRowDragStart={handleRowDragStart}
                 onRowDrop={handleRowDrop}
                 onToggleEventRow={handleToggleEventRow}
+                onOpenNote={(eq) => setNoteTarget(eq)}
                 onDragStart={handleDragStart}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}

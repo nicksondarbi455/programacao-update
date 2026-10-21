@@ -3,6 +3,7 @@ import { supabase } from './services/supabase';
 import { AuthPage } from './pages/AuthPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { NocPage } from './pages/NocPage';
+import { logAction, LOG_ACTIONS } from './services/logService';
 
 export default function App() {
     // undefined = a verificar sessão | null = sem sessão | objeto = sessão ativa
@@ -13,6 +14,7 @@ export default function App() {
         supabase.auth.getSession().then(({ data }) => setSession(data.session));
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+            if (_event === 'SIGNED_IN') logAction(LOG_ACTIONS.LOGIN);
             setSession(newSession);
             if (!newSession) setCurrentProject(null);
         });
@@ -21,6 +23,7 @@ export default function App() {
     }, []);
 
     const handleLogout = async () => {
+        await logAction(LOG_ACTIONS.LOGOUT);
         await supabase.auth.signOut();
     };
 

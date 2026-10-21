@@ -29,6 +29,7 @@ export function NocTemplate({
     onRowDragStart,
     onRowDrop,
     onToggleEventRow,
+    onOpenNote,
     onDragStart,
     onDragOver,
     onDrop,
@@ -106,6 +107,7 @@ export function NocTemplate({
                     onRowDragStart={onRowDragStart}
                     onRowDrop={onRowDrop}
                     onToggleEventRow={onToggleEventRow}
+                    onOpenNote={onOpenNote}
                     onDragStart={onDragStart}
                     onDragOver={onDragOver}
                     onDrop={onDrop}

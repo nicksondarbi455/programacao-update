@@ -31,7 +31,7 @@ export function FloatingCalendar({ isOpen, onToggle, schedules, equipments, onOp
     const renderMonths = () => {
         let months = [];
         let currentDate = new Date();
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 24; i++) {
             let monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
             let year = monthDate.getFullYear();
             let month = monthDate.getMonth();
