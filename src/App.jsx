@@ -15,6 +15,9 @@ const PLACEHOLDERS = {
     logs: { title: 'Logs', description: 'Histórico de ações em preparação. O local de exibição ainda será definido.' }
 };
 
+// Minutos sem atividade do usuário até a sessão ser encerrada automaticamente
+const INACTIVITY_MINUTES = 30;
+
 export default function App() {
     // undefined = a verificar sessão | null = sem sessão | objeto = sessão ativa
     const [session, setSession] = useState(undefined);
@@ -35,6 +38,33 @@ export default function App() {
 
         return () => subscription.unsubscribe();
     }, []);
+
+    // Logout automático por inatividade: cada ação do usuário reinicia o contador
+    useEffect(() => {
+        if (!session) return;
+
+        const limit = INACTIVITY_MINUTES * 1 * 1000;
+        const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'];
+        let timer;
+
+        const expire = async () => {
+            await logAction(LOG_ACTIONS.LOGOUT, { details: { motivo: 'inatividade' } });
+            await supabase.auth.signOut();
+        };
+
+        const reset = () => {
+            clearTimeout(timer);
+            timer = setTimeout(expire, limit);
+        };
+
+        events.forEach((evt) => window.addEventListener(evt, reset, { passive: true }));
+        reset();
+
+        return () => {
+            clearTimeout(timer);
+            events.forEach((evt) => window.removeEventListener(evt, reset));
+        };
+    }, [session]);
 
     const handleLogout = async () => {
         await logAction(LOG_ACTIONS.LOGOUT);
