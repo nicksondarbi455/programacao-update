@@ -43,7 +43,7 @@ export default function App() {
     useEffect(() => {
         if (!session) return;
 
-        const limit = INACTIVITY_MINUTES * 1 * 1000;
+        const limit = INACTIVITY_MINUTES * 120 * 1000;
         const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'];
         let timer;
 
