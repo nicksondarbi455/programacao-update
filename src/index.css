@@ -135,7 +135,10 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
     font-family: 'DM Sans', sans-serif;
 }
 /* Card menor (~78% do tamanho anterior, mantendo a proporção entre logo e formulário) */
+/* Fundo animado (Vanta) fica atrás do card de login */
+.vanta-bg { position: absolute; inset: 0; z-index: 0; }
 .auth-card {
+    position: relative; z-index: 1;
     display: flex; width: 700px; max-width: 100%; min-height: 420px;
     background: #fff; border-radius: 16px; overflow: hidden;
     box-shadow: 0 10px 20px rgba(0,0,0,0.15);

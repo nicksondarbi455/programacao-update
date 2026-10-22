@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../services/supabase';
+import { VantaBackground } from '../components/molecules/VantaBackground';
 
 // Cadastro de conta oculto por enquanto. Para reativar, troque para true.
 const SHOW_REGISTER = false;
@@ -186,6 +187,7 @@ export function AuthPage() {
     return (
         <div className="auth-page">
             <style>{authStyles}</style>
+            <VantaBackground />
             <div className="auth-card">
                 <div className="auth-logo">
                     <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Painel Abacaxi" />
