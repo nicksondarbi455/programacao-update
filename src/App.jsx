@@ -7,6 +7,9 @@ import { UsersPage } from './pages/UsersPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { SideMenu } from './components/organisms/SideMenu';
 import { logAction, LOG_ACTIONS } from './services/logService';
+import { usersService } from './services/usersService';
+
+const NO_ROLE = { isMaster: false, isAdmin: false };
 
 // Textos das seções que ainda não têm conteúdo
 const PLACEHOLDERS = {
@@ -23,6 +26,7 @@ export default function App() {
     const [session, setSession] = useState(undefined);
     const [currentProject, setCurrentProject] = useState(null);
     const [section, setSection] = useState('pastas');
+    const [role, setRole] = useState(NO_ROLE);
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -38,6 +42,16 @@ export default function App() {
 
         return () => subscription.unsubscribe();
     }, []);
+
+    // Papel do utilizador (master / administrador), recarregado a cada login
+    const userEmail = session?.user?.email;
+    useEffect(() => {
+        if (!userEmail) {
+            setRole(NO_ROLE);
+            return;
+        }
+        usersService.getRole(userEmail).then(setRole).catch(() => setRole(NO_ROLE));
+    }, [userEmail]);
 
     // Logout automático por inatividade: cada ação do usuário reinicia o contador
     useEffect(() => {
@@ -104,7 +118,9 @@ export default function App() {
             />
         );
     } else if (section === 'usuarios') {
-        content = <UsersPage currentUserEmail={user.email} />;
+        content = role.isMaster
+            ? <UsersPage currentUserEmail={user.email} />
+            : <PlaceholderPage title="Usuários" description="Acesso restrito ao administrador master." />;
     } else {
         content = <PlaceholderPage {...PLACEHOLDERS[section]} />;
     }
@@ -113,6 +129,7 @@ export default function App() {
         <div style={{ display: 'flex', minHeight: '100vh' }}>
             <SideMenu
                 active={section}
+                showUsers={role.isMaster}
                 onSelect={handleSelectSection}
                 userEmail={user.email}
                 onLogout={handleLogout}

@@ -7,7 +7,7 @@ const MENU_ITEMS = [
     { id: 'logs', label: 'Logs', icon: 'fa-solid fa-clipboard-list' },
 ];
 
-export function SideMenu({ active, onSelect, userEmail, onLogout }) {
+export function SideMenu({ active, onSelect, userEmail, onLogout, showUsers = false }) {
     return (
         <aside className="sidebar">
             <div className="sidebar-brand">
@@ -18,7 +18,7 @@ export function SideMenu({ active, onSelect, userEmail, onLogout }) {
             <div className="sidebar-heading">Menu</div>
 
             <nav className="sidebar-nav">
-                {MENU_ITEMS.map((item) => (
+                {MENU_ITEMS.filter((item) => item.id !== 'usuarios' || showUsers).map((item) => (
                     <button
                         key={item.id}
                         type="button"

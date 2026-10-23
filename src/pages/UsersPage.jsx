@@ -7,7 +7,9 @@ const inputStyle = { padding: '8px 10px', borderRadius: '6px', border: '1px soli
 const selectStyle = { padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', background: '#fff' };
 const cardStyle = { background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' };
 const rowStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '8px 10px', background: '#f8fafc', borderRadius: '6px', flexWrap: 'wrap' };
+const badgeStyle = { fontSize: '0.65rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' };
 const EMPTY_NEW_USER = { name: '', email: '', password: '', confirmPassword: '' };
+const EMPTY_RESET = { password: '', confirmPassword: '' };
 
 function Feedback({ message }) {
     if (!message) return null;
@@ -36,39 +38,34 @@ function Field({ label, type = 'text', value, onChange, autoComplete, placeholde
     );
 }
 
+// Página restrita ao administrador master (o App só a mostra para ele)
 export function UsersPage({ currentUserEmail }) {
     const [tab, setTab] = useState('usuarios'); // 'usuarios' | 'departamentos'
-    const [isAdmin, setIsAdmin] = useState(false);
     const [loaded, setLoaded] = useState(false);
     const [departments, setDepartments] = useState([]);
     const [loadError, setLoadError] = useState('');
 
     const reload = useCallback(async () => {
         try {
-            const [admin, deps] = await Promise.all([
-                usersService.getAdminStatus(currentUserEmail),
-                usersService.listDepartments()
-            ]);
-            setIsAdmin(admin);
-            setDepartments(deps);
+            setDepartments(await usersService.listDepartments());
             setLoadError('');
         } catch (err) {
             setLoadError(err.message);
         } finally {
             setLoaded(true);
         }
-    }, [currentUserEmail]);
+    }, []);
 
     useEffect(() => {
         reload();
     }, [reload]);
 
     return (
-        <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px', padding: '20px' }}>
             <div>
                 <h2 style={{ fontSize: '1.4rem' }}>Usuários</h2>
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-                    Verifique contas, crie usuários e defina os departamentos e o acesso de cada um.
+                    Crie contas, redefina senhas, defina administradores e os departamentos de cada usuário.
                 </p>
             </div>
 
@@ -77,11 +74,6 @@ export function UsersPage({ currentUserEmail }) {
                 <Button size="sm" className={tab === 'departamentos' ? '' : 'btn-inactive'} onClick={() => setTab('departamentos')}>Departamentos</Button>
             </div>
 
-            {loaded && !isAdmin && (
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#92400e', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '6px', padding: '8px 12px' }}>
-                    Você não é administrador: pode consultar, mas não alterar.
-                </p>
-            )}
             {loadError && (
                 <p role="alert" style={{ margin: 0, fontSize: '0.8rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px' }}>
                     ⚠️ {loadError}
@@ -89,15 +81,15 @@ export function UsersPage({ currentUserEmail }) {
             )}
 
             {tab === 'usuarios' ? (
-                <UsersTab isAdmin={isAdmin} departments={departments} currentUserEmail={currentUserEmail} onChange={reload} />
+                <UsersTab departments={departments} currentUserEmail={currentUserEmail} onChange={reload} loaded={loaded} />
             ) : (
-                <DepartmentsTab isAdmin={isAdmin} departments={departments} onChange={reload} />
+                <DepartmentsTab departments={departments} onChange={reload} />
             )}
         </div>
     );
 }
 
-function UsersTab({ isAdmin, departments, currentUserEmail, onChange }) {
+function UsersTab({ departments, currentUserEmail, onChange, loaded }) {
     const [searchEmail, setSearchEmail] = useState('');
     const [found, setFound] = useState(null);
     const [searched, setSearched] = useState(false);
@@ -107,20 +99,30 @@ function UsersTab({ isAdmin, departments, currentUserEmail, onChange }) {
     const [showCreate, setShowCreate] = useState(false);
     const [newUser, setNewUser] = useState(EMPTY_NEW_USER);
 
+    const [showReset, setShowReset] = useState(false);
+    const [resetForm, setResetForm] = useState(EMPTY_RESET);
+
     const [assignDeptId, setAssignDeptId] = useState('');
     const [assignLevel, setAssignLevel] = useState(ACCESS_LEVELS[0].value);
 
+    const isSelf = found && found.email === currentUserEmail;
     const memberships = found
         ? departments.filter((dep) => dep.members.some((m) => m.user_email === found.email))
         : [];
 
-    // Executa uma ação de escrita e recarrega os dados
+    // Recarrega o perfil encontrado (para refletir admin/master e departamentos)
+    const refreshFound = async (email) => {
+        setFound(await usersService.findUser(email));
+    };
+
+    // Executa uma ação de escrita, recarrega os dados e mostra o resultado
     const runAction = async (action, successText) => {
         setBusy(true);
         setFeedback(null);
         try {
             await action();
             if (successText) setFeedback({ type: 'success', text: successText });
+            if (found) await refreshFound(found.email);
             onChange();
             return true;
         } catch (err) {
@@ -135,6 +137,7 @@ function UsersTab({ isAdmin, departments, currentUserEmail, onChange }) {
         e.preventDefault();
         setBusy(true);
         setFeedback(null);
+        setShowReset(false);
         try {
             setFound(await usersService.findUser(searchEmail));
             setSearched(true);
@@ -168,6 +171,35 @@ function UsersTab({ isAdmin, departments, currentUserEmail, onChange }) {
         }
     };
 
+    const handleReset = async (e) => {
+        e.preventDefault();
+        if (resetForm.password !== resetForm.confirmPassword) {
+            setFeedback({ type: 'error', text: 'As senhas não coincidem.' });
+            setResetForm(EMPTY_RESET);
+            return;
+        }
+        const ok = await runAction(
+            () => usersService.resetPassword(found.email, resetForm.password),
+            'Senha redefinida. O usuário foi desconectado e deve entrar com a nova senha.'
+        );
+        if (ok) {
+            setResetForm(EMPTY_RESET);
+            setShowReset(false);
+        }
+    };
+
+    const handleToggleAdmin = () => {
+        const makeAdmin = !found.is_admin;
+        const question = makeAdmin
+            ? `Tornar ${found.email} administrador? Ele verá e editará todos os projetos.`
+            : `Remover o nível de administrador de ${found.email}?`;
+        if (!confirm(question)) return;
+        runAction(
+            () => usersService.setAppAdmin(found.email, makeAdmin),
+            makeAdmin ? 'Usuário agora é administrador.' : 'Nível de administrador removido.'
+        );
+    };
+
     const handleDelete = () => {
         if (!confirm(`Excluir a conta ${found.email}? Esta ação não pode ser desfeita.`)) return;
         runAction(async () => {
@@ -195,11 +227,14 @@ function UsersTab({ isAdmin, departments, currentUserEmail, onChange }) {
     const updateNewUser = (field) => (e) =>
         setNewUser((prev) => ({ ...prev, [field]: e.target.value }));
 
+    const updateReset = (field) => (e) =>
+        setResetForm((prev) => ({ ...prev, [field]: e.target.value }));
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <form onSubmit={handleVerify} style={{ ...cardStyle, flexDirection: 'row', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '220px' }}>
-                    <label style={labelStyle}>Verificar usuário pelo e-mail</label>
+                    <label style={labelStyle}>Buscar usuário pelo e-mail</label>
                     <input
                         type="email"
                         value={searchEmail}
@@ -209,7 +244,7 @@ function UsersTab({ isAdmin, departments, currentUserEmail, onChange }) {
                         style={inputStyle}
                     />
                 </div>
-                <Button type="submit" variant="primary" disabled={busy}>Verificar</Button>
+                <Button type="submit" variant="primary" disabled={busy}>Buscar</Button>
             </form>
 
             <Feedback message={feedback} />
@@ -220,19 +255,44 @@ function UsersTab({ isAdmin, departments, currentUserEmail, onChange }) {
 
             {found && (
                 <div style={cardStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
                         <div>
                             <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{found.full_name || 'Sem nome'}</strong>
+                            {found.is_master && <span style={{ ...badgeStyle, background: '#312e81', color: '#fff' }}>MASTER</span>}
+                            {!found.is_master && found.is_admin && <span style={{ ...badgeStyle, background: '#dbeafe', color: '#1e40af' }}>ADMINISTRADOR</span>}
                             <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{found.email}</div>
                             <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
                                 Cadastrado em {new Date(found.created_at).toLocaleDateString('pt-BR')}
-                                {found.is_admin ? ' · Administrador' : ''}
                             </div>
                         </div>
-                        {isAdmin && found.email !== currentUserEmail && (
-                            <Button variant="danger" size="sm" onClick={handleDelete} disabled={busy}>Excluir</Button>
+
+                        {!found.is_master && (
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                <Button size="sm" variant="primary" onClick={() => { setShowReset(!showReset); setResetForm(EMPTY_RESET); }} disabled={busy}>
+                                    <i className="fa-solid fa-key"></i> Redefinir senha
+                                </Button>
+                                {!isSelf && (
+                                    <Button size="sm" variant={found.is_admin ? 'secondary' : 'success'} onClick={handleToggleAdmin} disabled={busy}>
+                                        {found.is_admin ? 'Remover administrador' : 'Tornar administrador'}
+                                    </Button>
+                                )}
+                                {!isSelf && (
+                                    <Button size="sm" variant="danger" onClick={handleDelete} disabled={busy}>Excluir</Button>
+                                )}
+                            </div>
                         )}
                     </div>
+
+                    {showReset && (
+                        <form onSubmit={handleReset} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                            <Field label="Nova senha" type="password" value={resetForm.password} onChange={updateReset('password')} autoComplete="new-password" placeholder="mínimo 6 caracteres" minLength={6} />
+                            <Field label="Confirmar nova senha" type="password" value={resetForm.confirmPassword} onChange={updateReset('confirmPassword')} autoComplete="new-password" placeholder="mínimo 6 caracteres" minLength={6} />
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                                <Button type="button" variant="secondary" size="sm" onClick={() => setShowReset(false)}>Cancelar</Button>
+                                <Button type="submit" variant="primary" size="sm" disabled={busy}>Salvar senha</Button>
+                            </div>
+                        </form>
+                    )}
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={labelStyle}>Departamentos</label>
@@ -244,37 +304,33 @@ function UsersTab({ isAdmin, departments, currentUserEmail, onChange }) {
                                     <span style={{ fontSize: '0.8rem', color: '#1e293b' }}>
                                         <strong>{dep.name}</strong> · {accessLabel(member.access_level)}
                                     </span>
-                                    {isAdmin && (
-                                        <Button size="sm" variant="danger" onClick={() => handleRemove(dep.id)} disabled={busy}>Remover</Button>
-                                    )}
+                                    <Button size="sm" variant="danger" onClick={() => handleRemove(dep.id)} disabled={busy}>Remover</Button>
                                 </div>
                             );
                         })}
                     </div>
 
-                    {isAdmin && (
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '200px' }}>
-                                <label style={labelStyle}>Destinar a departamento</label>
-                                <select value={assignDeptId} onChange={(e) => setAssignDeptId(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
-                                    <option value="">-- Escolha um departamento --</option>
-                                    {departments.map((dep) => (
-                                        <option key={dep.id} value={dep.id}>{dep.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <select value={assignLevel} onChange={(e) => setAssignLevel(e.target.value)} style={selectStyle}>
-                                {ACCESS_LEVELS.map((level) => (
-                                    <option key={level.value} value={level.value}>{level.label}</option>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '200px' }}>
+                            <label style={labelStyle}>Destinar a departamento</label>
+                            <select value={assignDeptId} onChange={(e) => setAssignDeptId(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
+                                <option value="">-- Escolha um departamento --</option>
+                                {departments.map((dep) => (
+                                    <option key={dep.id} value={dep.id}>{dep.name}</option>
                                 ))}
                             </select>
-                            <Button variant="primary" onClick={handleAssign} disabled={busy}>Destinar</Button>
                         </div>
-                    )}
+                        <select value={assignLevel} onChange={(e) => setAssignLevel(e.target.value)} style={selectStyle}>
+                            {ACCESS_LEVELS.map((level) => (
+                                <option key={level.value} value={level.value}>{level.label}</option>
+                            ))}
+                        </select>
+                        <Button variant="primary" onClick={handleAssign} disabled={busy}>Destinar</Button>
+                    </div>
                 </div>
             )}
 
-            {isAdmin && (
+            {loaded && (
                 <div style={cardStyle}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>Criar usuário</strong>
@@ -304,7 +360,7 @@ function UsersTab({ isAdmin, departments, currentUserEmail, onChange }) {
     );
 }
 
-function DepartmentsTab({ isAdmin, departments, onChange }) {
+function DepartmentsTab({ departments, onChange }) {
     const [newName, setNewName] = useState('');
     const [editingId, setEditingId] = useState(null);
     const [editName, setEditName] = useState('');
@@ -368,15 +424,13 @@ function DepartmentsTab({ isAdmin, departments, onChange }) {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {isAdmin && (
-                <form onSubmit={handleCreate} style={{ ...cardStyle, flexDirection: 'row', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '220px' }}>
-                        <label style={labelStyle}>Novo departamento</label>
-                        <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ex: NOC Turno A" required style={inputStyle} />
-                    </div>
-                    <Button type="submit" variant="primary" disabled={busy}><i className="fa-regular fa-plus"></i> Criar departamento</Button>
-                </form>
-            )}
+            <form onSubmit={handleCreate} style={{ ...cardStyle, flexDirection: 'row', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '220px' }}>
+                    <label style={labelStyle}>Novo departamento</label>
+                    <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ex: NOC Turno A" required style={inputStyle} />
+                </div>
+                <Button type="submit" variant="primary" disabled={busy}><i className="fa-regular fa-plus"></i> Criar departamento</Button>
+            </form>
 
             <Feedback message={feedback} />
 
@@ -410,7 +464,7 @@ function DepartmentsTab({ isAdmin, departments, onChange }) {
                                 </button>
                             )}
 
-                            {isAdmin && !isEditing && (
+                            {!isEditing && (
                                 <div style={{ display: 'flex', gap: '6px' }}>
                                     <Button size="sm" variant="primary" onClick={() => { setEditingId(dep.id); setEditName(dep.name); }}>Editar</Button>
                                     <Button size="sm" variant="danger" onClick={() => handleDelete(dep)} disabled={busy}>Excluir</Button>
@@ -427,45 +481,39 @@ function DepartmentsTab({ isAdmin, departments, onChange }) {
                                 {dep.members.map((m) => (
                                     <div key={m.user_email} style={rowStyle}>
                                         <span style={{ fontSize: '0.8rem', color: '#1e293b' }}>{m.user_email}</span>
-                                        {isAdmin ? (
-                                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                                                <select
-                                                    value={m.access_level}
-                                                    onChange={(e) => handleChangeLevel(dep, m.user_email, e.target.value)}
-                                                    style={selectStyle}
-                                                >
-                                                    {ACCESS_LEVELS.map((level) => (
-                                                        <option key={level.value} value={level.value}>{level.label}</option>
-                                                    ))}
-                                                </select>
-                                                <Button size="sm" variant="danger" onClick={() => handleRemoveMember(dep, m.user_email)} disabled={busy}>Remover</Button>
-                                            </div>
-                                        ) : (
-                                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{accessLabel(m.access_level)}</span>
-                                        )}
+                                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                            <select
+                                                value={m.access_level}
+                                                onChange={(e) => handleChangeLevel(dep, m.user_email, e.target.value)}
+                                                style={selectStyle}
+                                            >
+                                                {ACCESS_LEVELS.map((level) => (
+                                                    <option key={level.value} value={level.value}>{level.label}</option>
+                                                ))}
+                                            </select>
+                                            <Button size="sm" variant="danger" onClick={() => handleRemoveMember(dep, m.user_email)} disabled={busy}>Remover</Button>
+                                        </div>
                                     </div>
                                 ))}
 
-                                {isAdmin && (
-                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '200px' }}>
-                                            <label style={labelStyle}>Adicionar usuário (e-mail)</label>
-                                            <input
-                                                type="email"
-                                                value={memberEmail}
-                                                onChange={(e) => setMemberEmail(e.target.value)}
-                                                placeholder="usuario@empresa.com"
-                                                style={inputStyle}
-                                            />
-                                        </div>
-                                        <select value={memberLevel} onChange={(e) => setMemberLevel(e.target.value)} style={selectStyle}>
-                                            {ACCESS_LEVELS.map((level) => (
-                                                <option key={level.value} value={level.value}>{level.label}</option>
-                                            ))}
-                                        </select>
-                                        <Button size="sm" variant="primary" onClick={() => handleAddMember(dep)} disabled={busy}>Adicionar</Button>
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '200px' }}>
+                                        <label style={labelStyle}>Adicionar usuário (e-mail)</label>
+                                        <input
+                                            type="email"
+                                            value={memberEmail}
+                                            onChange={(e) => setMemberEmail(e.target.value)}
+                                            placeholder="usuario@empresa.com"
+                                            style={inputStyle}
+                                        />
                                     </div>
-                                )}
+                                    <select value={memberLevel} onChange={(e) => setMemberLevel(e.target.value)} style={selectStyle}>
+                                        {ACCESS_LEVELS.map((level) => (
+                                            <option key={level.value} value={level.value}>{level.label}</option>
+                                        ))}
+                                    </select>
+                                    <Button size="sm" variant="primary" onClick={() => handleAddMember(dep)} disabled={busy}>Adicionar</Button>
+                                </div>
                             </>
                         )}
                     </div>

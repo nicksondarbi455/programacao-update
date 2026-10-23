@@ -19,22 +19,26 @@ export function TopBar({
             </div>
 
             <div className="action-bar" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <Button
-                    variant={isEditMode ? 'success' : 'warning'}
-                    size="sm"
-                    onClick={onToggleEdit}
-                >
-                    {isEditMode ? 'Concluir edição' : <><i className="fa-regular fa-pen-to-square"></i> Editar tabela</>}
-                </Button>
+                {onToggleEdit && (
+                    <Button
+                        variant={isEditMode ? 'success' : 'warning'}
+                        size="sm"
+                        onClick={onToggleEdit}
+                    >
+                        {isEditMode ? 'Concluir edição' : <><i className="fa-regular fa-pen-to-square"></i> Editar tabela</>}
+                    </Button>
+                )}
 
                 {isEditMode && (
                     <>
                         <Button variant="primary" size="sm" onClick={onNewRow}><i className="fa-regular fa-plus"></i> Linha</Button>
                         <Button variant="primary" size="sm" onClick={onNewCol}><i className="fa-regular fa-plus"></i> Coluna</Button>
                         <Button variant="primary" size="sm" onClick={onNewItem}><i className="fa-regular fa-plus"></i> Evento</Button>
-
-                        <Button variant="danger" size="sm" onClick={onDeleteProject}>🗑️ Excluir projeto</Button>
                     </>
+                )}
+
+                {isEditMode && onDeleteProject && (
+                    <Button variant="danger" size="sm" onClick={onDeleteProject}>🗑️ Excluir projeto</Button>
                 )}
             </div>
         </div>

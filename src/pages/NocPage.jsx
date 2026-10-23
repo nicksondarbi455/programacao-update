@@ -481,7 +481,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
                 connectionStatus="online"
                 connectionText="Supabase Cloud"
                 isEditMode={isEditMode}
-                onToggleEdit={handleToggleEdit}
+                onToggleEdit={project.canEdit ? handleToggleEdit : undefined}
                 onNewRow={() => setRowModalOpen(true)}
                 rowModalOpen={rowModalOpen}
                 onConfirmRows={handleAddNewRows}
@@ -491,7 +491,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
                 groupModalOpen={groupModalOpen}
                 onConfirmGroup={handleConfirmGroup}
                 onCloseGroupModal={() => setGroupModalOpen(false)}
-                onDeleteProject={handleDeleteProject}
+                onDeleteProject={project.canManage ? handleDeleteProject : undefined}
                 columnConfig={columnConfig}
                 equipments={equipments}
                 onUpdateField={handleUpdateField}
@@ -501,7 +501,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
                 onRowDragStart={handleRowDragStart}
                 onRowDrop={handleRowDrop}
                 onToggleEventRow={handleToggleEventRow}
-                onOpenSettings={() => setSettingsOpen(true)}
+                onOpenSettings={project.canManage ? () => setSettingsOpen(true) : undefined}
                 onOpenNote={(eq) => setNoteTarget({
                     ...eq,
                     _title: eq.isGroupHeader ? (eq.groupName || 'Evento sem nome') : String(eq[columnConfig[0]?.id] || 'Linha sem nome')

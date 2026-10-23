@@ -8,18 +8,37 @@ const check = (context, { error }) => {
     }
 };
 
+// Converte a lista de departamentos em linhas da tabela project_departments
+const departmentRows = (projId, ids) =>
+    ids.map((departmentId) => ({ project_id: projId, department_id: departmentId }));
+
 export const supabaseService = {
     // --- PROJETOS ---
+    // O servidor (RLS) já devolve só os projetos que o utilizador pode ver.
+    // Aqui calculamos o que ele pode fazer em cada um, para esconder os botões.
     async getProjects(userEmail) {
+        const email = userEmail.trim().toLowerCase();
+
+        const [profileRes, membersRes] = await Promise.all([
+            supabase.from('profiles').select('is_admin, is_master').eq('email', email).maybeSingle(),
+            supabase.from('department_members').select('department_id, access_level').eq('user_email', email)
+        ]);
+        check('Erro ao verificar permissões', { error: profileRes.error || membersRes.error });
+
+        const isAdmin = Boolean(profileRes.data?.is_admin || profileRes.data?.is_master);
+        const editableDeptIds = new Set(
+            (membersRes.data || []).filter((m) => m.access_level === 'editar').map((m) => m.department_id)
+        );
+
         const { data, error } = await supabase
             .from('projects')
             .select(`
                 *,
+                project_departments (department_id),
                 column_configs (*),
                 equipments (*),
                 schedules (*)
             `)
-            .eq('user_email', userEmail)
             .order('created_at', { ascending: false });
 
         check('Erro ao buscar projetos', { error });
@@ -44,6 +63,11 @@ export const supabaseService = {
                 schedsObj[s.date_str] = s.items;
             });
 
+            const departmentIds = (p.project_departments || []).map(d => d.department_id);
+            const isOwner = (p.user_email || '').toLowerCase() === email;
+            const canManage = isAdmin || isOwner;
+            const canEdit = canManage || (!p.is_private && departmentIds.some(id => editableDeptIds.has(id)));
+
             return {
                 id: p.id,
                 name: p.name,
@@ -53,6 +77,10 @@ export const supabaseService = {
                 showProgress: p.show_progress,
                 progress: p.progress ?? 0,
                 projectType: p.project_type,
+                ownerEmail: p.user_email,
+                departmentIds,
+                canManage,
+                canEdit,
                 columnConfig: cols,
                 equipments: equips,
                 schedules: schedsObj
@@ -68,7 +96,24 @@ export const supabaseService = {
         if (fields.showProgress !== undefined) payload.show_progress = fields.showProgress;
         if (fields.hasCalendar !== undefined) payload.has_calendar = fields.hasCalendar;
         if (fields.progress !== undefined) payload.progress = fields.progress;
-        check('Erro ao atualizar projeto', await supabase.from('projects').update(payload).eq('id', projId));
+
+        // Atualiza o projeto primeiro: se ficar privado, o servidor já remove os departamentos
+        if (Object.keys(payload).length > 0) {
+            check('Erro ao atualizar projeto', await supabase.from('projects').update(payload).eq('id', projId));
+        }
+
+        if (fields.departmentIds !== undefined) {
+            const ids = fields.isPrivate ? [] : fields.departmentIds;
+            check('Erro ao atualizar departamentos', await supabase
+                .from('project_departments')
+                .delete()
+                .eq('project_id', projId));
+            if (ids.length > 0) {
+                check('Erro ao atualizar departamentos', await supabase
+                    .from('project_departments')
+                    .insert(departmentRows(projId, ids)));
+            }
+        }
     },
 
     async createProject(projectData, userEmail) {
@@ -87,7 +132,15 @@ export const supabaseService = {
         }]));
 
         try {
-            // 2. Inserir as Colunas
+            // 2. Departamentos que podem ver o projeto (projeto privado não tem departamentos)
+            const deptIds = projectData.isPrivate ? [] : (projectData.departmentIds || []);
+            if (deptIds.length > 0) {
+                check('Erro ao destinar departamentos', await supabase
+                    .from('project_departments')
+                    .insert(departmentRows(projId, deptIds)));
+            }
+
+            // 3. Inserir as Colunas
             if (projectData.columnConfig && projectData.columnConfig.length > 0) {
                 const colsPayload = projectData.columnConfig.map((col, idx) => ({
                     id: col.id || `col_${idx}_${Date.now()}`,
@@ -101,7 +154,7 @@ export const supabaseService = {
                 check('Erro ao criar colunas', await supabase.from('column_configs').insert(colsPayload));
             }
 
-            // 3. Inserir as Linhas/Dados
+            // 4. Inserir as Linhas/Dados
             if (projectData.equipments && projectData.equipments.length > 0) {
                 const equipsPayload = projectData.equipments.map((eq, idx) => {
                     const { id, color, position, ...restData } = eq;

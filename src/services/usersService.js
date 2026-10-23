@@ -20,22 +20,26 @@ export const accessLabel = (value) =>
     ACCESS_LEVELS.find((level) => level.value === value)?.label || value;
 
 export const usersService = {
-    // --- PERFIS ---
-    async getAdminStatus(email) {
+    // --- PERFIS E PAPÉIS ---
+    // isMaster: pode gerir usuários e departamentos | isAdmin: vê e edita todos os projetos
+    async getRole(email) {
         const { data, error } = await supabase
             .from('profiles')
-            .select('is_admin')
+            .select('is_admin, is_master')
             .eq('email', normalizeEmail(email))
             .maybeSingle();
         check('Erro ao verificar permissões', { error });
-        return Boolean(data?.is_admin);
+        return {
+            isMaster: Boolean(data?.is_master),
+            isAdmin: Boolean(data?.is_admin || data?.is_master)
+        };
     },
 
     // Devolve o perfil com este e-mail, ou null se não houver conta
     async findUser(email) {
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, email, full_name, is_admin, created_at')
+            .select('id, email, full_name, is_admin, is_master, created_at')
             .eq('email', normalizeEmail(email))
             .maybeSingle();
         check('Erro ao verificar usuário', { error });
@@ -66,6 +70,20 @@ export const usersService = {
 
     async deleteUser(email) {
         check('Erro ao excluir usuário', await supabase.rpc('admin_delete_user', { p_email: normalizeEmail(email) }));
+    },
+
+    async setAppAdmin(email, isAdmin) {
+        check('Erro ao alterar administrador', await supabase.rpc('admin_set_app_admin', {
+            p_email: normalizeEmail(email),
+            p_is_admin: isAdmin
+        }));
+    },
+
+    async resetPassword(email, password) {
+        check('Erro ao redefinir senha', await supabase.rpc('admin_reset_password', {
+            p_email: normalizeEmail(email),
+            p_password: password
+        }));
     },
 
     // --- DEPARTAMENTOS ---

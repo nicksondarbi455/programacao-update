@@ -4,6 +4,8 @@ import { Button } from '../components/atoms/Button';
 import { Input } from '../components/atoms/Input';
 import { Checkbox } from '../components/atoms/Checkbox';
 import { ProgressCircle } from '../components/molecules/ProgressCircle';
+import { DepartmentPicker } from '../components/molecules/DepartmentPicker';
+import { usersService } from '../services/usersService';
 import * as XLSX from 'xlsx';
 
 export function DashboardPage({ user, onSelectProject, onLogout }) {
@@ -16,6 +18,9 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
     const [hasCalendar, setHasCalendar] = useState(true);
     const [isPrivate, setIsPrivate] = useState(false);
     const [showProgress, setShowProgress] = useState(false);
+    const [selectedDeptIds, setSelectedDeptIds] = useState([]);
+    const [departments, setDepartments] = useState([]);
+    const [loadingDeps, setLoadingDeps] = useState(false);
     const [tableSource, setTableSource] = useState('manual');
     const [numRows, setNumRows] = useState(3);
     const [numCols, setNumCols] = useState(4);
@@ -32,6 +37,16 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
     useEffect(() => {
         loadProjects();
     }, [user.email]);
+
+    // Carrega os departamentos ao abrir o modal de criação
+    useEffect(() => {
+        if (!isModalOpen) return;
+        setLoadingDeps(true);
+        usersService.listDepartments()
+            .then(setDepartments)
+            .catch((err) => alert('Erro ao carregar departamentos: ' + err.message))
+            .finally(() => setLoadingDeps(false));
+    }, [isModalOpen]);
 
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
@@ -118,6 +133,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                 hasCalendar,
                 isPrivate,
                 showProgress,
+                departmentIds: isPrivate ? [] : selectedDeptIds,
                 columnConfig: initialColumns,
                 equipments: initialEquipments
             }, user.email);
@@ -128,6 +144,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             setDescription('');
             setHasCalendar(true);
             setIsPrivate(false);
+            setSelectedDeptIds([]);
             setImportedData({ columns: [], rows: [] });
             setIsModalOpen(false);
         } catch (err) {
@@ -254,6 +271,15 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                                     Mostrar progresso
                                 </label>
                             </div>
+
+                            {!isPrivate && (
+                                <DepartmentPicker
+                                    departments={departments}
+                                    selectedIds={selectedDeptIds}
+                                    onChange={setSelectedDeptIds}
+                                    loading={loadingDeps}
+                                />
+                            )}
 
                             <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' }}>Origem dos Dados da Tabela</label>
                             <select value={tableSource} onChange={(e) => setTableSource(e.target.value)} style={{ padding: '7px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem' }}>
