@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 
+
 // Nomes padronizados das ações. Use sempre estes valores para facilitar os filtros do futuro menu de logs.
 export const LOG_ACTIONS = {
     LOGIN: 'login',
