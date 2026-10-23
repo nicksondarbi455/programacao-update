@@ -35,6 +35,16 @@ export const usersService = {
         };
     },
 
+    // Lista todos os usuários cadastrados (mais recentes primeiro)
+    async listUsers() {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('id, email, full_name, is_admin, is_master, created_at')
+            .order('created_at', { ascending: false });
+        check('Erro ao listar usuários', { error });
+        return data || [];
+    },
+
     // Devolve o perfil com este e-mail, ou null se não houver conta
     async findUser(email) {
         const { data, error } = await supabase

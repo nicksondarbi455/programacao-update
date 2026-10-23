@@ -105,6 +105,33 @@ function UsersTab({ departments, currentUserEmail, onChange, loaded }) {
     const [assignDeptId, setAssignDeptId] = useState('');
     const [assignLevel, setAssignLevel] = useState(ACCESS_LEVELS[0].value);
 
+    const [users, setUsers] = useState([]);
+    const [usersLoading, setUsersLoading] = useState(true);
+
+    // Recarrega a lista de todos os usuários cadastrados
+    const loadUsers = useCallback(async () => {
+        try {
+            setUsers(await usersService.listUsers());
+        } catch (err) {
+            setFeedback({ type: 'error', text: err.message });
+        } finally {
+            setUsersLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadUsers();
+    }, [loadUsers]);
+
+    // Seleciona um usuário da lista para ver e gerenciar
+    const selectUser = (u) => {
+        setSearchEmail(u.email);
+        setFound(u);
+        setSearched(true);
+        setShowReset(false);
+        setFeedback(null);
+    };
+
     const isSelf = found && found.email === currentUserEmail;
     const memberships = found
         ? departments.filter((dep) => dep.members.some((m) => m.user_email === found.email))
@@ -123,6 +150,7 @@ function UsersTab({ departments, currentUserEmail, onChange, loaded }) {
             await action();
             if (successText) setFeedback({ type: 'success', text: successText });
             if (found) await refreshFound(found.email);
+            await loadUsers();
             onChange();
             return true;
         } catch (err) {
@@ -163,6 +191,7 @@ function UsersTab({ departments, currentUserEmail, onChange, loaded }) {
             setFeedback({ type: 'success', text: `Conta criada para ${newUser.email.trim().toLowerCase()}.` });
             setNewUser(EMPTY_NEW_USER);
             setShowCreate(false);
+            await loadUsers();
         } catch (err) {
             setFeedback({ type: 'error', text: err.message });
             if (err.isPasswordError) setNewUser(EMPTY_NEW_USER);
@@ -329,6 +358,41 @@ function UsersTab({ departments, currentUserEmail, onChange, loaded }) {
                     </div>
                 </div>
             )}
+
+            <div style={cardStyle}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>Usuários cadastrados ({users.length})</strong>
+                    <Button size="sm" variant="secondary" onClick={loadUsers} disabled={usersLoading}>
+                        <i className="fa-solid fa-rotate"></i> Atualizar
+                    </Button>
+                </div>
+
+                {usersLoading && <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Carregando usuários...</p>}
+                {!usersLoading && users.length === 0 && (
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Nenhum usuário cadastrado ainda.</p>
+                )}
+
+                {users.map((u) => (
+                    <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => selectUser(u)}
+                        style={{ ...rowStyle, border: found?.id === u.id ? '1px solid #3654ff' : '1px solid transparent', cursor: 'pointer', textAlign: 'left', width: '100%' }}
+                    >
+                        <span style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                            <span style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 600 }}>
+                                {u.full_name || 'Sem nome'}
+                                {u.is_master && <span style={{ ...badgeStyle, background: '#312e81', color: '#fff' }}>MASTER</span>}
+                                {!u.is_master && u.is_admin && <span style={{ ...badgeStyle, background: '#dbeafe', color: '#1e40af' }}>ADMINISTRADOR</span>}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{u.email}</span>
+                        </span>
+                        <span style={{ fontSize: '0.7rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                            {new Date(u.created_at).toLocaleDateString('pt-BR')}
+                        </span>
+                    </button>
+                ))}
+            </div>
 
             {loaded && (
                 <div style={cardStyle}>
