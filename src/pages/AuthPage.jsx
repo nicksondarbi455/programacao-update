@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../services/supabase';
+import { logAction, LOG_ACTIONS, getClientInfo } from '../services/logService';
 import { VantaBackground } from '../components/molecules/VantaBackground';
 
 // Cadastro de conta oculto por enquanto. Para reativar, troque para true.
@@ -146,6 +147,8 @@ export function AuthPage() {
             if (isLogin) {
                 const { error } = await supabase.auth.signInWithPassword({ email, password: form.password });
                 if (error) throw error;
+                // Registra apenas o login real (com as credenciais), não a sessão restaurada ao recarregar
+                await logAction(LOG_ACTIONS.LOGIN, { details: getClientInfo() });
                 // O App deteta a sessão via onAuthStateChange e troca de ecrã.
                 return;
             }

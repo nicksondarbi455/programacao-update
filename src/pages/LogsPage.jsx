@@ -38,7 +38,10 @@ const tdStyle = {
     fontSize: '0.8rem',
     color: '#334155',
     borderBottom: '1px solid #f1f5f9',
-    verticalAlign: 'top'
+    verticalAlign: 'top',
+    whiteSpace: 'normal',
+    overflow: 'visible',
+    textOverflow: 'clip'
 };
 
 const tagStyle = {
@@ -53,17 +56,32 @@ const tagStyle = {
     textTransform: 'uppercase'
 };
 
-// Transforma o JSON de detalhes em texto legível: "data: 2026-11-03 · evento: Ronda"
-function formatDetails(details) {
-    if (!details) return '-';
-    if (typeof details !== 'object') return String(details);
+// Nomes em português para as chaves gravadas em "details"
+const DETAIL_LABELS = {
+    navegador: 'Navegador',
+    sistema: 'Sistema',
+    dispositivo: 'Dispositivo',
+    ip: 'IP',
+    idioma: 'Idioma',
+    fuso_horario: 'Fuso horário',
+    tela: 'Tela',
+    data: 'Data',
+    evento: 'Evento',
+    motivo: 'Motivo'
+};
 
-    const entries = Object.entries(details);
-    if (entries.length === 0) return '-';
+// Mostra cada detalhe em sua própria linha: "Navegador: Chrome 130"
+function DetailsList({ details }) {
+    if (!details || typeof details !== 'object' || Object.keys(details).length === 0) {
+        return '-';
+    }
 
-    return entries
-        .map(([key, value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`)
-        .join(' · ');
+    return Object.entries(details).map(([key, value]) => (
+        <div key={key}>
+            <span style={{ fontWeight: 600, color: '#475569' }}>{DETAIL_LABELS[key] || key}:</span>{' '}
+            {value === null || value === undefined ? '-' : typeof value === 'object' ? JSON.stringify(value) : String(value)}
+        </div>
+    ));
 }
 
 // Página restrita a administradores e master (o App só a mostra para eles)
@@ -158,8 +176,8 @@ export function LogsPage() {
                                     {log.entity_type && <span style={tagStyle}>{log.entity_type}</span>}
                                     {log.project_id || '-'}
                                 </td>
-                                <td style={{ ...tdStyle, maxWidth: '320px', wordBreak: 'break-word' }} title={JSON.stringify(log.details)}>
-                                    {formatDetails(log.details)}
+                                <td style={{ ...tdStyle, minWidth: '260px' }}>
+                                    <DetailsList details={log.details} />
                                 </td>
                             </tr>
                         ))}

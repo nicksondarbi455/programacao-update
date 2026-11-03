@@ -39,3 +39,47 @@ export async function logAction(action, { entityType = null, entityId = null, pr
         console.warn('Falha ao gravar log:', err);
     }
 }
+
+// Identifica o navegador a partir do user agent (ex.: "Chrome 130")
+function parseBrowser(ua) {
+    const rules = [
+        [/Edg\/([\d.]+)/, 'Edge'],
+        [/OPR\/([\d.]+)/, 'Opera'],
+        [/Firefox\/([\d.]+)/, 'Firefox'],
+        [/Chrome\/([\d.]+)/, 'Chrome'],
+        [/Version\/([\d.]+).*Safari/, 'Safari'],
+    ];
+    for (const [regex, name] of rules) {
+        const match = ua.match(regex);
+        if (match) return `${name} ${match[1].split('.')[0]}`;
+    }
+    return 'Desconhecido';
+}
+
+// Identifica o sistema operacional a partir do user agent
+function parseOS(ua) {
+    if (/Windows NT 10/.test(ua)) return 'Windows 10/11';
+    if (/Windows/.test(ua)) return 'Windows';
+    if (/Android/.test(ua)) return 'Android';
+    if (/iPhone|iPad/.test(ua)) return 'iOS';
+    if (/Mac OS X/.test(ua)) return 'macOS';
+    if (/Linux/.test(ua)) return 'Linux';
+    return 'Desconhecido';
+}
+
+/**
+ * Dados do dispositivo de quem está acessando, gravados junto com o login.
+ * O IP não é obtido aqui: ele é preenchido pelo banco (ver logs.sql).
+ */
+export function getClientInfo() {
+    if (typeof navigator === 'undefined') return {};
+    const ua = navigator.userAgent || '';
+    return {
+        navegador: parseBrowser(ua),
+        sistema: parseOS(ua),
+        dispositivo: /Mobi|Android|iPhone|iPad/i.test(ua) ? 'Celular/Tablet' : 'Computador',
+        idioma: navigator.language || null,
+        fuso_horario: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+        tela: window.screen ? `${window.screen.width}x${window.screen.height}` : null
+    };
+}

@@ -32,7 +32,6 @@ export default function App() {
         supabase.auth.getSession().then(({ data }) => setSession(data.session));
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
-            if (_event === 'SIGNED_IN') logAction(LOG_ACTIONS.LOGIN);
             setSession(newSession);
             if (!newSession) {
                 setCurrentProject(null);
