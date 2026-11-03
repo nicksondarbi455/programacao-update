@@ -5,6 +5,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { NocPage } from './pages/NocPage';
 import { UsersPage } from './pages/UsersPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
+import { LogsPage } from './pages/LogsPage';
 import { SideMenu } from './components/organisms/SideMenu';
 import { logAction, LOG_ACTIONS } from './services/logService';
 import { usersService } from './services/usersService';
@@ -14,8 +15,7 @@ const NO_ROLE = { isMaster: false, isAdmin: false };
 // Textos das seções que ainda não têm conteúdo
 const PLACEHOLDERS = {
     configuracoes: { title: 'Configurações', description: 'Em breve.' },
-    sobre: { title: 'Sobre', description: 'Painel NOC: acompanhamento de programação de rede.' },
-    logs: { title: 'Logs', description: 'Histórico de ações em preparação. O local de exibição ainda será definido.' }
+    sobre: { title: 'Sobre', description: 'Painel NOC: acompanhamento de programação de rede.' }
 };
 
 // Minutos sem atividade do usuário até a sessão ser encerrada automaticamente
@@ -121,6 +121,10 @@ export default function App() {
         content = role.isMaster
             ? <UsersPage currentUserEmail={user.email} />
             : <PlaceholderPage title="Usuários" description="Acesso restrito ao administrador master." />;
+    } else if (section === 'logs') {
+        content = role.isAdmin
+            ? <LogsPage />
+            : <PlaceholderPage title="Logs" description="Acesso restrito a administradores." />;
     } else {
         content = <PlaceholderPage {...PLACEHOLDERS[section]} />;
     }
@@ -130,6 +134,7 @@ export default function App() {
             <SideMenu
                 active={section}
                 showUsers={role.isMaster}
+                showLogs={role.isAdmin}
                 onSelect={handleSelectSection}
                 userEmail={user.email}
                 onLogout={handleLogout}

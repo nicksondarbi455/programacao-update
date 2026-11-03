@@ -1,91 +1,171 @@
-import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { supabase } from '../services/supabase'; // Confirme se o caminho é este
+import { useCallback, useEffect, useState } from 'react';
+import { supabase } from '../services/supabase';
+import { Button } from '../components/atoms/Button';
 
-export default function LogsPage({ user }) {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+// Quantidade de registros exibidos (os mais recentes primeiro)
+const LIMIT = 100;
 
-  useEffect(() => {
-    const fetchLogs = async () => {
-      // O seu sistema utiliza is_admin e is_master no perfil do utilizador
-      if (!user?.is_admin && !user?.is_master) {
+// Rótulos amigáveis para os nomes padronizados em logService.js (LOG_ACTIONS)
+const ACTION_LABELS = {
+    login: 'Login',
+    logout: 'Logout',
+    agendar: 'Agendou evento',
+    desagendar: 'Removeu evento',
+    marcar_feito: 'Marcou como feito',
+    desmarcar_feito: 'Desmarcou como feito',
+    linha_criada: 'Linha criada',
+    linha_excluida: 'Linha excluída',
+    coluna_criada: 'Coluna criada',
+    coluna_excluida: 'Coluna excluída',
+    dados_criados: 'Dados criados',
+    dados_editados: 'Dados editados',
+    dados_removidos: 'Dados removidos'
+};
+
+const thStyle = {
+    padding: '10px 12px',
+    textAlign: 'left',
+    fontSize: '0.75rem',
+    fontWeight: 700,
+    color: '#475569',
+    background: '#f1f5f9',
+    borderBottom: '1px solid #e2e8f0',
+    whiteSpace: 'nowrap'
+};
+
+const tdStyle = {
+    padding: '10px 12px',
+    fontSize: '0.8rem',
+    color: '#334155',
+    borderBottom: '1px solid #f1f5f9',
+    verticalAlign: 'top'
+};
+
+const tagStyle = {
+    display: 'inline-block',
+    marginRight: '6px',
+    padding: '1px 6px',
+    borderRadius: '4px',
+    background: '#eef2ff',
+    color: '#3730a3',
+    fontSize: '0.65rem',
+    fontWeight: 700,
+    textTransform: 'uppercase'
+};
+
+// Transforma o JSON de detalhes em texto legível: "data: 2026-11-03 · evento: Ronda"
+function formatDetails(details) {
+    if (!details) return '-';
+    if (typeof details !== 'object') return String(details);
+
+    const entries = Object.entries(details);
+    if (entries.length === 0) return '-';
+
+    return entries
+        .map(([key, value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`)
+        .join(' · ');
+}
+
+// Página restrita a administradores e master (o App só a mostra para eles)
+export function LogsPage() {
+    const [logs, setLogs] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const load = useCallback(async () => {
+        setLoading(true);
+        const { data, error: queryError } = await supabase
+            .from('activity_logs')
+            .select('id, created_at, user_email, action, entity_type, project_id, details')
+            .order('created_at', { ascending: false })
+            .limit(LIMIT);
+
+        if (queryError) {
+            console.error('Erro ao buscar logs:', queryError);
+            setError(queryError.message);
+            setLogs([]);
+        } else {
+            setError('');
+            setLogs(data || []);
+        }
         setLoading(false);
-        return;
-      }
-      
-      const { data, error } = await supabase
-        .from('activity_logs')
-        .select('id, created_at, user_email, action, entity_type, project_id, details')
-        .order('created_at', { ascending: false })
-        .limit(100);
-        
-      if (!error && data) {
-        setLogs(data);
-      } else {
-        console.error("Erro ao buscar logs:", error);
-      }
-      setLoading(false);
-    };
-    
-    fetchLogs();
-  }, [user]);
+    }, []);
 
-  // Bloqueio visual para quem não é administrador ou master
-  if (!user || (!user.is_admin && !user.is_master)) {
-    return <Navigate to="/dashboard" replace />;
-  }
+    useEffect(() => {
+        load();
+    }, [load]);
 
-  return (
-    <div className="p-6 w-full text-gray-800 h-full overflow-y-auto">
-      <h1 className="text-2xl font-bold mb-6">Logs de Atividade</h1>
-      
-      {loading ? (
-        <div className="flex justify-center p-10">A carregar registos...</div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-100 border-b">
-              <tr>
-                <th className="p-3 font-semibold text-sm">Data/Hora</th>
-                <th className="p-3 font-semibold text-sm">Utilizador</th>
-                <th className="p-3 font-semibold text-sm">Ação</th>
-                <th className="p-3 font-semibold text-sm">Entidade / Projeto</th>
-                <th className="p-3 font-semibold text-sm">Detalhes Técnicos</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((log) => (
-                <tr key={log.id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="p-3 text-sm whitespace-nowrap">
-                    {new Date(log.created_at).toLocaleString('pt-BR')}
-                  </td>
-                  <td className="p-3 text-sm font-medium">
-                    {log.user_email || 'Sistema'}
-                  </td>
-                  <td className="p-3 text-sm font-bold text-blue-600">
-                    {log.action}
-                  </td>
-                  <td className="p-3 text-sm text-gray-600">
-                    {log.entity_type ? <span className="uppercase text-xs font-bold mr-1">{log.entity_type}</span> : ''}
-                    {log.project_id ? log.project_id : '-'}
-                  </td>
-                  <td className="p-3 text-xs text-gray-600 max-w-xs truncate" title={JSON.stringify(log.details)}>
-                    {typeof log.details === 'object' ? JSON.stringify(log.details) : log.details}
-                  </td>
-                </tr>
-              ))}
-              {logs.length === 0 && (
-                <tr>
-                  <td colSpan="5" className="p-6 text-center text-gray-500">
-                    Nenhum log registado até ao momento.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+    return (
+        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px', padding: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+                <div>
+                    <h2 style={{ fontSize: '1.4rem' }}>Logs de Atividade</h2>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                        Últimos {LIMIT} registros do sistema, do mais recente para o mais antigo.
+                    </p>
+                </div>
+                <Button size="sm" onClick={load} disabled={loading}>
+                    {loading ? 'Carregando...' : 'Atualizar'}
+                </Button>
+            </div>
+
+            {error && (
+                <p role="alert" style={{ margin: 0, fontSize: '0.8rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px' }}>
+                    ⚠️ Erro ao carregar logs: {error}
+                </p>
+            )}
+
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                        <tr>
+                            <th style={thStyle}>Data/Hora</th>
+                            <th style={thStyle}>Usuário</th>
+                            <th style={thStyle}>Ação</th>
+                            <th style={thStyle}>Entidade / Projeto</th>
+                            <th style={thStyle}>Detalhes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {loading && logs.length === 0 && (
+                            <tr>
+                                <td colSpan={5} style={{ ...tdStyle, textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                                    Carregando registros...
+                                </td>
+                            </tr>
+                        )}
+
+                        {!loading && logs.length === 0 && (
+                            <tr>
+                                <td colSpan={5} style={{ ...tdStyle, textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                                    Nenhum registro encontrado.
+                                </td>
+                            </tr>
+                        )}
+
+                        {logs.map((log) => (
+                            <tr key={log.id}>
+                                <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
+                                    {new Date(log.created_at).toLocaleString('pt-BR')}
+                                </td>
+                                <td style={{ ...tdStyle, fontWeight: 600 }}>
+                                    {log.user_email || 'Sistema'}
+                                </td>
+                                <td style={{ ...tdStyle, fontWeight: 700, color: '#2563eb', whiteSpace: 'nowrap' }}>
+                                    {ACTION_LABELS[log.action] || log.action}
+                                </td>
+                                <td style={tdStyle}>
+                                    {log.entity_type && <span style={tagStyle}>{log.entity_type}</span>}
+                                    {log.project_id || '-'}
+                                </td>
+                                <td style={{ ...tdStyle, maxWidth: '320px', wordBreak: 'break-word' }} title={JSON.stringify(log.details)}>
+                                    {formatDetails(log.details)}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
-      )}
-    </div>
-  );
+    );
 }

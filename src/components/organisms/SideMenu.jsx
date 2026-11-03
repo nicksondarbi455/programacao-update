@@ -7,7 +7,14 @@ const MENU_ITEMS = [
     { id: 'logs', label: 'Logs', icon: 'fa-solid fa-clipboard-list' },
 ];
 
-export function SideMenu({ active, onSelect, userEmail, onLogout, showUsers = false }) {
+export function SideMenu({ active, onSelect, userEmail, onLogout, showUsers = false, showLogs = false }) {
+    // "Usuários" só para o master; "Logs" para administradores e master
+    const visibleItems = MENU_ITEMS.filter((item) => {
+        if (item.id === 'usuarios') return showUsers;
+        if (item.id === 'logs') return showLogs;
+        return true;
+    });
+
     return (
         <aside className="sidebar">
             <div className="sidebar-brand">
@@ -18,7 +25,7 @@ export function SideMenu({ active, onSelect, userEmail, onLogout, showUsers = fa
             <div className="sidebar-heading">Menu</div>
 
             <nav className="sidebar-nav">
-                {MENU_ITEMS.filter((item) => item.id !== 'usuarios' || showUsers).map((item) => (
+                {visibleItems.map((item) => (
                     <button
                         key={item.id}
                         type="button"
