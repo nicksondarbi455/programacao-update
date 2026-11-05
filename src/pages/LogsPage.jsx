@@ -23,6 +23,7 @@ const ACTION_LABELS = {
 };
 
 const thStyle = {
+    height: 'auto',
     padding: '10px 12px',
     textAlign: 'left',
     fontSize: '0.75rem',
@@ -34,6 +35,7 @@ const thStyle = {
 };
 
 const tdStyle = {
+    height: 'auto', // a regra global de th/td fixa 32px e cortaria os detalhes
     padding: '10px 12px',
     fontSize: '0.8rem',
     color: '#334155',
@@ -113,8 +115,10 @@ export function LogsPage() {
         load();
     }, [load]);
 
+    // Contêiner com rolagem própria: o body da aplicação tem overflow hidden
     return (
-        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px', padding: '20px' }}>
+        <div className="main-content" style={{ height: 'calc(100vh - 20px)', padding: '20px', boxSizing: 'border-box' }}>
+        <div style={{ width: '100%', maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
                 <div>
                     <h2 style={{ fontSize: '1.4rem' }}>Logs de Atividade</h2>
@@ -134,7 +138,7 @@ export function LogsPage() {
             )}
 
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
                     <thead>
                         <tr>
                             <th style={thStyle}>Data/Hora</th>
@@ -184,6 +188,7 @@ export function LogsPage() {
                     </tbody>
                 </table>
             </div>
+        </div>
         </div>
     );
 }

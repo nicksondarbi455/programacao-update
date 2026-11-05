@@ -27,6 +27,12 @@ export default function App() {
     const [currentProject, setCurrentProject] = useState(null);
     const [section, setSection] = useState('pastas');
     const [role, setRole] = useState(NO_ROLE);
+    // Menu lateral fixado (expandido) ou recolhido (somente ícones), lembrado entre acessos
+    const [menuPinned, setMenuPinned] = useState(() => localStorage.getItem('menuFixado') !== 'false');
+
+    useEffect(() => {
+        localStorage.setItem('menuFixado', String(menuPinned));
+    }, [menuPinned]);
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -84,6 +90,12 @@ export default function App() {
         await supabase.auth.signOut();
     };
 
+    // Abrir um projeto recolhe o menu para dar mais espaço à tela
+    const handleOpenProject = (proj) => {
+        setCurrentProject(proj);
+        setMenuPinned(false);
+    };
+
     // Trocar de seção fecha qualquer projeto aberto
     const handleSelectSection = (id) => {
         setSection(id);
@@ -112,7 +124,7 @@ export default function App() {
         ) : (
             <DashboardPage
                 user={user}
-                onSelectProject={(proj) => setCurrentProject(proj)}
+                onSelectProject={handleOpenProject}
                 onLogout={handleLogout}
             />
         );
@@ -137,6 +149,8 @@ export default function App() {
                 onSelect={handleSelectSection}
                 userEmail={user.email}
                 onLogout={handleLogout}
+                pinned={menuPinned}
+                onTogglePin={() => setMenuPinned((p) => !p)}
             />
             <main style={{ flex: 1, minWidth: 0 }}>
                 {content}

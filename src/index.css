@@ -324,6 +324,8 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
 .sidebar {
   width: 225px;
   flex-shrink: 0;
+  transition: width 0.2s ease;
+  overflow-x: hidden;
   height: 100vh;
   position: sticky;
   top: 0;
@@ -339,8 +341,9 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
 .sidebar-brand {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 10px;
+  padding: 0 14px;
   height: 4.4rem;
   font-weight: 800;
   font-size: 1rem;
@@ -435,4 +438,83 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
 
 .sidebar-logout:hover {
   background: rgba(255, 255, 255, 0.25);
+}
+
+/* ===== Menu lateral: logo, botão fixar e modo recolhido (somente ícones) ===== */
+.sidebar-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.sidebar-brand-name {
+  flex: 1;
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.sidebar-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 6px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sidebar-pin:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.sidebar-pin i {
+  font-size: 0.95rem;
+  transition: transform 0.2s ease;
+}
+
+.sidebar.collapsed {
+  width: 70px;
+}
+
+.sidebar.collapsed .sidebar-brand {
+  flex-direction: column;
+  justify-content: center;
+  height: auto;
+  padding: 12px 0;
+  gap: 8px;
+}
+
+.sidebar.collapsed .sidebar-brand-name,
+.sidebar.collapsed .sidebar-item span,
+.sidebar.collapsed .sidebar-email,
+.sidebar.collapsed .sidebar-logout span {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-nav {
+  padding: 0 8px;
+}
+
+.sidebar.collapsed .sidebar-item {
+  justify-content: center;
+  gap: 0;
+  padding: 10px 0;
+}
+
+.sidebar.collapsed .sidebar-footer {
+  align-items: center;
+  padding: 14px 8px 0;
+}
+
+.sidebar.collapsed .sidebar-logout {
+  justify-content: center;
+  padding: 8px 0;
 }
