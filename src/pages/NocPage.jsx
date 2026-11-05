@@ -110,8 +110,8 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     };
 
     const handleDeleteProject = async () => {
-        if (confirm('Tem certeza de que deseja apagar este projeto? Esta ação não pode ser desfeita.')) {
-            const ok = await persist(() => supabaseService.deleteProject(project.id));
+        if (confirm('Tem certeza de que deseja excluir este projeto? Ele vai para a lixeira e pode ser restaurado em até 30 dias.')) {
+            const ok = await persist(() => supabaseService.deleteProject(project.id, project.name));
             if (ok) onBackToDashboard();
         }
     };

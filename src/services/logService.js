@@ -16,7 +16,16 @@ export const LOG_ACTIONS = {
     COLUMN_DELETE: 'coluna_excluida',
     DATA_CREATE: 'dados_criados',
     DATA_EDIT: 'dados_editados',
-    DATA_DELETE: 'dados_removidos'
+    DATA_DELETE: 'dados_removidos',
+    // Projetos, pastas e lixeira
+    PROJECT_MOVE: 'projeto_movido',
+    PROJECT_DELETE: 'projeto_excluido',
+    PROJECT_RESTORE: 'projeto_restaurado',
+    FOLDER_CREATE: 'pasta_criada',
+    FOLDER_EDIT: 'pasta_editada',
+    FOLDER_DELETE: 'pasta_excluida',
+    FOLDER_RESTORE: 'pasta_restaurada',
+    TRASH_EMPTY: 'lixeira_esvaziada'
 };
 
 /**

@@ -19,7 +19,15 @@ const ACTION_LABELS = {
     coluna_excluida: 'Coluna excluída',
     dados_criados: 'Dados criados',
     dados_editados: 'Dados editados',
-    dados_removidos: 'Dados removidos'
+    dados_removidos: 'Dados removidos',
+    projeto_movido: 'Projeto movido',
+    projeto_excluido: 'Projeto para a lixeira',
+    projeto_restaurado: 'Projeto restaurado',
+    pasta_criada: 'Pasta criada',
+    pasta_editada: 'Pasta editada',
+    pasta_excluida: 'Pasta para a lixeira',
+    pasta_restaurada: 'Pasta restaurada',
+    lixeira_esvaziada: 'Lixeira esvaziada'
 };
 
 const thStyle = {
@@ -69,7 +77,11 @@ const DETAIL_LABELS = {
     tela: 'Tela',
     data: 'Data',
     evento: 'Evento',
-    motivo: 'Motivo'
+    motivo: 'Motivo',
+    nome: 'Nome',
+    destino: 'Destino',
+    dentro_de: 'Dentro de',
+    departamentos: 'Departamentos'
 };
 
 // Mostra cada detalhe em sua própria linha: "Navegador: Chrome 130"

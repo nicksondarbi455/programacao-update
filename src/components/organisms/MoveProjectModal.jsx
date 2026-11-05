@@ -15,7 +15,11 @@ export function MoveProjectModal({ project, folders, onMoved, onCancel }) {
         e.preventDefault();
         setSaving(true);
         try {
-            await supabaseService.updateProject(project.id, { folderId: targetId || null });
+            const target = folders.find((f) => f.id === targetId);
+            await supabaseService.updateProject(project.id, {
+                folderId: targetId || null,
+                folderName: target ? (target.label || target.name) : 'Raiz'
+            });
             onMoved();
         } catch (err) {
             alert('Erro ao mover projeto: ' + err.message);
@@ -33,7 +37,7 @@ export function MoveProjectModal({ project, folders, onMoved, onCancel }) {
                 <select value={targetId} onChange={(e) => setTargetId(e.target.value)} style={selectStyle}>
                     <option value="">Nenhuma (raiz)</option>
                     {folders.map((f) => (
-                        <option key={f.id} value={f.id}>{f.name}</option>
+                        <option key={f.id} value={f.id}>{f.label || f.name}</option>
                     ))}
                 </select>
 

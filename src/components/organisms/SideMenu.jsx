@@ -1,6 +1,7 @@
 // Menu lateral (estilo SB Admin) exibido após o login
 const MENU_ITEMS = [
     { id: 'pastas', label: 'Pastas', icon: 'fa-regular fa-paste' },
+    { id: 'lixeira', label: 'Lixeira', icon: 'fa-regular fa-trash-can' },
     { id: 'usuarios', label: 'Usuários', icon: 'fa-solid fa-users' },
     { id: 'configuracoes', label: 'Configurações', icon: 'fa-solid fa-gear' },
     { id: 'sobre', label: 'Sobre', icon: 'fa-solid fa-circle-info' },

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { logAction, LOG_ACTIONS } from './logService';
 
 // Lança um erro legível quando o Supabase devolve { error }
 const check = (context, { error }) => {
@@ -107,6 +108,15 @@ export const supabaseService = {
             check('Erro ao atualizar projeto', await supabase.from('projects').update(payload).eq('id', projId));
         }
 
+        if (fields.folderId !== undefined) {
+            await logAction(LOG_ACTIONS.PROJECT_MOVE, {
+                entityType: 'projeto',
+                entityId: projId,
+                projectId: projId,
+                details: { destino: fields.folderName || 'Raiz' }
+            });
+        }
+
         if (fields.departmentIds !== undefined) {
             const ids = fields.isPrivate ? [] : fields.departmentIds;
             check('Erro ao atualizar departamentos', await supabase
@@ -183,12 +193,19 @@ export const supabaseService = {
         return projId;
     },
 
-    async deleteProject(projId) {
-        check('Erro ao excluir projeto', await supabase.from('projects').delete().eq('id', projId));
+    // Excluir projeto: vai para a lixeira (fica 30 dias e pode ser restaurado)
+    async deleteProject(projId, projectName) {
+        check('Erro ao enviar projeto para a lixeira', await supabase.rpc('move_to_trash', { p_kind: 'project', p_id: projId }));
+        await logAction(LOG_ACTIONS.PROJECT_DELETE, {
+            entityType: 'projeto',
+            entityId: projId,
+            projectId: projId,
+            details: { nome: projectName || null }
+        });
     },
 
     // --- PASTAS ---
-    // O servidor (RLS) já devolve só as pastas que o utilizador pode ver.
+    // O servidor (RLS) já devolve só as pastas que o utilizador pode ver (fora da lixeira).
     async getFolders(userEmail) {
         const email = userEmail.trim().toLowerCase();
 
@@ -208,6 +225,7 @@ export const supabaseService = {
             id: f.id,
             name: f.name,
             description: f.description || '',
+            parentId: f.parent_id || null,
             ownerEmail: f.user_email,
             departmentIds: (f.folder_departments || []).map((d) => d.department_id),
             projectCount: (f.projects || []).length,
@@ -222,7 +240,8 @@ export const supabaseService = {
             id: folderId,
             user_email: userEmail,
             name: folderData.name,
-            description: folderData.description || ''
+            description: folderData.description || '',
+            parent_id: folderData.parentId || null
         }]));
 
         try {
@@ -236,6 +255,12 @@ export const supabaseService = {
             await supabase.from('folders').delete().eq('id', folderId);
             throw err;
         }
+
+        await logAction(LOG_ACTIONS.FOLDER_CREATE, {
+            entityType: 'pasta',
+            entityId: folderId,
+            details: { nome: folderData.name, dentro_de: folderData.parentName || 'Raiz' }
+        });
 
         return folderId;
     },
@@ -260,11 +285,58 @@ export const supabaseService = {
                     .insert(folderDepartmentRows(folderId, fields.departmentIds)));
             }
         }
+
+        await logAction(LOG_ACTIONS.FOLDER_EDIT, {
+            entityType: 'pasta',
+            entityId: folderId,
+            details: {
+                nome: fields.name,
+                departamentos: fields.departmentIds ? fields.departmentIds.length : undefined
+            }
+        });
     },
 
-    // Os projetos dentro da pasta não são excluídos: voltam para a raiz (ON DELETE SET NULL)
-    async deleteFolder(folderId) {
-        check('Erro ao excluir pasta', await supabase.from('folders').delete().eq('id', folderId));
+    // Excluir pasta: vai para a lixeira junto com as subpastas e os projetos dentro dela
+    async deleteFolder(folderId, folderName) {
+        check('Erro ao enviar pasta para a lixeira', await supabase.rpc('move_to_trash', { p_kind: 'folder', p_id: folderId }));
+        await logAction(LOG_ACTIONS.FOLDER_DELETE, {
+            entityType: 'pasta',
+            entityId: folderId,
+            details: { nome: folderName || null }
+        });
+    },
+
+    // --- LIXEIRA ---
+    // Lista o que o utilizador pode restaurar (dono ou admin). Limpa itens com mais de 30 dias.
+    async listTrash() {
+        const { data, error } = await supabase.rpc('list_trash');
+        check('Erro ao carregar a lixeira', { error });
+        return (data || []).map((r) => ({
+            kind: r.item_kind,
+            id: r.item_id,
+            name: r.item_name,
+            ownerEmail: r.item_owner,
+            deletedAt: r.item_deleted_at,
+            projectCount: r.item_project_count || 0,
+            folderName: r.item_folder_name || null
+        }));
+    },
+
+    async restoreItem(kind, id, name) {
+        check('Erro ao restaurar item', await supabase.rpc('restore_item', { p_kind: kind, p_id: id }));
+        const isFolder = kind === 'folder';
+        await logAction(isFolder ? LOG_ACTIONS.FOLDER_RESTORE : LOG_ACTIONS.PROJECT_RESTORE, {
+            entityType: isFolder ? 'pasta' : 'projeto',
+            entityId: id,
+            projectId: isFolder ? null : id,
+            details: { nome: name || null }
+        });
+    },
+
+    // Esvaziar a lixeira: somente o master (o servidor também confere)
+    async emptyTrash() {
+        check('Erro ao esvaziar a lixeira', await supabase.rpc('empty_trash'));
+        await logAction(LOG_ACTIONS.TRASH_EMPTY, { entityType: 'lixeira', details: {} });
     },
 
     // --- MANIPULAÇÃO DE LINHAS ---

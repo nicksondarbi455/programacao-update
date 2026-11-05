@@ -4,6 +4,7 @@ import { AuthPage } from './pages/AuthPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { NocPage } from './pages/NocPage';
 import { UsersPage } from './pages/UsersPage';
+import { TrashPage } from './pages/TrashPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { LogsPage } from './pages/LogsPage';
 import { SideMenu } from './components/organisms/SideMenu';
@@ -129,9 +130,11 @@ export default function App() {
             />
         );
     } else if (section === 'usuarios') {
-        content = role.isMaster
+        content = role.isAdmin
             ? <UsersPage currentUserEmail={user.email} />
-            : <PlaceholderPage title="Usuários" description="Acesso restrito ao administrador master." />;
+            : <PlaceholderPage title="Usuários" description="Acesso restrito a administradores." />;
+    } else if (section === 'lixeira') {
+        content = <TrashPage isMaster={role.isMaster} />;
     } else if (section === 'logs') {
         content = role.isAdmin
             ? <LogsPage />
@@ -144,7 +147,7 @@ export default function App() {
         <div style={{ display: 'flex', minHeight: '100vh' }}>
             <SideMenu
                 active={section}
-                showUsers={role.isMaster}
+                showUsers={role.isAdmin}
                 showLogs={role.isAdmin}
                 onSelect={handleSelectSection}
                 userEmail={user.email}

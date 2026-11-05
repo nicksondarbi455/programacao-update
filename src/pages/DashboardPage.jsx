@@ -17,16 +17,17 @@ const textareaStyle = { background: '#f8fafc', border: '1px solid #cbd5e1', padd
 const checkLabelStyle = { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', cursor: 'pointer', color: '#334155', whiteSpace: 'nowrap' };
 // Mesmo fundo e borda da descrição; largura só para 4 dígitos
 const numInputStyle = { width: '72px', padding: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem', color: '#0f172a', boxSizing: 'border-box', appearance: 'textfield' };
+const crumbStyle = { background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontFamily: 'inherit', fontSize: '0.85rem', color: '#475569' };
 
-// Botão pequeno de ícone (editar, excluir, mover) que não dispara o clique do cartão
-function IconButton({ icon, title, onClick, danger = false }) {
+// Botão pequeno de ícone que não dispara o clique do cartão
+function IconButton({ icon, title, onClick }) {
     return (
         <button
             type="button"
             title={title}
             aria-label={title}
             onClick={(e) => { e.stopPropagation(); onClick(e); }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: '4px', color: danger ? '#dc2626' : '#64748b', fontSize: '0.8rem' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: '4px', color: '#64748b', fontSize: '0.8rem' }}
         >
             <i className={`fa-solid ${icon}`}></i>
         </button>
@@ -60,7 +61,8 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
     const [foldersError, setFoldersError] = useState('');
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
-    const [currentFolderId, setCurrentFolderId] = useState(null);
+    // Caminho da pasta aberta: [pasta-raiz, subpasta, sub-subpasta...]. Vazio = Meus Projetos.
+    const [folderPath, setFolderPath] = useState([]);
 
     // Modais
     const [isChooserOpen, setIsChooserOpen] = useState(false);
@@ -99,12 +101,19 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             const flds = fldsRes.value;
             setFolders(flds);
             setFoldersError('');
-            // Se a pasta aberta foi excluída (por outro usuário), volta para a raiz
-            setCurrentFolderId((prev) => (prev && !flds.some((f) => f.id === prev) ? null : prev));
+            // Mantém só o caminho que ainda existe (pasta aberta pode ter sido excluída por outro usuário)
+            setFolderPath((prev) => {
+                const valid = [];
+                for (const id of prev) {
+                    if (flds.some((f) => f.id === id)) valid.push(id);
+                    else break;
+                }
+                return valid.length === prev.length ? prev : valid;
+            });
         } else {
             console.error('Pastas indisponíveis:', fldsRes.reason);
             setFolders([]);
-            setCurrentFolderId(null);
+            setFolderPath([]);
             setFoldersError(fldsRes.reason?.message || 'erro desconhecido');
         }
     };
@@ -128,23 +137,49 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             .finally(() => setLoadingDeps(false));
     }, [needsDepartments]);
 
-    // --- Dados exibidos conforme a navegação e a pesquisa ---
+    // --- Pastas: busca, caminho completo e navegação ---
+    const folderById = Object.fromEntries(folders.map((f) => [f.id, f]));
+
+    // "Infraestrutura / Redes / Core" para mostrar onde a pasta está
+    const folderLabel = (id) => {
+        const names = [];
+        let cur = id ? folderById[id] : null;
+        while (cur) {
+            names.unshift(cur.name);
+            cur = cur.parentId ? folderById[cur.parentId] : null;
+        }
+        return names.join(' / ');
+    };
+
+    const foldersWithLabel = folders
+        .map((f) => ({ ...f, label: folderLabel(f.id) }))
+        .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+
+    const currentFolderId = folderPath.length > 0 ? folderPath[folderPath.length - 1] : null;
+    const currentFolder = currentFolderId ? folderById[currentFolderId] || null : null;
+
     const query = search.trim().toLowerCase();
     const isSearching = query.length > 0;
-    const currentFolder = folders.find((f) => f.id === currentFolderId) || null;
-    const folderNameById = Object.fromEntries(folders.map((f) => [f.id, f.name]));
 
     // Pesquisa: procura em todas as pastas e projetos. Sem pesquisa: mostra o nível atual.
     const shownFolders = isSearching
         ? folders.filter((f) => f.name.toLowerCase().includes(query))
-        : (currentFolder ? [] : folders);
+        : folders.filter((f) => (f.parentId || null) === currentFolderId);
 
     const shownProjects = isSearching
         ? projects.filter((p) => p.name.toLowerCase().includes(query))
-        : projects.filter((p) => (p.folderId || null) === (currentFolder ? currentFolder.id : null));
+        : projects.filter((p) => (p.folderId || null) === currentFolderId);
 
+    const openFolder = (f) => {
+        setSearch('');
+        setFolderPath((prev) => [...prev, f.id]);
+    };
+    const goBack = () => setFolderPath((prev) => prev.slice(0, -1));
+    const goToLevel = (index) => setFolderPath((prev) => prev.slice(0, index + 1));
+
+    // --- Criação ---
     const openProjectModal = () => {
-        setProjectFolderId(currentFolder ? currentFolder.id : '');
+        setProjectFolderId(currentFolderId || '');
         setIsProjectModalOpen(true);
     };
 
@@ -152,17 +187,6 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
         setIsChooserOpen(false);
         if (kind === 'pasta') setFolderModal({ folder: null });
         else openProjectModal();
-    };
-
-    const handleDeleteFolder = async (f) => {
-        if (!window.confirm(`Excluir a pasta "${f.name}"? Os projetos dentro dela não serão excluídos: voltam para a raiz.`)) return;
-        try {
-            await supabaseService.deleteFolder(f.id);
-            if (currentFolderId === f.id) setCurrentFolderId(null);
-            await loadAll();
-        } catch (err) {
-            alert('Erro ao excluir pasta: ' + err.message);
-        }
     };
 
     const resetProjectForm = () => {
@@ -288,7 +312,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
 
             {foldersError && (
                 <div role="alert" style={{ marginBottom: '16px', padding: '10px 12px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', fontSize: '0.8rem', color: '#92400e' }}>
-                    <strong>Pastas indisponíveis.</strong> Execute o arquivo <code>supabase/pastas.sql</code> no SQL Editor do Supabase (depois do <code>permissoes_v2.sql</code>) e atualize a página.
+                    <strong>Pastas indisponíveis.</strong> Verifique se os arquivos <code>pastas.sql</code> e <code>lixeira_pastas_admin.sql</code> foram executados no SQL Editor do Supabase.
                     <div style={{ marginTop: '4px', fontSize: '0.7rem', color: '#b45309' }}>Detalhe: {foldersError}</div>
                 </div>
             )}
@@ -315,20 +339,30 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                 )}
             </div>
 
-            {/* Navegação: voltar da pasta aberta */}
-            {currentFolder && !isSearching && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                    <button
-                        type="button"
-                        onClick={() => setCurrentFolderId(null)}
-                        style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', fontSize: '0.8rem', color: '#334155', fontFamily: 'inherit' }}
-                    >
+            {/* Caminho: Início > Pasta > Subpasta, com Voltar */}
+            {!isSearching && folderPath.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                    <button type="button" onClick={() => setFolderPath([])} style={crumbStyle}>
+                        <i className="fa-solid fa-house"></i> Início
+                    </button>
+                    {folderPath.map((id, i) => {
+                        const isLast = i === folderPath.length - 1;
+                        return (
+                            <span key={id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <i className="fa-solid fa-chevron-right" style={{ fontSize: '0.6rem', color: '#94a3b8' }}></i>
+                                <button
+                                    type="button"
+                                    onClick={() => goToLevel(i)}
+                                    style={{ ...crumbStyle, fontWeight: isLast ? 700 : 500, color: isLast ? '#0f172a' : '#475569' }}
+                                >
+                                    {folderById[id]?.name || '...'}
+                                </button>
+                            </span>
+                        );
+                    })}
+                    <button type="button" onClick={goBack} style={{ ...crumbStyle, marginLeft: 'auto' }}>
                         <i className="fa-solid fa-arrow-left"></i> Voltar
                     </button>
-                    <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '1rem' }}>
-                        <i className="fa-regular fa-folder-open" style={{ color: '#4e73df', marginRight: '6px' }}></i>
-                        {currentFolder.name}
-                    </span>
                 </div>
             )}
 
@@ -337,17 +371,17 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px' }}>
 
-                    {/* Cartão: Novo (abre a escolha entre pasta e projeto) */}
+                    {/* Botão Novo: compacto, abre a escolha entre pasta e projeto */}
                     {!isSearching && (
                         <div
                             onClick={() => setIsChooserOpen(true)}
                             style={{
                                 background: 'linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(90deg, #07aeea 0%, #2bf598 100%) border-box',
                                 border: '2px solid transparent',
-                                borderRadius: '12px',
-                                padding: '14px',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                gap: '10px', cursor: 'pointer', height: '96px',
+                                borderRadius: '10px',
+                                padding: '8px 16px',
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                cursor: 'pointer', alignSelf: 'start', justifySelf: 'start',
                                 boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
                                 transition: 'transform 0.3s ease, box-shadow 0.3s ease'
                             }}
@@ -360,50 +394,54 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                                 e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.04)';
                             }}
                         >
-                            <i className="fa-regular fa-plus" style={{ fontSize: '2rem', color: '#07aeea', lineHeight: '1' }}></i>
-                            <span style={{ fontFamily: "'Playfair Display', serif", color: '#0f172a', fontWeight: '700', fontSize: '1.15rem' }}>Novo</span>
+                            <i className="fa-regular fa-plus" style={{ fontSize: '1.1rem', color: '#07aeea', lineHeight: '1' }}></i>
+                            <span style={{ fontFamily: "'Playfair Display', serif", color: '#0f172a', fontWeight: '700', fontSize: '0.95rem' }}>Novo</span>
                         </div>
                     )}
 
                     {/* Cartões das pastas */}
-                    {shownFolders.map((f) => (
-                        <div
-                            key={f.id}
-                            onClick={() => { setSearch(''); setCurrentFolderId(f.id); }}
-                            style={{
-                                background: 'linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(135deg, #4e73df 0%, #224abe 100%) border-box',
-                                border: '2px solid transparent',
-                                padding: '18px', borderRadius: '12px', cursor: 'pointer',
-                                boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-                                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                                display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '140px'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-2px)';
-                                e.currentTarget.style.boxShadow = '0 6px 16px rgba(78, 115, 223, 0.2)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.04)';
-                            }}
-                        >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <i className="fa-regular fa-folder" style={{ fontSize: '2rem', color: '#4e73df' }}></i>
-                                {f.canManage && (
-                                    <div style={{ display: 'flex', gap: '2px' }}>
-                                        <IconButton icon="fa-pen" title="Editar pasta" onClick={() => setFolderModal({ folder: f })} />
-                                        <IconButton icon="fa-trash" title="Excluir pasta" danger onClick={() => handleDeleteFolder(f)} />
-                                    </div>
-                                )}
+                    {shownFolders.map((f) => {
+                        const subCount = folders.filter((x) => x.parentId === f.id).length;
+                        return (
+                            <div
+                                key={f.id}
+                                onClick={() => openFolder(f)}
+                                style={{
+                                    background: 'linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(135deg, #4e73df 0%, #224abe 100%) border-box',
+                                    border: '2px solid transparent',
+                                    padding: '18px', borderRadius: '12px', cursor: 'pointer',
+                                    boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                                    display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '140px'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(78, 115, 223, 0.2)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.04)';
+                                }}
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <i className="fa-regular fa-folder" style={{ fontSize: '2rem', color: '#4e73df' }}></i>
+                                    {f.canManage && (
+                                        <IconButton icon="fa-gear" title="Configurações da pasta" onClick={() => setFolderModal({ folder: f })} />
+                                    )}
+                                </div>
+                                <div style={{ minWidth: 0 }}>
+                                    <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {f.name}
+                                    </h4>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>
+                                        {isSearching && f.parentId ? `${folderLabel(f.parentId)} · ` : ''}
+                                        {subCount > 0 && `${subCount} ${subCount === 1 ? 'pasta' : 'pastas'} · `}
+                                        {f.projectCount} {f.projectCount === 1 ? 'projeto' : 'projetos'}
+                                    </p>
+                                </div>
                             </div>
-                            <div style={{ minWidth: 0 }}>
-                                <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</h4>
-                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>
-                                    {f.projectCount} {f.projectCount === 1 ? 'projeto' : 'projetos'}
-                                </p>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
 
                     {/* Cartões dos projetos */}
                     {shownProjects.map((proj) => (
@@ -442,8 +480,8 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '8px' }}>
                                 <span style={{ fontSize: '0.65rem', color: '#94a3b8', background: '#f8fafc', padding: '2px 6px', borderRadius: '4px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {proj.hasCalendar ? <><i className="fa-regular fa-calendar-days"></i> Com Calendário</> : <><i className="fa-regular fa-clipboard"></i> Apenas Tabela</>}
-                                    {isSearching && proj.folderId && folderNameById[proj.folderId] && (
-                                        <> · <i className="fa-regular fa-folder"></i> {folderNameById[proj.folderId]}</>
+                                    {isSearching && proj.folderId && folderLabel(proj.folderId) && (
+                                        <> · <i className="fa-regular fa-folder"></i> {folderLabel(proj.folderId)}</>
                                     )}
                                 </span>
                                 {proj.canManage && (
@@ -457,7 +495,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                         <p style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#64748b', fontSize: '0.85rem', margin: '20px 0' }}>
                             {isSearching
                                 ? `Nenhum projeto ou pasta encontrado para "${search.trim()}".`
-                                : currentFolder ? 'Esta pasta ainda não tem projetos.' : 'Nenhum projeto ainda.'}
+                                : currentFolder ? 'Esta pasta ainda está vazia.' : 'Nenhum projeto ainda.'}
                         </p>
                     )}
                 </div>
@@ -466,12 +504,16 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             {/* Escolha: pasta ou projeto */}
             {isChooserOpen && (
                 <ModalShell title="O que deseja criar?" width={360}>
+                    {currentFolder && (
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>
+                            Local: <strong style={{ color: '#334155' }}>{folderLabel(currentFolder.id)}</strong>
+                        </p>
+                    )}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <ChoiceCard
                             icon="fa-folder"
                             title="Pasta"
-                            description="Agrupa projetos e define quem vê"
-                            disabled={Boolean(currentFolder)}
+                            description="Agrupa projetos e outras pastas"
                             onClick={() => handleChoose('pasta')}
                         />
                         <ChoiceCard
@@ -481,9 +523,6 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                             onClick={() => handleChoose('projeto')}
                         />
                     </div>
-                    {currentFolder && (
-                        <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8' }}>Dentro de uma pasta só é possível criar projetos.</p>
-                    )}
                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
                         <Button variant="secondary" className="btn-modal" onClick={() => setIsChooserOpen(false)}><span>Cancelar</span></Button>
                     </div>
@@ -523,8 +562,8 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                         <label style={labelStyle}>Pasta</label>
                         <select value={projectFolderId} onChange={(e) => setProjectFolderId(e.target.value)} style={selectStyle}>
                             <option value="">Nenhuma (raiz)</option>
-                            {folders.map((f) => (
-                                <option key={f.id} value={f.id}>{f.name}</option>
+                            {foldersWithLabel.map((f) => (
+                                <option key={f.id} value={f.id}>{f.label}</option>
                             ))}
                         </select>
 
@@ -581,10 +620,22 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                 <FolderFormModal
                     folder={folderModal.folder}
                     userEmail={user.email}
+                    parentId={currentFolderId}
+                    parentLabel={currentFolderId ? folderLabel(currentFolderId) : ''}
                     departments={departments}
                     loadingDeps={loadingDeps}
                     onCancel={() => setFolderModal(null)}
                     onSaved={() => { setFolderModal(null); refresh(); }}
+                    onDeleted={() => {
+                        const deletedId = folderModal.folder?.id;
+                        setFolderModal(null);
+                        // Se a pasta excluída estava aberta (ou no caminho), volta para o nível acima
+                        setFolderPath((prev) => {
+                            const i = prev.indexOf(deletedId);
+                            return i >= 0 ? prev.slice(0, i) : prev;
+                        });
+                        refresh();
+                    }}
                 />
             )}
 
@@ -592,7 +643,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             {movingProject && (
                 <MoveProjectModal
                     project={movingProject}
-                    folders={folders}
+                    folders={foldersWithLabel}
                     onCancel={() => setMovingProject(null)}
                     onMoved={() => { setMovingProject(null); refresh(); }}
                 />

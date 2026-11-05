@@ -521,3 +521,10 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
   justify-content: center;
   padding: 8px 0;
 }
+
+/* ===== Marca do menu em fundo branco (para o NexT aparecer) e cores do pino ===== */
+.sidebar-brand { background: #ffffff; border-radius: 10px; margin: 10px 10px 6px; }
+.sidebar.collapsed .sidebar-brand { margin: 10px 8px 6px; }
+.sidebar-brand-name { color: #0f172a; }
+.sidebar-pin { color: #3f6cff; }
+.sidebar-pin:hover { background: rgba(63, 108, 255, 0.12); color: #3f6cff; }
