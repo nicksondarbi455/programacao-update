@@ -198,7 +198,7 @@ export function AuthPage() {
 
                 <div className="auth-form-panel">
                     <div style={{ textAlign: 'center' }}>
-                        {isLogin && <h1 style={{ margin: 0, color: '#0f172a', fontFamily: "'Architects Daughter', cursive", fontSize: '2.1rem', fontWeight: 400, letterSpacing: '0.5px', lineHeight: 1 }}>Ne<span style={{ color: '#12327b' }}>x</span>T</h1>}
+                        {isLogin && <h1 style={{ margin: 0, color: '#0f172a', fontFamily: "'Architects Daughter', cursive", fontSize: '2.1rem', fontWeight: 400, letterSpacing: '0.5px', lineHeight: 1 }}>Ne<span style={{ color: '#3f6cff' }}>x</span>T</h1>}
                         {isLogin && <h2 style={{ margin: '10px 0 0 0', color: '#0f172a', fontSize: '1.1rem', fontWeight: '700' }}>Login</h2>}
                         {!isLogin && <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Crie a sua conta</p>}
                     </div>

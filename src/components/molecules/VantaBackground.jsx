@@ -49,7 +49,7 @@ export function VantaBackground() {
                     minWidth: 200.0,
                     scale: 1.0,
                     scaleMobile: 1.0,
-                    color: 0x12327b,
+                    color: 0x3f6cff,
                     backgroundColor: 0x0e0e0f
                 });
             })
