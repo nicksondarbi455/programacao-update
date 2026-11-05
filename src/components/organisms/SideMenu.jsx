@@ -35,7 +35,7 @@ export function SideMenu({
                     alt="NexT"
                     className="sidebar-logo"
                 />
-                <span className="sidebar-brand-name">NexT</span>
+                <span className="sidebar-brand-name">Ne<span style={{ color: '#12327b' }}>x</span>T</span>
                 <button
                     type="button"
                     className="sidebar-pin"

@@ -12,6 +12,9 @@ const check = (context, { error }) => {
 const departmentRows = (projId, ids) =>
     ids.map((departmentId) => ({ project_id: projId, department_id: departmentId }));
 
+const folderDepartmentRows = (folderId, ids) =>
+    ids.map((departmentId) => ({ folder_id: folderId, department_id: departmentId }));
+
 export const supabaseService = {
     // --- PROJETOS ---
     // O servidor (RLS) já devolve só os projetos que o utilizador pode ver.
@@ -78,6 +81,7 @@ export const supabaseService = {
                 progress: p.progress ?? 0,
                 projectType: p.project_type,
                 ownerEmail: p.user_email,
+                folderId: p.folder_id || null,
                 departmentIds,
                 canManage,
                 canEdit,
@@ -96,6 +100,7 @@ export const supabaseService = {
         if (fields.showProgress !== undefined) payload.show_progress = fields.showProgress;
         if (fields.hasCalendar !== undefined) payload.has_calendar = fields.hasCalendar;
         if (fields.progress !== undefined) payload.progress = fields.progress;
+        if (fields.folderId !== undefined) payload.folder_id = fields.folderId || null;
 
         // Atualiza o projeto primeiro: se ficar privado, o servidor já remove os departamentos
         if (Object.keys(payload).length > 0) {
@@ -128,7 +133,8 @@ export const supabaseService = {
             has_calendar: projectData.hasCalendar,
             is_private: projectData.isPrivate,
             project_type: projectData.projectType,
-            show_progress: projectData.showProgress ?? false
+            show_progress: projectData.showProgress ?? false,
+            folder_id: projectData.folderId || null
         }]));
 
         try {
@@ -179,6 +185,86 @@ export const supabaseService = {
 
     async deleteProject(projId) {
         check('Erro ao excluir projeto', await supabase.from('projects').delete().eq('id', projId));
+    },
+
+    // --- PASTAS ---
+    // O servidor (RLS) já devolve só as pastas que o utilizador pode ver.
+    async getFolders(userEmail) {
+        const email = userEmail.trim().toLowerCase();
+
+        const [profileRes, foldersRes] = await Promise.all([
+            supabase.from('profiles').select('is_admin, is_master').eq('email', email).maybeSingle(),
+            supabase
+                .from('folders')
+                .select('*, folder_departments (department_id), projects (id)')
+                .order('created_at', { ascending: true })
+        ]);
+        check('Erro ao verificar permissões', { error: profileRes.error });
+        check('Erro ao buscar pastas', { error: foldersRes.error });
+
+        const isAdmin = Boolean(profileRes.data?.is_admin || profileRes.data?.is_master);
+
+        return foldersRes.data.map((f) => ({
+            id: f.id,
+            name: f.name,
+            description: f.description || '',
+            ownerEmail: f.user_email,
+            departmentIds: (f.folder_departments || []).map((d) => d.department_id),
+            projectCount: (f.projects || []).length,
+            canManage: isAdmin || (f.user_email || '').toLowerCase() === email
+        }));
+    },
+
+    async createFolder(folderData, userEmail) {
+        const folderId = 'folder_' + Date.now();
+
+        check('Erro ao criar pasta', await supabase.from('folders').insert([{
+            id: folderId,
+            user_email: userEmail,
+            name: folderData.name,
+            description: folderData.description || ''
+        }]));
+
+        try {
+            const deptIds = folderData.departmentIds || [];
+            if (deptIds.length > 0) {
+                check('Erro ao destinar departamentos da pasta', await supabase
+                    .from('folder_departments')
+                    .insert(folderDepartmentRows(folderId, deptIds)));
+            }
+        } catch (err) {
+            await supabase.from('folders').delete().eq('id', folderId);
+            throw err;
+        }
+
+        return folderId;
+    },
+
+    async updateFolder(folderId, fields) {
+        const payload = {};
+        if (fields.name !== undefined) payload.name = fields.name;
+        if (fields.description !== undefined) payload.description = fields.description;
+
+        if (Object.keys(payload).length > 0) {
+            check('Erro ao atualizar pasta', await supabase.from('folders').update(payload).eq('id', folderId));
+        }
+
+        if (fields.departmentIds !== undefined) {
+            check('Erro ao atualizar departamentos da pasta', await supabase
+                .from('folder_departments')
+                .delete()
+                .eq('folder_id', folderId));
+            if (fields.departmentIds.length > 0) {
+                check('Erro ao atualizar departamentos da pasta', await supabase
+                    .from('folder_departments')
+                    .insert(folderDepartmentRows(folderId, fields.departmentIds)));
+            }
+        }
+    },
+
+    // Os projetos dentro da pasta não são excluídos: voltam para a raiz (ON DELETE SET NULL)
+    async deleteFolder(folderId) {
+        check('Erro ao excluir pasta', await supabase.from('folders').delete().eq('id', folderId));
     },
 
     // --- MANIPULAÇÃO DE LINHAS ---

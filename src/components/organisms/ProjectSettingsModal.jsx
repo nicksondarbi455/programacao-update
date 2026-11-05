@@ -87,10 +87,12 @@ export function ProjectSettingsModal({ project, onSave, onClose }) {
                     </span>
                 ) : (
                     <DepartmentPicker
+                        label="Departamentos que podem ver este projeto"
                         departments={departments}
                         selectedIds={departmentIds}
                         onChange={setDepartmentIds}
                         loading={loadingDeps}
+                        helpText="Quem está no departamento vê o projeto. Quem tiver “Visualizar e editar” também pode editar."
                     />
                 )}
 

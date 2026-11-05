@@ -1,4 +1,4 @@
-export function Input({ type = 'text', value, onChange, readOnly, placeholder, className = '', list }) {
+export function Input({ type = 'text', value, onChange, readOnly, placeholder, className = '', list, required = false, style }) {
     return (
         <input
             type={type}
@@ -8,6 +8,8 @@ export function Input({ type = 'text', value, onChange, readOnly, placeholder, c
             placeholder={placeholder}
             className={className}
             list={list}
+            required={required}
+            style={style}
             autoComplete="off"
         />
     );
