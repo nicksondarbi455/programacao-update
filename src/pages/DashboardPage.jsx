@@ -57,6 +57,7 @@ function ChoiceCard({ icon, title, description, disabled, onClick }) {
 export function DashboardPage({ user, onSelectProject, onLogout }) {
     const [projects, setProjects] = useState([]);
     const [folders, setFolders] = useState([]);
+    const [foldersError, setFoldersError] = useState('');
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [currentFolderId, setCurrentFolderId] = useState(null);
@@ -85,14 +86,27 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
     const [loadingDeps, setLoadingDeps] = useState(false);
 
     const loadAll = async () => {
-        const [projs, flds] = await Promise.all([
+        // Projetos e pastas são independentes: se as pastas falharem, os projetos continuam aparecendo
+        const [projsRes, fldsRes] = await Promise.allSettled([
             supabaseService.getProjects(user.email),
             supabaseService.getFolders(user.email)
         ]);
-        setProjects(projs);
-        setFolders(flds);
-        // Se a pasta aberta foi excluída (por outro usuário), volta para a raiz
-        setCurrentFolderId((prev) => (prev && !flds.some((f) => f.id === prev) ? null : prev));
+
+        if (projsRes.status === 'rejected') throw projsRes.reason;
+        setProjects(projsRes.value);
+
+        if (fldsRes.status === 'fulfilled') {
+            const flds = fldsRes.value;
+            setFolders(flds);
+            setFoldersError('');
+            // Se a pasta aberta foi excluída (por outro usuário), volta para a raiz
+            setCurrentFolderId((prev) => (prev && !flds.some((f) => f.id === prev) ? null : prev));
+        } else {
+            console.error('Pastas indisponíveis:', fldsRes.reason);
+            setFolders([]);
+            setCurrentFolderId(null);
+            setFoldersError(fldsRes.reason?.message || 'erro desconhecido');
+        }
     };
 
     const refresh = () => loadAll().catch((err) => alert('Erro ao atualizar: ' + err.message));
@@ -271,6 +285,13 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                 </div>
                 <Button variant="danger" onClick={onLogout}>Terminar sessão</Button>
             </div>
+
+            {foldersError && (
+                <div role="alert" style={{ marginBottom: '16px', padding: '10px 12px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', fontSize: '0.8rem', color: '#92400e' }}>
+                    <strong>Pastas indisponíveis.</strong> Execute o arquivo <code>supabase/pastas.sql</code> no SQL Editor do Supabase (depois do <code>permissoes_v2.sql</code>) e atualize a página.
+                    <div style={{ marginTop: '4px', fontSize: '0.7rem', color: '#b45309' }}>Detalhe: {foldersError}</div>
+                </div>
+            )}
 
             {/* Pesquisa por nome de projetos e pastas */}
             <div style={{ position: 'relative', maxWidth: '420px', marginBottom: '16px' }}>
