@@ -9,6 +9,8 @@ import { DepartmentPicker } from '../components/molecules/DepartmentPicker';
 import { ModalShell } from '../components/molecules/ModalShell';
 import { FolderFormModal } from '../components/organisms/FolderFormModal';
 import { MoveProjectModal } from '../components/organisms/MoveProjectModal';
+import { UpcomingPanel } from '../components/organisms/UpcomingPanel';
+import { DuplicateProjectModal } from '../components/organisms/DuplicateProjectModal';
 import * as XLSX from 'xlsx';
 
 const labelStyle = { fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' };
@@ -69,6 +71,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
     const [folderModal, setFolderModal] = useState(null); // null | { folder: null (nova) | pasta (editar) }
     const [movingProject, setMovingProject] = useState(null);
+    const [duplicatingProject, setDuplicatingProject] = useState(null);
 
     // Formulário de projeto
     const [name, setName] = useState('');
@@ -339,6 +342,16 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                 )}
             </div>
 
+            {!isSearching && folderPath.length === 0 && !loading && (
+                <UpcomingPanel
+                    projects={projects}
+                    onOpenProject={(id) => {
+                        const target = projects.find((p) => p.id === id);
+                        if (target) onSelectProject(target);
+                    }}
+                />
+            )}
+
             {/* Caminho: Início > Pasta > Subpasta, com Voltar */}
             {!isSearching && folderPath.length > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginBottom: '14px' }}>
@@ -484,9 +497,12 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                                         <> · <i className="fa-regular fa-folder"></i> {folderLabel(proj.folderId)}</>
                                     )}
                                 </span>
-                                {proj.canManage && (
-                                    <IconButton icon="fa-folder-open" title="Mover para pasta" onClick={() => setMovingProject(proj)} />
-                                )}
+                                <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
+                                    <IconButton icon="fa-copy" title="Duplicar projeto" onClick={() => setDuplicatingProject(proj)} />
+                                    {proj.canManage && (
+                                        <IconButton icon="fa-folder-open" title="Mover para pasta" onClick={() => setMovingProject(proj)} />
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -636,6 +652,16 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
                         });
                         refresh();
                     }}
+                />
+            )}
+
+            {/* Duplicar projeto */}
+            {duplicatingProject && (
+                <DuplicateProjectModal
+                    project={duplicatingProject}
+                    userEmail={user.email}
+                    onCancel={() => setDuplicatingProject(null)}
+                    onDone={() => { setDuplicatingProject(null); refresh(); }}
                 />
             )}
 

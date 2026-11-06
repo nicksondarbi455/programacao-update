@@ -3,6 +3,8 @@ import { supabaseService } from '../services/supabaseService';
 import { supabase } from '../services/supabase';
 import { NocTemplate } from '../components/templates/NocTemplate';
 import { Button } from '../components/atoms/Button';
+import * as XLSX from 'xlsx';
+import { localDateStr } from '../utils/dates';
 import { isRowCompleted } from '../components/organisms/NocTable';
 import { logAction, LOG_ACTIONS } from '../services/logService';
 import { NoteModal } from '../components/organisms/NoteModal';
@@ -109,6 +111,31 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
         await persist(() => supabaseService.addEquipment(project.id, groupHeaderRow));
     };
 
+    // Exporta a planilha (aba Planilha) e a agenda (aba Agenda) do projeto aberto
+    const handleExportExcel = () => {
+        const aoa = [columnConfig.map((c) => c.name)];
+        equipments.forEach((eq) => {
+            if (eq.isGroupHeader) {
+                aoa.push([`[${eq.groupName || 'Grupo'}]`]);
+                return;
+            }
+            aoa.push(columnConfig.map((c) => eq[c.id] ?? ''));
+        });
+
+        const agenda = [['Data', 'Horário', 'Evento', 'Status']];
+        Object.keys(schedules).sort().forEach((dateStr) => {
+            (schedules[dateStr] || []).forEach((item) => {
+                agenda.push([dateStr, item.hora || '', item.text, item.completed ? 'Feito' : 'Pendente']);
+            });
+        });
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(aoa), 'Planilha');
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(agenda), 'Agenda');
+        const safeName = project.name.replace(/[\\/:*?"<>|]/g, '').trim() || 'projeto';
+        XLSX.writeFile(workbook, `${safeName}.xlsx`);
+    };
+
     const handleDeleteProject = async () => {
         if (confirm('Tem certeza de que deseja excluir este projeto? Ele vai para a lixeira e pode ser restaurado em até 30 dias.')) {
             const ok = await persist(() => supabaseService.deleteProject(project.id, project.name));
@@ -148,7 +175,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
 
     const getTodayAlert = () => {
         if (!project.hasCalendar) return `Projeto Ativo: ${project.name}`;
-        let todayStr = new Date().toISOString().split('T')[0];
+        let todayStr = localDateStr(new Date());
         let todaySched = schedules[todayStr] || [];
         return todaySched.length > 0 ? `Hoje (${todaySched.length} agendamentos)` : `Nenhum agendamento hoje.`;
     };
@@ -158,7 +185,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
         let today = new Date();
         let tomorrow = new Date();
         tomorrow.setDate(today.getDate() + 1);
-        let tomorrowStr = tomorrow.toISOString().split('T')[0];
+        let tomorrowStr = localDateStr(tomorrow);
 
         let currOfWeek = new Date(today);
         let dayOfWeek = currOfWeek.getDay();
@@ -398,14 +425,14 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
         });
     };
 
-    const handleSaveEvent = async (title) => {
+    const handleSaveEvent = async (title, hora = '') => {
         if (!title) return alert('Digite ou selecione um evento!');
 
         let dateStr = modalData.dateStr;
         let daySched = schedules[dateStr] || [];
         if (daySched.some(i => i.text === title)) return alert('Este item já está agendado para este dia!');
 
-        let newSchedItems = [...daySched, { text: title, completed: false, statusText: 'Agendado' }];
+        let newSchedItems = [...daySched, { text: title, completed: false, statusText: 'Agendado', ...(hora ? { hora } : {}) }];
         logAction(LOG_ACTIONS.SCHEDULE_ADD, { entityType: 'agendamento', entityId: dateStr, projectId: project.id, details: { data: dateStr, evento: title } });
         let newSchedules = { ...schedules, [dateStr]: newSchedItems };
         setSchedules(newSchedules);
@@ -465,7 +492,10 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
                     <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Projeto: {project.name} {project.isPrivate ? '🔒' : ''}</span>
                     <span style={{ fontSize: '0.7rem', color: '#22c55e', marginLeft: '10px' }}>🟢 Conectado ao Supabase (Realtime)</span>
                 </div>
-                <Button variant="secondary" size="sm" onClick={onBackToDashboard}>Voltar</Button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <Button variant="secondary" size="sm" onClick={handleExportExcel}><i className="fa-regular fa-file-excel"></i> Exportar Excel</Button>
+                    <Button variant="secondary" size="sm" onClick={onBackToDashboard}>Voltar</Button>
+                </div>
             </div>
 
             {errorMsg && (

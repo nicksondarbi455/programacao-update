@@ -39,7 +39,8 @@ const ACTION_LABELS = {
     departamento_renomeado: 'Departamento renomeado',
     departamento_excluido: 'Departamento excluído',
     acesso_departamento_definido: 'Acesso a departamento definido',
-    acesso_departamento_removido: 'Acesso a departamento removido'
+    acesso_departamento_removido: 'Acesso a departamento removido',
+    projeto_duplicado: 'Projeto duplicado'
 };
 
 const thStyle = {

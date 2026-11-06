@@ -32,7 +32,8 @@ export const LOG_ACTIONS = {
     DEPARTMENT_RENAME: 'departamento_renomeado',
     DEPARTMENT_DELETE: 'departamento_excluido',
     MEMBER_SET: 'acesso_departamento_definido',
-    MEMBER_REMOVE: 'acesso_departamento_removido'
+    MEMBER_REMOVE: 'acesso_departamento_removido',
+    PROJECT_DUPLICATE: 'projeto_duplicado'
 };
 
 /**

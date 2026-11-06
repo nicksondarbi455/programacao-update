@@ -193,6 +193,71 @@ export const supabaseService = {
         return projId;
     },
 
+    // Duplica um projeto (colunas, linhas, departamentos e pasta; agenda opcional).
+    // Os IDs das colunas mudam, então os valores das linhas são reapontados para os novos IDs.
+    async duplicateProject(source, userEmail, { name, copySchedules = false } = {}) {
+        const stamp = Date.now();
+        const colMap = {};
+
+        const columnConfig = (source.columnConfig || []).map((col, idx) => {
+            const newId = `col_${stamp}_${idx}`;
+            colMap[col.id] = newId;
+            return {
+                id: newId,
+                name: col.name,
+                type: col.type,
+                width: col.width,
+                targetScope: col.targetScope,
+                position: idx
+            };
+        });
+
+        const equipments = (source.equipments || []).map((eq, idx) => {
+            const { id, color, position, ...data } = eq;
+            const remapped = {};
+            Object.entries(data).forEach(([key, value]) => {
+                remapped[colMap[key] || key] = value;
+            });
+            return {
+                id: `eq_${stamp}_${idx}`,
+                color,
+                position: idx + 1,
+                ...remapped
+            };
+        });
+
+        const newId = await supabaseService.createProject({
+            name: (name || `Cópia de ${source.name}`).trim(),
+            description: source.description,
+            hasCalendar: source.hasCalendar,
+            isPrivate: source.isPrivate,
+            showProgress: source.showProgress,
+            folderId: source.folderId || null,
+            departmentIds: source.departmentIds || [],
+            columnConfig,
+            equipments
+        }, userEmail);
+
+        if (copySchedules) {
+            for (const [dateStr, items] of Object.entries(source.schedules || {})) {
+                // Na cópia, os eventos voltam como pendentes
+                const fresh = (items || []).map((item) => ({ ...item, completed: false, statusText: 'Agendado' }));
+                if (fresh.length > 0) {
+                    await supabaseService.saveSchedule(newId, dateStr, fresh);
+                }
+            }
+        }
+
+        await logAction(LOG_ACTIONS.PROJECT_DUPLICATE, {
+            entityType: 'projeto',
+            entityId: newId,
+            projectId: newId,
+            details: { origem: source.name, agenda: copySchedules ? 'copiada' : 'não copiada' }
+        });
+
+        return newId;
+    },
+
     // Excluir projeto: vai para a lixeira (fica 30 dias e pode ser restaurado)
     async deleteProject(projId, projectName) {
         check('Erro ao enviar projeto para a lixeira', await supabase.rpc('move_to_trash', { p_kind: 'project', p_id: projId }));

@@ -21,14 +21,17 @@ export function Modals({
     const [eventSearch, setEventSearch] = useState('');
     // Agendamento aguardando confirmação (marcar ou desmarcar como feito)
     const [confirmItem, setConfirmItem] = useState(null);
+    // Horário opcional do evento agendado (usado nos lembretes do dashboard)
+    const [hora, setHora] = useState('');
 
     if (!modalData?.isOpen && !colModalOpen) return null;
 
     const handleAddEventSubmit = (e) => {
         e.preventDefault();
         if (!selectedItem.trim()) return alert('Selecione um evento para agendar!');
-        onSaveEvent(selectedItem);
+        onSaveEvent(selectedItem, hora);
         setSelectedItem('');
+        setHora('');
         setEventSearch('');
     };
 
@@ -163,6 +166,16 @@ export function Modals({
                                         );
                                     })
                                 )}
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#475569' }}>Horário (opcional):</label>
+                                <input
+                                    type="time"
+                                    value={hora}
+                                    onChange={(e) => setHora(e.target.value)}
+                                    style={{ padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem' }}
+                                />
                             </div>
 
                             <span style={{ fontSize: '0.75rem', color: selectedItem ? '#16a34a' : '#94a3b8' }}>
