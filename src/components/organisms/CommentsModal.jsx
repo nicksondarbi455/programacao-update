@@ -109,12 +109,12 @@ export function CommentsModal({ target, projectId, people, currentEmail, isAdmin
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 100004, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ background: '#fff', borderRadius: '10px', padding: '18px 20px', width: '460px', maxWidth: '92%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', gap: '10px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ background: 'var(--th-surface)', borderRadius: '10px', padding: '18px 20px', width: '460px', maxWidth: '92%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', gap: '10px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+                <div style={{ fontWeight: 700, color: 'var(--th-text)', fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {title}
                 </div>
 
-                <div style={{ display: 'flex', gap: '14px', borderBottom: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', gap: '14px', borderBottom: '1px solid var(--th-border)' }}>
                     <button type="button" onClick={() => setTab('comentarios')} style={tabStyle(tab === 'comentarios')}>
                         Comentários ({comments.length})
                     </button>
@@ -127,25 +127,25 @@ export function CommentsModal({ target, projectId, people, currentEmail, isAdmin
                     <>
                         <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', minHeight: '120px', maxHeight: '340px' }}>
                             {loading && comments.length === 0 && (
-                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>Carregando...</p>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--th-muted-2)' }}>Carregando...</p>
                             )}
                             {!loading && comments.length === 0 && (
-                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Nenhum comentário ainda.</p>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--th-muted-2)', fontStyle: 'italic' }}>Nenhum comentário ainda.</p>
                             )}
                             {comments.map((c) => {
                                 const mentionsMe = (c.mentions || []).includes(currentEmail);
                                 const canDelete = c.author_email === currentEmail || isAdmin;
                                 return (
                                     <div key={c.id} style={{ background: mentionsMe ? '#fef3c7' : '#f8fafc', border: `1px solid ${mentionsMe ? '#fcd34d' : '#e2e8f0'}`, borderRadius: '8px', padding: '8px 10px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.7rem', color: '#64748b', marginBottom: '4px' }}>
-                                            <span><strong style={{ color: '#334155' }}>{c.author_email}</strong> · {new Date(c.created_at).toLocaleString('pt-BR')}</span>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.7rem', color: 'var(--th-muted)', marginBottom: '4px' }}>
+                                            <span><strong style={{ color: 'var(--th-text-3)' }}>{c.author_email}</strong> · {new Date(c.created_at).toLocaleString('pt-BR')}</span>
                                             {canDelete && (
                                                 <button type="button" onClick={() => handleDelete(c)} title="Excluir comentário" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '0.75rem' }}>
                                                     <i className="fa-regular fa-trash-can"></i>
                                                 </button>
                                             )}
                                         </div>
-                                        <div style={{ fontSize: '0.85rem', color: '#1e293b', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--th-text-2)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                                             {renderBody(c.body)}
                                         </div>
                                         {mentionsMe && (
@@ -158,12 +158,12 @@ export function CommentsModal({ target, projectId, people, currentEmail, isAdmin
                             })}
                         </div>
 
-                        <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
+                        <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--th-border)', paddingTop: '10px' }}>
                             <div style={{ display: 'flex', gap: '6px' }}>
                                 <select
                                     value=""
                                     onChange={(e) => mention(e.target.value)}
-                                    style={{ flex: 1, padding: '6px', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc' }}
+                                    style={{ flex: 1, padding: '6px', fontSize: '0.75rem', border: '1px solid var(--th-border-strong)', borderRadius: '6px', background: 'var(--th-surface-2)' }}
                                 >
                                     <option value="">Mencionar alguém...</option>
                                     {people.map((p) => (
@@ -177,7 +177,7 @@ export function CommentsModal({ target, projectId, people, currentEmail, isAdmin
                                 placeholder="Escreva um comentário..."
                                 rows={3}
                                 maxLength={2000}
-                                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', resize: 'vertical', fontFamily: 'inherit', outline: 'none' }}
+                                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', fontSize: '0.85rem', border: '1px solid var(--th-border-strong)', borderRadius: '6px', resize: 'vertical', fontFamily: 'inherit', outline: 'none' }}
                             />
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                                 <Button variant="secondary" className="btn-modal" onClick={onClose}><span>Fechar</span></Button>
@@ -193,17 +193,17 @@ export function CommentsModal({ target, projectId, people, currentEmail, isAdmin
                     <>
                         <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', minHeight: '120px', maxHeight: '400px' }}>
                             {loading && history.length === 0 && (
-                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>Carregando...</p>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--th-muted-2)' }}>Carregando...</p>
                             )}
                             {!loading && history.length === 0 && (
-                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Nenhuma alteração registrada.</p>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--th-muted-2)', fontStyle: 'italic' }}>Nenhuma alteração registrada.</p>
                             )}
                             {history.map((h) => {
                                 const text = ACTION_TEXT[h.action] ? ACTION_TEXT[h.action](h.details || {}) : h.action;
                                 return (
-                                    <div key={h.id} style={{ borderLeft: '3px solid #cbd5e1', padding: '4px 10px', fontSize: '0.8rem', color: '#334155' }}>
+                                    <div key={h.id} style={{ borderLeft: '3px solid var(--th-border-strong)', padding: '4px 10px', fontSize: '0.8rem', color: 'var(--th-text-3)' }}>
                                         <div><strong>{h.actor_email}</strong> {text}</div>
-                                        <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{new Date(h.created_at).toLocaleString('pt-BR')}</div>
+                                        <div style={{ fontSize: '0.68rem', color: 'var(--th-muted-2)' }}>{new Date(h.created_at).toLocaleString('pt-BR')}</div>
                                     </div>
                                 );
                             })}

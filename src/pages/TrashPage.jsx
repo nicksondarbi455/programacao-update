@@ -64,7 +64,7 @@ export function TrashPage({ isMaster }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
                     <div>
                         <h2 style={{ fontSize: '1.4rem', margin: 0 }}>Lixeira</h2>
-                        <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--th-muted)' }}>
                             Itens excluídos ficam aqui por {RETENTION_DAYS} dias e depois são removidos definitivamente.
                         </p>
                     </div>
@@ -76,28 +76,28 @@ export function TrashPage({ isMaster }) {
                 </div>
 
                 {loading ? (
-                    <p style={{ textAlign: 'center', color: '#64748b' }}>Carregando lixeira...</p>
+                    <p style={{ textAlign: 'center', color: 'var(--th-muted)' }}>Carregando lixeira...</p>
                 ) : items.length === 0 ? (
-                    <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.85rem', margin: '30px 0' }}>A lixeira está vazia.</p>
+                    <p style={{ textAlign: 'center', color: 'var(--th-muted)', fontSize: '0.85rem', margin: '30px 0' }}>A lixeira está vazia.</p>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {items.map((item) => {
                             const isFolder = item.kind === 'folder';
                             const days = daysLeft(item.deletedAt);
                             return (
-                                <div key={`${item.kind}-${item.id}`} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                <div key={`${item.kind}-${item.id}`} style={{ background: 'var(--th-surface)', border: '1px solid var(--th-border)', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '14px' }}>
                                     <i className={isFolder ? 'fa-regular fa-folder' : 'fa-regular fa-clipboard'} style={{ fontSize: '1.4rem', color: isFolder ? '#4e73df' : '#ff5acd', flexShrink: 0 }}></i>
 
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <div style={{ fontWeight: 700, color: 'var(--th-text)', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {item.name}
                                         </div>
-                                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--th-muted)', marginTop: '2px' }}>
                                             {isFolder
                                                 ? `Pasta · ${item.projectCount} ${item.projectCount === 1 ? 'projeto' : 'projetos'}`
                                                 : `Projeto${item.folderName ? ` · na pasta ${item.folderName}` : ''}`}
                                         </div>
-                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
+                                        <div style={{ fontSize: '0.7rem', color: 'var(--th-muted-2)', marginTop: '2px' }}>
                                             Dono: {item.ownerEmail} · Excluído em {new Date(item.deletedAt).toLocaleDateString('pt-BR')}
                                         </div>
                                     </div>
@@ -118,7 +118,7 @@ export function TrashPage({ isMaster }) {
 
             {confirmEmpty && (
                 <ModalShell title="Esvaziar lixeira?" width={400}>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#334155' }}>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--th-text-3)' }}>
                         Todos os itens da lixeira serão removidos definitivamente. Esta ação não pode ser desfeita.
                     </p>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>

@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { usersService, ACCESS_LEVELS, accessLabel } from '../services/usersService';
 import { Button } from '../components/atoms/Button';
 
-const labelStyle = { fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' };
-const inputStyle = { padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#f8fafc', width: '100%', boxSizing: 'border-box' };
-const selectStyle = { padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', background: '#fff' };
-const cardStyle = { background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' };
-const rowStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '8px 10px', background: '#f8fafc', borderRadius: '6px', flexWrap: 'wrap' };
+const labelStyle = { fontSize: '0.75rem', color: 'var(--th-muted)', fontWeight: 'bold' };
+const inputStyle = { padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--th-border-strong)', fontSize: '0.85rem', background: 'var(--th-surface-2)', width: '100%', boxSizing: 'border-box' };
+const selectStyle = { padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--th-border-strong)', fontSize: '0.8rem', background: 'var(--th-surface)' };
+const cardStyle = { background: 'var(--th-surface)', border: '1px solid var(--th-border)', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' };
+const rowStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '8px 10px', background: 'var(--th-surface-2)', borderRadius: '6px', flexWrap: 'wrap' };
 const badgeStyle = { fontSize: '0.65rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' };
 const EMPTY_NEW_USER = { name: '', email: '', password: '', confirmPassword: '' };
 const EMPTY_RESET = { password: '', confirmPassword: '' };
@@ -64,7 +64,7 @@ export function UsersPage({ currentUserEmail }) {
         <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px', padding: '20px' }}>
             <div>
                 <h2 style={{ fontSize: '1.4rem' }}>Usuários</h2>
-                <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--th-muted)' }}>
                     Crie contas, redefina senhas, defina administradores e os departamentos de cada usuário.
                 </p>
             </div>
@@ -75,7 +75,7 @@ export function UsersPage({ currentUserEmail }) {
             </div>
 
             {loadError && (
-                <p role="alert" style={{ margin: 0, fontSize: '0.8rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px' }}>
+                <p role="alert" style={{ margin: 0, fontSize: '0.8rem', color: '#b91c1c', background: 'var(--th-tint-red)', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px' }}>
                     ⚠️ {loadError}
                 </p>
             )}
@@ -279,18 +279,18 @@ function UsersTab({ departments, currentUserEmail, onChange, loaded }) {
             <Feedback message={feedback} />
 
             {searched && !found && (
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Nenhuma conta registada com este e-mail.</p>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--th-muted)' }}>Nenhuma conta registada com este e-mail.</p>
             )}
 
             {found && (
                 <div style={cardStyle}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
                         <div>
-                            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{found.full_name || 'Sem nome'}</strong>
+                            <strong style={{ fontSize: '0.95rem', color: 'var(--th-text)' }}>{found.full_name || 'Sem nome'}</strong>
                             {found.is_master && <span style={{ ...badgeStyle, background: '#312e81', color: '#fff' }}>MASTER</span>}
-                            {!found.is_master && found.is_admin && <span style={{ ...badgeStyle, background: '#dbeafe', color: '#1e40af' }}>ADMINISTRADOR</span>}
-                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{found.email}</div>
-                            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                            {!found.is_master && found.is_admin && <span style={{ ...badgeStyle, background: 'var(--th-tint-blue-2)', color: '#1e40af' }}>ADMINISTRADOR</span>}
+                            <div style={{ fontSize: '0.8rem', color: 'var(--th-muted)' }}>{found.email}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--th-muted-2)' }}>
                                 Cadastrado em {new Date(found.created_at).toLocaleDateString('pt-BR')}
                             </div>
                         </div>
@@ -313,7 +313,7 @@ function UsersTab({ departments, currentUserEmail, onChange, loaded }) {
                     </div>
 
                     {showReset && (
-                        <form onSubmit={handleReset} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                        <form onSubmit={handleReset} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', borderTop: '1px solid var(--th-surface-3)', paddingTop: '12px' }}>
                             <Field label="Nova senha" type="password" value={resetForm.password} onChange={updateReset('password')} autoComplete="new-password" placeholder="mínimo 6 caracteres" minLength={6} />
                             <Field label="Confirmar nova senha" type="password" value={resetForm.confirmPassword} onChange={updateReset('confirmPassword')} autoComplete="new-password" placeholder="mínimo 6 caracteres" minLength={6} />
                             <div style={{ display: 'flex', gap: '6px' }}>
@@ -325,12 +325,12 @@ function UsersTab({ departments, currentUserEmail, onChange, loaded }) {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={labelStyle}>Departamentos</label>
-                        {memberships.length === 0 && <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>Sem departamentos.</p>}
+                        {memberships.length === 0 && <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--th-muted-2)' }}>Sem departamentos.</p>}
                         {memberships.map((dep) => {
                             const member = dep.members.find((m) => m.user_email === found.email);
                             return (
                                 <div key={dep.id} style={rowStyle}>
-                                    <span style={{ fontSize: '0.8rem', color: '#1e293b' }}>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--th-text-2)' }}>
                                         <strong>{dep.name}</strong> · {accessLabel(member.access_level)}
                                     </span>
                                     <Button size="sm" variant="danger" onClick={() => handleRemove(dep.id)} disabled={busy}>Remover</Button>
@@ -339,7 +339,7 @@ function UsersTab({ departments, currentUserEmail, onChange, loaded }) {
                         })}
                     </div>
 
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end', borderTop: '1px solid var(--th-surface-3)', paddingTop: '12px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '200px' }}>
                             <label style={labelStyle}>Destinar a departamento</label>
                             <select value={assignDeptId} onChange={(e) => setAssignDeptId(e.target.value)} style={{ ...selectStyle, width: '100%' }}>
@@ -361,15 +361,15 @@ function UsersTab({ departments, currentUserEmail, onChange, loaded }) {
 
             <div style={cardStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>Usuários cadastrados ({users.length})</strong>
+                    <strong style={{ fontSize: '0.9rem', color: 'var(--th-text)' }}>Usuários cadastrados ({users.length})</strong>
                     <Button size="sm" variant="secondary" onClick={loadUsers} disabled={usersLoading}>
                         <i className="fa-solid fa-rotate"></i> Atualizar
                     </Button>
                 </div>
 
-                {usersLoading && <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Carregando usuários...</p>}
+                {usersLoading && <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--th-muted)' }}>Carregando usuários...</p>}
                 {!usersLoading && users.length === 0 && (
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Nenhum usuário cadastrado ainda.</p>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--th-muted)' }}>Nenhum usuário cadastrado ainda.</p>
                 )}
 
                 {users.map((u) => (
@@ -380,14 +380,14 @@ function UsersTab({ departments, currentUserEmail, onChange, loaded }) {
                         style={{ ...rowStyle, border: found?.id === u.id ? '1px solid #3654ff' : '1px solid transparent', cursor: 'pointer', textAlign: 'left', width: '100%' }}
                     >
                         <span style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-                            <span style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 600 }}>
+                            <span style={{ fontSize: '0.85rem', color: 'var(--th-text)', fontWeight: 600 }}>
                                 {u.full_name || 'Sem nome'}
                                 {u.is_master && <span style={{ ...badgeStyle, background: '#312e81', color: '#fff' }}>MASTER</span>}
-                                {!u.is_master && u.is_admin && <span style={{ ...badgeStyle, background: '#dbeafe', color: '#1e40af' }}>ADMINISTRADOR</span>}
+                                {!u.is_master && u.is_admin && <span style={{ ...badgeStyle, background: 'var(--th-tint-blue-2)', color: '#1e40af' }}>ADMINISTRADOR</span>}
                             </span>
-                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{u.email}</span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--th-muted)' }}>{u.email}</span>
                         </span>
-                        <span style={{ fontSize: '0.7rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--th-muted-2)', whiteSpace: 'nowrap' }}>
                             {new Date(u.created_at).toLocaleDateString('pt-BR')}
                         </span>
                     </button>
@@ -397,7 +397,7 @@ function UsersTab({ departments, currentUserEmail, onChange, loaded }) {
             {loaded && (
                 <div style={cardStyle}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>Criar usuário</strong>
+                        <strong style={{ fontSize: '0.9rem', color: 'var(--th-text)' }}>Criar usuário</strong>
                         <Button size="sm" variant="primary" onClick={() => setShowCreate(!showCreate)}>
                             {showCreate ? 'Fechar' : <><i className="fa-regular fa-plus"></i> Novo usuário</>}
                         </Button>
@@ -499,7 +499,7 @@ function DepartmentsTab({ departments, onChange }) {
             <Feedback message={feedback} />
 
             {departments.length === 0 && (
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Nenhum departamento criado ainda.</p>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--th-muted)' }}>Nenhum departamento criado ainda.</p>
             )}
 
             {departments.map((dep) => {
@@ -519,10 +519,10 @@ function DepartmentsTab({ departments, onChange }) {
                                 <button
                                     type="button"
                                     onClick={() => setExpandedId(isExpanded ? null : dep.id)}
-                                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: '0.9rem', color: '#0f172a' }}
+                                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: '0.9rem', color: 'var(--th-text)' }}
                                 >
                                     <strong>{dep.name}</strong>
-                                    <span style={{ color: '#64748b', fontSize: '0.75rem', marginLeft: '8px' }}>
+                                    <span style={{ color: 'var(--th-muted)', fontSize: '0.75rem', marginLeft: '8px' }}>
                                         {dep.members.length} usuário(s) {isExpanded ? '▲' : '▼'}
                                     </span>
                                 </button>
@@ -539,12 +539,12 @@ function DepartmentsTab({ departments, onChange }) {
                         {isExpanded && (
                             <>
                                 {dep.members.length === 0 && (
-                                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>Nenhum usuário neste departamento.</p>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--th-muted-2)' }}>Nenhum usuário neste departamento.</p>
                                 )}
 
                                 {dep.members.map((m) => (
                                     <div key={m.user_email} style={rowStyle}>
-                                        <span style={{ fontSize: '0.8rem', color: '#1e293b' }}>{m.user_email}</span>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--th-text-2)' }}>{m.user_email}</span>
                                         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                                             <select
                                                 value={m.access_level}
@@ -560,7 +560,7 @@ function DepartmentsTab({ departments, onChange }) {
                                     </div>
                                 ))}
 
-                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end', borderTop: '1px solid var(--th-surface-3)', paddingTop: '12px' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '200px' }}>
                                         <label style={labelStyle}>Adicionar usuário (e-mail)</label>
                                         <input

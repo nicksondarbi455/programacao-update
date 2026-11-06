@@ -110,23 +110,23 @@ export function FloatingCalendar({ isOpen, onToggle, schedules, equipments, onOp
                         transform: hoverInfo.above ? 'translate(-50%, -100%)' : 'translate(-50%, 0)',
                         zIndex: 100001,
                         pointerEvents: 'none',
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
+                        background: 'var(--th-surface)',
+                        border: '1px solid var(--th-border-strong)',
                         borderRadius: '8px',
                         boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
                         padding: '8px 10px',
                         minWidth: '170px',
                         maxWidth: '260px',
                         fontSize: '0.72rem',
-                        color: '#1e293b',
+                        color: 'var(--th-text-2)',
                         fontFamily: 'DM Sans, sans-serif'
                     }}
                 >
-                    <div style={{ fontWeight: 'bold', color: '#2914c8', borderBottom: '1px solid #e2e8f0', paddingBottom: '3px', marginBottom: '4px' }}>
+                    <div style={{ fontWeight: 'bold', color: '#2914c8', borderBottom: '1px solid var(--th-border)', paddingBottom: '3px', marginBottom: '4px' }}>
                         {hoverInfo.label}
                     </div>
                     {hoverItems.length === 0 ? (
-                        <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>Nenhum agendamento</div>
+                        <div style={{ color: 'var(--th-muted-2)', fontStyle: 'italic' }}>Nenhum agendamento</div>
                     ) : (
                         hoverItems.map((item, i) => (
                             <div

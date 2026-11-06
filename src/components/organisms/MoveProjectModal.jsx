@@ -3,8 +3,8 @@ import { Button } from '../atoms/Button';
 import { ModalShell } from '../molecules/ModalShell';
 import { supabaseService } from '../../services/supabaseService';
 
-const selectStyle = { padding: '7px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem' };
-const labelStyle = { fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' };
+const selectStyle = { padding: '7px', background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', borderRadius: '4px', fontSize: '0.8rem' };
+const labelStyle = { fontSize: '0.75rem', color: 'var(--th-muted)', fontWeight: 'bold' };
 
 // Move um projeto para uma pasta (ou para a raiz)
 export function MoveProjectModal({ project, folders, onMoved, onCancel }) {
@@ -29,7 +29,7 @@ export function MoveProjectModal({ project, folders, onMoved, onCancel }) {
 
     return (
         <ModalShell title="Mover projeto" width={380}>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: '#475569' }}>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--th-text-4)' }}>
                 Projeto: <strong>{project.name}</strong>
             </p>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

@@ -9,17 +9,17 @@ const triggerStyle = {
     justifyContent: 'space-between',
     gap: '8px',
     padding: '7px',
-    background: '#f8fafc',
-    border: '1px solid #cbd5e1',
+    background: 'var(--th-surface-2)',
+    border: '1px solid var(--th-border-strong)',
     borderRadius: '4px',
     fontSize: '0.8rem',
     fontFamily: 'inherit',
-    color: '#1e293b',
+    color: 'var(--th-text-2)',
     textAlign: 'left',
     cursor: 'pointer'
 };
 
-const labelStyle = { fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' };
+const labelStyle = { fontSize: '0.75rem', color: 'var(--th-muted)', fontWeight: 'bold' };
 
 // Seleção múltipla de departamentos em forma de lista (abre e fecha ao clicar)
 export function DepartmentPicker({ label, departments, selectedIds, onChange, loading, helpText }) {
@@ -57,11 +57,11 @@ export function DepartmentPicker({ label, departments, selectedIds, onChange, lo
                 }}>
                     {summary}
                 </span>
-                <i className={`fa-solid fa-chevron-${open ? 'up' : 'down'}`} style={{ fontSize: '0.7rem', color: '#64748b', flexShrink: 0 }}></i>
+                <i className={`fa-solid fa-chevron-${open ? 'up' : 'down'}`} style={{ fontSize: '0.7rem', color: 'var(--th-muted)', flexShrink: 0 }}></i>
             </button>
 
             {open && !loading && departments.length > 0 && (
-                <div style={{ border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff', maxHeight: '180px', overflowY: 'auto' }}>
+                <div style={{ border: '1px solid var(--th-border-strong)', borderRadius: '4px', background: 'var(--th-surface)', maxHeight: '180px', overflowY: 'auto' }}>
                     {departments.map((dep) => {
                         const checked = selectedIds.includes(dep.id);
                         return (
@@ -76,10 +76,10 @@ export function DepartmentPicker({ label, departments, selectedIds, onChange, lo
                                     gap: '10px',
                                     padding: '7px 10px',
                                     fontSize: '0.8rem',
-                                    color: '#334155',
+                                    color: 'var(--th-text-3)',
                                     cursor: 'pointer',
                                     background: checked ? '#f0fdf4' : '#fff',
-                                    borderBottom: '1px solid #f1f5f9'
+                                    borderBottom: '1px solid var(--th-surface-3)'
                                 }}
                             >
                                 {/* O clique propaga para a linha, que faz a seleção */}
@@ -94,7 +94,7 @@ export function DepartmentPicker({ label, departments, selectedIds, onChange, lo
             )}
 
             {!loading && helpText && (
-                <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{helpText}</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--th-muted-2)' }}>{helpText}</span>
             )}
         </div>
     );

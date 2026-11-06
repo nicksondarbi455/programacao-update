@@ -221,11 +221,11 @@ export function AuthPage() {
 
                 <div className="auth-form-panel">
                     <div style={{ textAlign: 'center' }}>
-                        {isLogin && <h1 style={{ margin: 0, color: '#0f172a', fontFamily: "'Architects Daughter', cursive", fontSize: '2.1rem', fontWeight: 400, letterSpacing: '0.5px', lineHeight: 1 }}>Ne<span style={{ color: '#3f6cff' }}>x</span>T</h1>}
-                        {isLogin && <h2 style={{ margin: '10px 0 0 0', color: '#0f172a', fontSize: '1.1rem', fontWeight: '700' }}>Login</h2>}
-                        {!isLogin && !isRecover && <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Crie a sua conta</p>}
-                        {isRecover && <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem', fontWeight: '700' }}>Recuperar senha</h2>}
-                        {isRecover && <p style={{ margin: '6px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>Informe o seu e-mail para receber o link.</p>}
+                        {isLogin && <h1 style={{ margin: 0, color: 'var(--th-text)', fontFamily: "'Architects Daughter', cursive", fontSize: '2.1rem', fontWeight: 400, letterSpacing: '0.5px', lineHeight: 1 }}>Ne<span style={{ color: '#3f6cff' }}>x</span>T</h1>}
+                        {isLogin && <h2 style={{ margin: '10px 0 0 0', color: 'var(--th-text)', fontSize: '1.1rem', fontWeight: '700' }}>Login</h2>}
+                        {!isLogin && !isRecover && <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--th-muted)' }}>Crie a sua conta</p>}
+                        {isRecover && <h2 style={{ margin: 0, color: 'var(--th-text)', fontSize: '1.1rem', fontWeight: '700' }}>Recuperar senha</h2>}
+                        {isRecover && <p style={{ margin: '6px 0 0 0', fontSize: '0.75rem', color: 'var(--th-muted)' }}>Informe o seu e-mail para receber o link.</p>}
                     </div>
 
                     <form onSubmit={handleAuth} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -266,7 +266,7 @@ export function AuthPage() {
                         <button
                             type="button"
                             onClick={() => { setMode('recover'); setMessage(null); clearForm(); }}
-                            style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '0.72rem', cursor: 'pointer', marginTop: '10px' }}
+                            style={{ background: 'none', border: 'none', color: 'var(--th-muted)', fontSize: '0.72rem', cursor: 'pointer', marginTop: '10px' }}
                         >
                             Esqueci minha senha
                         </button>

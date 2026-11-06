@@ -87,9 +87,9 @@ export function CommandPalette({ userEmail, onClose, onOpenProject, onOpenFolder
 
     return (
         <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 100005, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '12vh' }}>
-            <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: '12px', width: '560px', maxWidth: '92%', boxShadow: '0 16px 40px rgba(0,0,0,0.25)', overflow: 'hidden', fontFamily: 'DM Sans, sans-serif' }}>
-                <div style={{ position: 'relative', borderBottom: '1px solid #e2e8f0' }}>
-                    <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}></i>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--th-surface)', borderRadius: '12px', width: '560px', maxWidth: '92%', boxShadow: '0 16px 40px rgba(0,0,0,0.25)', overflow: 'hidden', fontFamily: 'DM Sans, sans-serif' }}>
+                <div style={{ position: 'relative', borderBottom: '1px solid var(--th-border)' }}>
+                    <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--th-muted-2)' }}></i>
                     <input
                         ref={inputRef}
                         type="text"
@@ -97,16 +97,16 @@ export function CommandPalette({ userEmail, onClose, onOpenProject, onOpenFolder
                         onChange={(e) => setQuery(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder="Buscar projetos e pastas..."
-                        style={{ width: '100%', boxSizing: 'border-box', padding: '14px 14px 14px 40px', border: 'none', outline: 'none', fontSize: '0.95rem', color: '#0f172a' }}
+                        style={{ width: '100%', boxSizing: 'border-box', padding: '14px 14px 14px 40px', border: 'none', outline: 'none', fontSize: '0.95rem', color: 'var(--th-text)' }}
                     />
                 </div>
 
                 <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
                     {loading && (
-                        <p style={{ margin: 0, padding: '14px', fontSize: '0.8rem', color: '#64748b' }}>Carregando...</p>
+                        <p style={{ margin: 0, padding: '14px', fontSize: '0.8rem', color: 'var(--th-muted)' }}>Carregando...</p>
                     )}
                     {!loading && results.length === 0 && (
-                        <p style={{ margin: 0, padding: '14px', fontSize: '0.8rem', color: '#94a3b8' }}>Nada encontrado.</p>
+                        <p style={{ margin: 0, padding: '14px', fontSize: '0.8rem', color: 'var(--th-muted-2)' }}>Nada encontrado.</p>
                     )}
                     {results.map((item, idx) => (
                         <button
@@ -114,20 +114,20 @@ export function CommandPalette({ userEmail, onClose, onOpenProject, onOpenFolder
                             type="button"
                             onClick={() => choose(item)}
                             onMouseEnter={() => setActive(idx)}
-                            style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '10px 14px', border: 'none', borderBottom: '1px solid #f1f5f9', background: idx === active ? '#eef2ff' : '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                            style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '10px 14px', border: 'none', borderBottom: '1px solid var(--th-surface-3)', background: idx === active ? '#eef2ff' : '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
                         >
                             <span style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                                 <i className={item.kind === 'projeto' ? 'fa-regular fa-clipboard' : 'fa-regular fa-folder'} style={{ color: item.kind === 'projeto' ? '#ff5acd' : '#4e73df' }}></i>
-                                <span style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                                <span style={{ fontSize: '0.88rem', color: 'var(--th-text)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
                             </span>
-                            <span style={{ fontSize: '0.7rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--th-muted-2)', whiteSpace: 'nowrap' }}>
                                 {item.kind === 'projeto' ? 'Projeto' : 'Pasta'} · {item.subtitle}
                             </span>
                         </button>
                     ))}
                 </div>
 
-                <div style={{ display: 'flex', gap: '14px', padding: '8px 14px', fontSize: '0.68rem', color: '#94a3b8', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                <div style={{ display: 'flex', gap: '14px', padding: '8px 14px', fontSize: '0.68rem', color: 'var(--th-muted-2)', borderTop: '1px solid var(--th-border)', background: 'var(--th-surface-2)' }}>
                     <span>↑↓ navegar</span>
                     <span>Enter abrir</span>
                     <span>Esc fechar</span>

@@ -30,11 +30,11 @@ export function DuplicateProjectModal({ project, userEmail, onDone, onCancel }) 
     return (
         <ModalShell title="Duplicar projeto" width={400}>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' }}>Nome do novo projeto</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--th-muted)', fontWeight: 'bold' }}>Nome do novo projeto</label>
                 <Input value={name} onChange={(e) => setName(e.target.value)} required />
 
                 {hasAgenda && (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#334155', cursor: 'pointer' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--th-text-3)', cursor: 'pointer' }}>
                         <span style={{ display: 'inline-flex', flexShrink: 0 }}>
                             <Checkbox checked={copySchedules} onChange={(e) => setCopySchedules(e.target.checked)} />
                         </span>
@@ -42,7 +42,7 @@ export function DuplicateProjectModal({ project, userEmail, onDone, onCancel }) 
                     </label>
                 )}
 
-                <p style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8' }}>
+                <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--th-muted-2)' }}>
                     São copiados as colunas, as linhas, os departamentos e a pasta. O progresso começa do zero.
                 </p>
 

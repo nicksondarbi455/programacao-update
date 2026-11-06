@@ -103,7 +103,7 @@ export function UpcomingPanel({ projects, onOpenProject }) {
     return (
         <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {reminders.map((r) => (
-                <div key={r.key} role="alert" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '8px', padding: '10px 12px', fontSize: '0.85rem', color: '#78350f' }}>
+                <div key={r.key} role="alert" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', background: 'var(--th-tint-amber)', border: '1px solid #fcd34d', borderRadius: '8px', padding: '10px 12px', fontSize: '0.85rem', color: '#78350f' }}>
                     <span>
                         <i className="fa-regular fa-bell"></i> <strong>{r.hora}</strong> · {r.text} <span style={{ color: '#a16207' }}>({r.projectName})</span>
                     </span>
@@ -113,21 +113,21 @@ export function UpcomingPanel({ projects, onOpenProject }) {
                 </div>
             ))}
 
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+            <div style={{ background: 'var(--th-surface)', border: '1px solid var(--th-border)', borderRadius: '10px', padding: '14px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                    <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>
+                    <strong style={{ color: 'var(--th-text)', fontSize: '0.95rem' }}>
                         <i className="fa-regular fa-calendar-days" style={{ color: '#4e73df', marginRight: '6px' }}></i>
                         Hoje e próximos {WINDOW_DAYS} dias
                     </strong>
                     {permission === 'default' && (
-                        <button type="button" onClick={requestPermission} style={{ background: 'none', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '4px 8px', fontSize: '0.7rem', cursor: 'pointer', color: '#334155' }}>
+                        <button type="button" onClick={requestPermission} style={{ background: 'none', border: '1px solid var(--th-border-strong)', borderRadius: '6px', padding: '4px 8px', fontSize: '0.7rem', cursor: 'pointer', color: 'var(--th-text-3)' }}>
                             <i className="fa-regular fa-bell"></i> Ativar avisos no navegador
                         </button>
                     )}
                 </div>
 
                 {groups.length === 0 ? (
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>Nenhum evento pendente nesse período.</p>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--th-muted-2)' }}>Nenhum evento pendente nesse período.</p>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {groups.map((g) => (
@@ -140,10 +140,10 @@ export function UpcomingPanel({ projects, onOpenProject }) {
                                         key={e.key}
                                         type="button"
                                         onClick={() => onOpenProject(e.projectId)}
-                                        style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', gap: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 10px', marginBottom: '4px', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontSize: '0.8rem', color: '#1e293b' }}
+                                        style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', gap: '8px', background: 'var(--th-surface-2)', border: '1px solid var(--th-border)', borderRadius: '6px', padding: '6px 10px', marginBottom: '4px', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontSize: '0.8rem', color: 'var(--th-text-2)' }}
                                     >
                                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.text}</span>
-                                        <span style={{ display: 'flex', gap: '8px', flexShrink: 0, fontSize: '0.7rem', color: '#64748b' }}>
+                                        <span style={{ display: 'flex', gap: '8px', flexShrink: 0, fontSize: '0.7rem', color: 'var(--th-muted)' }}>
                                             <span>{e.projectName}</span>
                                             <strong style={{ color: '#2563eb' }}>{e.hora || 'dia todo'}</strong>
                                         </span>

@@ -85,24 +85,24 @@ export function Modals({
             {/* Modal de Agendamentos do Dia */}
             {modalData?.isOpen && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100000, backdropFilter: 'blur(2px)' }}>
-                    <div style={{ background: '#ffffff', padding: '24px', borderRadius: '12px', width: '420px', maxWidth: '92%', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '15px', fontFamily: 'DM Sans, sans-serif' }}>
+                    <div style={{ background: 'var(--th-surface)', padding: '24px', borderRadius: '12px', width: '420px', maxWidth: '92%', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '15px', fontFamily: 'DM Sans, sans-serif' }}>
                         
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--th-border)', paddingBottom: '10px' }}>
                             <div>
-                                <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem' }}>Gerenciar Agendamentos do Dia</h3>
-                                <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>Data: <strong>{modalData.friendlyDate || modalData.dateStr}</strong></p>
+                                <h3 style={{ margin: 0, color: 'var(--th-text)', fontSize: '1.1rem' }}>Gerenciar Agendamentos do Dia</h3>
+                                <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: 'var(--th-muted)' }}>Data: <strong>{modalData.friendlyDate || modalData.dateStr}</strong></p>
                             </div>
                         </div>
 
                         {/* Lista dos Agendamentos do Dia */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
                             {(!modalData.items || modalData.items.length === 0) ? (
-                                <p style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', margin: 0, textAlign: 'center', padding: '10px', background: '#f8fafc', borderRadius: '6px' }}>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--th-muted-2)', fontStyle: 'italic', margin: 0, textAlign: 'center', padding: '10px', background: 'var(--th-surface-2)', borderRadius: '6px' }}>
                                     Nenhum agendamento para este dia.
                                 </p>
                             ) : (
                                 modalData.items.map((item, idx) => (
-                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: item.completed ? '#f0fdf4' : '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: item.completed ? '#f0fdf4' : '#f8fafc', border: '1px solid var(--th-border)', borderRadius: '6px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <input 
                                                 type="checkbox" 
@@ -137,8 +137,8 @@ export function Modals({
                         </div>
 
                         {/* Pesquisa e seleção exclusiva de Eventos Únicos */}
-                        <form onSubmit={handleAddEventSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
-                            <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#475569' }}>
+                        <form onSubmit={handleAddEventSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid var(--th-border)', paddingTop: '12px' }}>
+                            <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--th-text-4)' }}>
                                 Pesquisar evento único para agendar:
                             </label>
 
@@ -155,12 +155,12 @@ export function Modals({
                                         if (filteredOptions.length > 0) pickOption(filteredOptions[0].label);
                                     }
                                 }}
-                                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box', background: '#f8fafc', color: '#0f172a' }}
+                                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--th-border-strong)', fontSize: '0.85rem', boxSizing: 'border-box', background: 'var(--th-surface-2)', color: 'var(--th-text)' }}
                             />
 
-                            <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#fff' }}>
+                            <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--th-border)', borderRadius: '6px', background: 'var(--th-surface)' }}>
                                 {filteredOptions.length === 0 ? (
-                                    <p style={{ margin: 0, padding: '10px', fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', textAlign: 'center' }}>
+                                    <p style={{ margin: 0, padding: '10px', fontSize: '0.8rem', color: 'var(--th-muted-2)', fontStyle: 'italic', textAlign: 'center' }}>
                                         {eventOptions.length === 0 ? 'Nenhum evento único cadastrado.' : 'Nenhum evento encontrado.'}
                                     </p>
                                 ) : (
@@ -173,8 +173,8 @@ export function Modals({
                                                 onClick={() => pickOption(opt.label)}
                                                 style={{
                                                     display: 'block', width: '100%', textAlign: 'left', padding: '7px 10px',
-                                                    border: 'none', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
-                                                    fontSize: '0.85rem', color: '#0f172a',
+                                                    border: 'none', borderBottom: '1px solid var(--th-surface-3)', cursor: 'pointer',
+                                                    fontSize: '0.85rem', color: 'var(--th-text)',
                                                     background: isPicked ? '#dbeafe' : '#ffffff',
                                                     fontWeight: isPicked ? 'bold' : 'normal'
                                                 }}
@@ -187,12 +187,12 @@ export function Modals({
                             </div>
 
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#475569' }}>Horário (opcional):</label>
+                                <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--th-text-4)' }}>Horário (opcional):</label>
                                 <input
                                     type="time"
                                     value={hora}
                                     onChange={(e) => setHora(e.target.value)}
-                                    style={{ padding: '5px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem' }}
+                                    style={{ padding: '5px 8px', border: '1px solid var(--th-border-strong)', borderRadius: '6px', fontSize: '0.8rem' }}
                                 />
                             </div>
 
@@ -223,12 +223,12 @@ export function Modals({
             {/* Modal de Criar Nova Coluna */}
             {colModalOpen && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100000, backdropFilter: 'blur(2px)' }}>
-                    <div style={{ background: '#ffffff', padding: '24px', borderRadius: '12px', width: '380px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '14px', fontFamily: 'DM Sans, sans-serif' }}>
-                        <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#0f172a', fontWeight: 'bold' }}>➕ Nova Coluna</h3>
+                    <div style={{ background: 'var(--th-surface)', padding: '24px', borderRadius: '12px', width: '380px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '14px', fontFamily: 'DM Sans, sans-serif' }}>
+                        <h3 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--th-text)', fontWeight: 'bold' }}>➕ Nova Coluna</h3>
                         
                         <form onSubmit={handleAddColSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--th-text-4)', marginBottom: '4px' }}>
                                     Nome da Coluna:
                                 </label>
                                 <input 
@@ -237,18 +237,18 @@ export function Modals({
                                     onChange={(e) => setCustomColName(e.target.value)} 
                                     placeholder="Ex: Responsável, Status, Alvo" 
                                     autoFocus
-                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--th-border-strong)', fontSize: '0.85rem', boxSizing: 'border-box' }}
                                 />
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--th-text-4)', marginBottom: '4px' }}>
                                     Tipo de Campo:
                                 </label>
                                 <select 
                                     value={customColType} 
                                     onChange={(e) => setCustomColType(e.target.value)}
-                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff', color: '#0f172a' }}
+                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--th-border-strong)', fontSize: '0.85rem', background: 'var(--th-surface)', color: 'var(--th-text)' }}
                                 >
                                     <option value="text">📝 Texto Livre</option>
                                     <option value="checkbox">☑️ Caixa de Seleção (Check)</option>
@@ -256,7 +256,7 @@ export function Modals({
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--th-text-4)', marginBottom: '4px' }}>
                                     Quantidade de colunas (máx. 20):
                                 </label>
                                 <input
@@ -265,18 +265,18 @@ export function Modals({
                                     max="20"
                                     value={customColQty}
                                     onChange={(e) => setCustomColQty(Math.min(20, Math.max(1, parseInt(e.target.value, 10) || 1)))}
-                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--th-border-strong)', fontSize: '0.85rem', boxSizing: 'border-box' }}
                                 />
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--th-text-4)', marginBottom: '4px' }}>
                                     Onde aplicar esta coluna:
                                 </label>
                                 <select 
                                     value={customColScope} 
                                     onChange={(e) => setCustomColScope(e.target.value)}
-                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff', color: '#0f172a' }}
+                                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--th-border-strong)', fontSize: '0.85rem', background: 'var(--th-surface)', color: 'var(--th-text)' }}
                                 >
                                     <option value="all">🌐 Em Todas as Linhas da Tabela</option>
                                     <option value="events">Apenas nas Faixas de Evento (Eventos Únicos)</option>
@@ -293,8 +293,8 @@ export function Modals({
             )}
             {confirmItem && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 100002, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ background: '#fff', borderRadius: '10px', padding: '18px 20px', width: '280px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-                        <p style={{ margin: '0 0 14px 0', fontSize: '0.85rem', color: '#1e293b', fontWeight: 600, textAlign: 'center' }}>
+                    <div style={{ background: 'var(--th-surface)', borderRadius: '10px', padding: '18px 20px', width: '280px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+                        <p style={{ margin: '0 0 14px 0', fontSize: '0.85rem', color: 'var(--th-text-2)', fontWeight: 600, textAlign: 'center' }}>
                             {confirmItem.type === 'remove'
                                 ? 'Tem certeza que deseja remover este agendamento?'
                                 : confirmItem.completed

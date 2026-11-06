@@ -5,8 +5,8 @@ import { DepartmentPicker } from '../molecules/DepartmentPicker';
 import { ModalShell } from '../molecules/ModalShell';
 import { supabaseService } from '../../services/supabaseService';
 
-const labelStyle = { fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' };
-const textareaStyle = { background: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', borderRadius: '4px', fontSize: '0.8rem', resize: 'none', height: '50px', fontFamily: 'inherit' };
+const labelStyle = { fontSize: '0.75rem', color: 'var(--th-muted)', fontWeight: 'bold' };
+const textareaStyle = { background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', padding: '8px', borderRadius: '4px', fontSize: '0.8rem', resize: 'none', height: '50px', fontFamily: 'inherit' };
 
 // Criar pasta (na raiz ou dentro de outra pasta) ou abrir as configurações de uma pasta
 export function FolderFormModal({ folder, userEmail, parentId, parentLabel, departments, loadingDeps, onSaved, onDeleted, onCancel }) {
@@ -59,8 +59,8 @@ export function FolderFormModal({ folder, userEmail, parentId, parentLabel, depa
     return (
         <ModalShell title={isEdit ? 'Configurações da Pasta' : 'Nova Pasta'}>
             {!isEdit && (
-                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>
-                    Local: <strong style={{ color: '#334155' }}>{parentLabel || 'Raiz (Meus Projetos)'}</strong>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--th-muted)' }}>
+                    Local: <strong style={{ color: 'var(--th-text-3)' }}>{parentLabel || 'Raiz (Meus Projetos)'}</strong>
                 </p>
             )}
 
@@ -95,13 +95,13 @@ export function FolderFormModal({ folder, userEmail, parentId, parentLabel, depa
 
             {/* Excluir pasta: fica no fim e pede confirmação */}
             {isEdit && (
-                <div style={{ borderTop: '1px solid #e2e8f0', marginTop: '6px', paddingTop: '12px' }}>
+                <div style={{ borderTop: '1px solid var(--th-border)', marginTop: '6px', paddingTop: '12px' }}>
                     {!confirmDelete ? (
                         <Button variant="danger" className="btn-modal" onClick={() => setConfirmDelete(true)}>
                             <span><i className="fa-solid fa-trash"></i> Excluir pasta</span>
                         </Button>
                     ) : (
-                        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ background: 'var(--th-tint-red)', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             <strong style={{ fontSize: '0.85rem', color: '#991b1b' }}>
                                 Tem certeza que deseja excluir a pasta "{folder.name}"?
                             </strong>

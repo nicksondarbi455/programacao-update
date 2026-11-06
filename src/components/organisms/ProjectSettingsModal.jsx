@@ -4,10 +4,10 @@ import { Button } from '../atoms/Button';
 import { DepartmentPicker } from '../molecules/DepartmentPicker';
 import { usersService } from '../../services/usersService';
 
-const labelStyle = { fontSize: '0.75rem', color: '#475569', fontWeight: '700' };
+const labelStyle = { fontSize: '0.75rem', color: 'var(--th-text-4)', fontWeight: '700' };
 const fieldStyle = {
     width: '100%', boxSizing: 'border-box', padding: '8px 10px', fontSize: '0.85rem',
-    border: '1px solid #cbd5e1', borderRadius: '6px', background: '#fff', color: '#0f172a',
+    border: '1px solid var(--th-border-strong)', borderRadius: '6px', background: 'var(--th-surface)', color: 'var(--th-text)',
     fontFamily: 'inherit', outline: 'none'
 };
 
@@ -53,8 +53,8 @@ export function ProjectSettingsModal({ project, onSave, onClose }) {
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 100001, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ background: '#fff', borderRadius: '10px', padding: '18px 20px', width: '380px', maxWidth: '92%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>Configurações do projeto</div>
+            <div style={{ background: 'var(--th-surface)', borderRadius: '10px', padding: '18px 20px', width: '380px', maxWidth: '92%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ fontWeight: 700, color: 'var(--th-text)', fontSize: '0.95rem' }}>Configurações do projeto</div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <label style={labelStyle}>Título</label>
@@ -67,22 +67,22 @@ export function ProjectSettingsModal({ project, onSave, onClose }) {
                 </div>
 
                 <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: '#334155' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--th-text-3)' }}>
                         <Checkbox checked={hasCalendar} onChange={(e) => setHasCalendar(e.target.checked)} />
                         Usar calendário
                     </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: '#334155' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--th-text-3)' }}>
                         <Checkbox checked={showProgress} onChange={(e) => setShowProgress(e.target.checked)} />
                         Mostrar progresso
                     </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: '#334155' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--th-text-3)' }}>
                         <Checkbox checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
                         Projeto Privado 🔒
                     </label>
                 </div>
 
                 {isPrivate ? (
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--th-muted)', background: 'var(--th-surface-2)', border: '1px solid var(--th-border)', borderRadius: '6px', padding: '8px 10px' }}>
                         Projeto privado: só você e os administradores podem ver e editar. Departamentos não se aplicam.
                     </span>
                 ) : (

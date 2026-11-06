@@ -15,23 +15,23 @@ import { DuplicateProjectModal } from '../components/organisms/DuplicateProjectM
 import { MentionsPanel } from '../components/organisms/MentionsPanel';
 import * as XLSX from 'xlsx';
 
-const labelStyle = { fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' };
-const selectStyle = { padding: '7px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem' };
-const textareaStyle = { background: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', borderRadius: '4px', fontSize: '0.8rem', resize: 'none', height: '50px', fontFamily: 'inherit' };
-const checkLabelStyle = { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', cursor: 'pointer', color: '#334155', whiteSpace: 'nowrap' };
+const labelStyle = { fontSize: '0.75rem', color: 'var(--th-muted)', fontWeight: 'bold' };
+const selectStyle = { padding: '7px', background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', borderRadius: '4px', fontSize: '0.8rem' };
+const textareaStyle = { background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', padding: '8px', borderRadius: '4px', fontSize: '0.8rem', resize: 'none', height: '50px', fontFamily: 'inherit' };
+const checkLabelStyle = { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', cursor: 'pointer', color: 'var(--th-text-3)', whiteSpace: 'nowrap' };
 // Mesmo fundo e borda da descrição; largura só para 4 dígitos
-const numInputStyle = { width: '72px', padding: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.8rem', color: '#0f172a', boxSizing: 'border-box', appearance: 'textfield' };
-const crumbStyle = { background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontFamily: 'inherit', fontSize: '0.85rem', color: '#475569' };
+const numInputStyle = { width: '72px', padding: '8px', background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', borderRadius: '4px', fontSize: '0.8rem', color: 'var(--th-text)', boxSizing: 'border-box', appearance: 'textfield' };
+const crumbStyle = { background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontFamily: 'inherit', fontSize: '0.85rem', color: 'var(--th-text-4)' };
 
 // Botão pequeno de ícone que não dispara o clique do cartão
-function IconButton({ icon, title, onClick }) {
+function IconButton({ icon, title, onClick, active = false }) {
     return (
         <button
             type="button"
             title={title}
             aria-label={title}
             onClick={(e) => { e.stopPropagation(); onClick(e); }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: '4px', color: '#64748b', fontSize: '0.8rem' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: '4px', color: active ? '#2563eb' : 'var(--th-muted)', fontSize: '0.8rem' }}
         >
             <i className={`fa-solid ${icon}`}></i>
         </button>
@@ -47,14 +47,14 @@ function ChoiceCard({ icon, title, description, disabled, onClick }) {
             disabled={disabled}
             style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
-                padding: '18px 12px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '10px',
+                padding: '18px 12px', background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', borderRadius: '10px',
                 cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
                 fontFamily: 'inherit', textAlign: 'center'
             }}
         >
             <i className={`fa-regular ${icon}`} style={{ fontSize: '2rem', color: '#4e73df' }}></i>
-            <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>{title}</span>
-            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{description}</span>
+            <span style={{ fontWeight: 700, color: 'var(--th-text)', fontSize: '0.95rem' }}>{title}</span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--th-muted)' }}>{description}</span>
         </button>
     );
 }
@@ -67,6 +67,9 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
     const [search, setSearch] = useState('');
     // Caminho da pasta aberta: [pasta-raiz, subpasta, sub-subpasta...]. Vazio = Meus Projetos.
     const [folderPath, setFolderPath] = useState([]);
+    // Ordem e fixação personalizadas: { 'pasta:ID' | 'projeto:ID': { pinned, position } }
+    const [layout, setLayout] = useState({});
+    const [draggingKey, setDraggingKey] = useState(null);
 
     // Modais
     const [isChooserOpen, setIsChooserOpen] = useState(false);
@@ -94,13 +97,23 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
 
     const loadAll = async () => {
         // Projetos e pastas são independentes: se as pastas falharem, os projetos continuam aparecendo
-        const [projsRes, fldsRes] = await Promise.allSettled([
+        const [projsRes, fldsRes, layoutRes] = await Promise.allSettled([
             supabaseService.getProjects(user.email),
-            supabaseService.getFolders(user.email)
+            supabaseService.getFolders(user.email),
+            supabaseService.getLayout(user.email)
         ]);
 
         if (projsRes.status === 'rejected') throw projsRes.reason;
         setProjects(projsRes.value);
+
+        // Sem preferências (ou com erro), a ordem padrão continua valendo
+        if (layoutRes.status === 'fulfilled') {
+            setLayout(Object.fromEntries(
+                layoutRes.value.map((r) => [`${r.kind}:${r.id}`, { pinned: r.pinned, position: r.position }])
+            ));
+        } else {
+            console.warn('Preferências indisponíveis:', layoutRes.reason);
+        }
 
         if (fldsRes.status === 'fulfilled') {
             const flds = fldsRes.value;
@@ -345,18 +358,198 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
         }
     };
 
+    // --- Ordem personalizada dentro do nível atual: fixados primeiro, depois a ordem escolhida ---
+    const levelItems = [
+        ...shownFolders.map((f) => ({ key: `pasta:${f.id}`, kind: 'pasta', id: f.id, data: f })),
+        ...shownProjects.map((p) => ({ key: `projeto:${p.id}`, kind: 'projeto', id: p.id, data: p }))
+    ]
+        .map((it, idx) => ({
+            ...it,
+            idx,
+            pinned: Boolean(layout[it.key]?.pinned),
+            position: layout[it.key]?.position ?? Number.MAX_SAFE_INTEGER
+        }))
+        .sort((a, b) => (Number(b.pinned) - Number(a.pinned)) || (a.position - b.position) || (a.idx - b.idx));
+
+    // Grava a ordem do nível inteiro (posições 1..n) e a fixação de cada item
+    const saveLevelOrder = async (list) => {
+        const rows = list.map((it, idx) => ({ kind: it.kind, id: it.id, pinned: it.pinned, position: idx + 1 }));
+        setLayout((prev) => {
+            const next = { ...prev };
+            rows.forEach((r) => {
+                next[`${r.kind}:${r.id}`] = { pinned: r.pinned, position: r.position };
+            });
+            return next;
+        });
+        try {
+            await supabaseService.saveLayout(user.email, rows);
+        } catch (err) {
+            alert('Erro ao salvar a ordem: ' + err.message);
+            refresh();
+        }
+    };
+
+    // Soltar um item sobre outro: ele entra antes do destino e assume a fixação do destino
+    const handleDrop = (targetKey) => {
+        const draggedKey = draggingKey;
+        setDraggingKey(null);
+        if (!draggedKey || draggedKey === targetKey) return;
+
+        const list = [...levelItems];
+        const from = list.findIndex((i) => i.key === draggedKey);
+        if (from < 0) return;
+        const [moved] = list.splice(from, 1);
+
+        const to = list.findIndex((i) => i.key === targetKey);
+        if (to < 0) return;
+        const target = list[to];
+        list.splice(to, 0, { ...moved, pinned: target.pinned });
+
+        saveLevelOrder(list);
+    };
+
+    const togglePin = (item) => {
+        const list = levelItems.map((i) => (i.key === item.key ? { ...i, pinned: !i.pinned } : i));
+        saveLevelOrder(list);
+    };
+
+    // Cartão de pasta ou de projeto, com fixar e arrastar
+    const renderItem = (item) => {
+        const isDragging = draggingKey === item.key;
+        const dragProps = {
+            draggable: !isSearching,
+            onDragStart: (e) => {
+                setDraggingKey(item.key);
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', item.key);
+            },
+            onDragOver: (e) => e.preventDefault(),
+            onDrop: (e) => {
+                e.preventDefault();
+                handleDrop(item.key);
+            },
+            onDragEnd: () => setDraggingKey(null)
+        };
+        const pinBadge = item.pinned && (
+            <i className="fa-solid fa-thumbtack" title="Fixado" style={{ fontSize: '0.7rem', color: '#2563eb', alignSelf: 'center', marginRight: '4px' }}></i>
+        );
+        const hoverIn = (shadow) => (e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = shadow;
+        };
+        const hoverOut = (e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.04)';
+        };
+
+        if (item.kind === 'pasta') {
+            const f = item.data;
+            const subCount = folders.filter((x) => x.parentId === f.id).length;
+            return (
+                <div
+                    key={item.key}
+                    {...dragProps}
+                    onClick={() => openFolder(f)}
+                    onMouseEnter={hoverIn('0 6px 16px rgba(78, 115, 223, 0.2)')}
+                    onMouseLeave={hoverOut}
+                    style={{
+                        background: 'linear-gradient(var(--th-surface), var(--th-surface)) padding-box, linear-gradient(135deg, #4e73df 0%, #224abe 100%) border-box',
+                        border: '2px solid transparent',
+                        padding: '18px', borderRadius: '12px', cursor: isSearching ? 'pointer' : 'grab',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                        display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '140px',
+                        opacity: isDragging ? 0.4 : 1
+                    }}
+                >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <i className="fa-regular fa-folder" style={{ fontSize: '2rem', color: '#4e73df' }}></i>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            {pinBadge}
+                            <IconButton icon="fa-thumbtack" title={item.pinned ? 'Desafixar' : 'Fixar'} active={item.pinned} onClick={() => togglePin(item)} />
+                            {f.canManage && (
+                                <IconButton icon="fa-gear" title="Configurações da pasta" onClick={() => setFolderModal({ folder: f })} />
+                            )}
+                        </div>
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                        <h4 style={{ margin: '0 0 4px 0', color: 'var(--th-text)', fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {f.name}
+                        </h4>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--th-muted)' }}>
+                            {isSearching && f.parentId ? `${folderLabel(f.parentId)} · ` : ''}
+                            {subCount > 0 && `${subCount} ${subCount === 1 ? 'pasta' : 'pastas'} · `}
+                            {f.projectCount} {f.projectCount === 1 ? 'projeto' : 'projetos'}
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
+        const proj = item.data;
+        return (
+            <div
+                key={item.key}
+                {...dragProps}
+                onClick={() => onSelectProject(proj)}
+                onMouseEnter={hoverIn('0 6px 16px rgba(255, 90, 205, 0.2)')}
+                onMouseLeave={hoverOut}
+                style={{
+                    background: 'linear-gradient(var(--th-surface), var(--th-surface)) padding-box, linear-gradient(45deg, #fada61 0%, #ff9188 50%, #ff5acd 100%) border-box',
+                    border: '2px solid transparent',
+                    padding: '18px', borderRadius: '12px', cursor: isSearching ? 'pointer' : 'grab',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                    display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '140px',
+                    opacity: isDragging ? 0.4 : 1
+                }}
+            >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <h4 style={{ margin: '0 0 4px 0', color: 'var(--th-text)', fontSize: '1rem' }}>{proj.name}</h4>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                {pinBadge}
+                                {proj.isPrivate && <span title="Projeto Privado">🔒</span>}
+                            </span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--th-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            {proj.description || 'Sem descrição informada.'}
+                        </p>
+                    </div>
+                    {proj.showProgress && <ProgressCircle value={proj.progress} size={64} />}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', borderTop: '1px solid var(--th-surface-3)', paddingTop: '8px' }}>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--th-muted-2)', background: 'var(--th-surface-2)', padding: '2px 6px', borderRadius: '4px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {proj.hasCalendar ? <><i className="fa-regular fa-calendar-days"></i> Com Calendário</> : <><i className="fa-regular fa-clipboard"></i> Apenas Tabela</>}
+                        {isSearching && proj.folderId && folderLabel(proj.folderId) && (
+                            <> · <i className="fa-regular fa-folder"></i> {folderLabel(proj.folderId)}</>
+                        )}
+                    </span>
+                    <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
+                        <IconButton icon="fa-thumbtack" title={item.pinned ? 'Desafixar' : 'Fixar'} active={item.pinned} onClick={() => togglePin(item)} />
+                        <IconButton icon="fa-copy" title="Duplicar projeto" onClick={() => setDuplicatingProject(proj)} />
+                        {proj.canManage && (
+                            <IconButton icon="fa-folder-open" title="Mover para pasta" onClick={() => setMovingProject(proj)} />
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div style={{ padding: '30px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'DM Sans, sans-serif' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #cbd5e1', paddingBottom: '15px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--th-border-strong)', paddingBottom: '15px', marginBottom: '20px' }}>
                 <div>
-                    <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.4rem' }}>Meus Projetos e Serviços</h2>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>{liveStatus === 'online' ? 'Sincronização em tempo real ativada.' : 'Conectando à sincronização em tempo real...'}</p>
+                    <h2 style={{ margin: 0, color: 'var(--th-text)', fontSize: '1.4rem' }}>Meus Projetos e Serviços</h2>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--th-muted)' }}>{liveStatus === 'online' ? 'Sincronização em tempo real ativada.' : 'Conectando à sincronização em tempo real...'}</p>
                 </div>
                 <Button variant="danger" onClick={onLogout}>Terminar sessão</Button>
             </div>
 
             {foldersError && (
-                <div role="alert" style={{ marginBottom: '16px', padding: '10px 12px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', fontSize: '0.8rem', color: '#92400e' }}>
+                <div role="alert" style={{ marginBottom: '16px', padding: '10px 12px', background: 'var(--th-tint-amber-2)', border: '1px solid #fcd34d', borderRadius: '8px', fontSize: '0.8rem', color: '#92400e' }}>
                     <strong>Pastas indisponíveis.</strong> Verifique se os arquivos <code>pastas.sql</code> e <code>lixeira_pastas_admin.sql</code> foram executados no SQL Editor do Supabase.
                     <div style={{ marginTop: '4px', fontSize: '0.7rem', color: '#b45309' }}>Detalhe: {foldersError}</div>
                 </div>
@@ -364,20 +557,20 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
 
             {/* Pesquisa por nome de projetos e pastas */}
             <div style={{ position: 'relative', maxWidth: '420px', marginBottom: '16px' }}>
-                <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.85rem' }}></i>
+                <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--th-muted-2)', fontSize: '0.85rem' }}></i>
                 <input
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Pesquisar projetos e pastas..."
-                    style={{ width: '100%', padding: '9px 34px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', fontSize: '0.85rem', color: '#1e293b', boxSizing: 'border-box', outline: 'none' }}
+                    style={{ width: '100%', padding: '9px 34px', border: '1px solid var(--th-border-strong)', borderRadius: '8px', background: 'var(--th-surface)', fontSize: '0.85rem', color: 'var(--th-text-2)', boxSizing: 'border-box', outline: 'none' }}
                 />
                 {search && (
                     <button
                         type="button"
                         onClick={() => setSearch('')}
                         title="Limpar pesquisa"
-                        style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}
+                        style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--th-muted-2)', padding: '4px' }}
                     >
                         <i className="fa-solid fa-xmark"></i>
                     </button>
@@ -413,7 +606,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                         const isLast = i === folderPath.length - 1;
                         return (
                             <span key={id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <i className="fa-solid fa-chevron-right" style={{ fontSize: '0.6rem', color: '#94a3b8' }}></i>
+                                <i className="fa-solid fa-chevron-right" style={{ fontSize: '0.6rem', color: 'var(--th-muted-2)' }}></i>
                                 <button
                                     type="button"
                                     onClick={() => goToLevel(i)}
@@ -430,136 +623,45 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                 </div>
             )}
 
+            {!isSearching && (
+                <div style={{ marginBottom: '14px' }}>
+                    <div
+                        onClick={() => setIsChooserOpen(true)}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            background: 'linear-gradient(var(--th-surface), var(--th-surface)) padding-box, linear-gradient(90deg, #07aeea 0%, #2bf598 100%) border-box',
+                            border: '2px solid transparent',
+                            borderRadius: '10px',
+                            padding: '8px 16px',
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                            transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 16px rgba(7, 174, 234, 0.2)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.04)';
+                        }}
+                    >
+                        <i className="fa-regular fa-plus" style={{ fontSize: '1.1rem', color: '#07aeea', lineHeight: '1' }}></i>
+                        <span style={{ fontFamily: "'Playfair Display', serif", color: 'var(--th-text)', fontWeight: '700', fontSize: '0.95rem' }}>Novo</span>
+                    </div>
+                </div>
+            )}
+
             {loading ? (
-                <p style={{ textAlign: 'center', color: '#64748b' }}>A carregar projetos...</p>
+                <p style={{ textAlign: 'center', color: 'var(--th-muted)' }}>A carregar projetos...</p>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px' }}>
+                    {levelItems.map((item) => renderItem(item))}
 
-                    {/* Botão Novo: compacto, abre a escolha entre pasta e projeto */}
-                    {!isSearching && (
-                        <div
-                            onClick={() => setIsChooserOpen(true)}
-                            style={{
-                                background: 'linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(90deg, #07aeea 0%, #2bf598 100%) border-box',
-                                border: '2px solid transparent',
-                                borderRadius: '10px',
-                                padding: '8px 16px',
-                                display: 'flex', alignItems: 'center', gap: '8px',
-                                cursor: 'pointer', alignSelf: 'start', justifySelf: 'start',
-                                boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-                                transition: 'transform 0.3s ease, box-shadow 0.3s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-2px)';
-                                e.currentTarget.style.boxShadow = '0 6px 16px rgba(7, 174, 234, 0.2)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.04)';
-                            }}
-                        >
-                            <i className="fa-regular fa-plus" style={{ fontSize: '1.1rem', color: '#07aeea', lineHeight: '1' }}></i>
-                            <span style={{ fontFamily: "'Playfair Display', serif", color: '#0f172a', fontWeight: '700', fontSize: '0.95rem' }}>Novo</span>
-                        </div>
-                    )}
-
-                    {/* Cartões das pastas */}
-                    {shownFolders.map((f) => {
-                        const subCount = folders.filter((x) => x.parentId === f.id).length;
-                        return (
-                            <div
-                                key={f.id}
-                                onClick={() => openFolder(f)}
-                                style={{
-                                    background: 'linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(135deg, #4e73df 0%, #224abe 100%) border-box',
-                                    border: '2px solid transparent',
-                                    padding: '18px', borderRadius: '12px', cursor: 'pointer',
-                                    boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-                                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                                    display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '140px'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-2px)';
-                                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(78, 115, 223, 0.2)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.04)';
-                                }}
-                            >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <i className="fa-regular fa-folder" style={{ fontSize: '2rem', color: '#4e73df' }}></i>
-                                    {f.canManage && (
-                                        <IconButton icon="fa-gear" title="Configurações da pasta" onClick={() => setFolderModal({ folder: f })} />
-                                    )}
-                                </div>
-                                <div style={{ minWidth: 0 }}>
-                                    <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {f.name}
-                                    </h4>
-                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>
-                                        {isSearching && f.parentId ? `${folderLabel(f.parentId)} · ` : ''}
-                                        {subCount > 0 && `${subCount} ${subCount === 1 ? 'pasta' : 'pastas'} · `}
-                                        {f.projectCount} {f.projectCount === 1 ? 'projeto' : 'projetos'}
-                                    </p>
-                                </div>
-                            </div>
-                        );
-                    })}
-
-                    {/* Cartões dos projetos */}
-                    {shownProjects.map((proj) => (
-                        <div
-                            key={proj.id}
-                            onClick={() => onSelectProject(proj)}
-                            style={{
-                                background: 'linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(45deg, #fada61 0%, #ff9188 50%, #ff5acd 100%) border-box',
-                                border: '2px solid transparent',
-                                padding: '18px', borderRadius: '12px', cursor: 'pointer',
-                                boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-                                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                                display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '140px'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-2px)';
-                                e.currentTarget.style.boxShadow = '0 6px 16px rgba(255, 90, 205, 0.2)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.04)';
-                            }}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontSize: '1rem' }}>{proj.name}</h4>
-                                        {proj.isPrivate && <span title="Projeto Privado">🔒</span>}
-                                    </div>
-                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                        {proj.description || 'Sem descrição informada.'}
-                                    </p>
-                                </div>
-                                {proj.showProgress && <ProgressCircle value={proj.progress} size={64} />}
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', borderTop: '1px solid #f1f5f9', paddingTop: '8px' }}>
-                                <span style={{ fontSize: '0.65rem', color: '#94a3b8', background: '#f8fafc', padding: '2px 6px', borderRadius: '4px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {proj.hasCalendar ? <><i className="fa-regular fa-calendar-days"></i> Com Calendário</> : <><i className="fa-regular fa-clipboard"></i> Apenas Tabela</>}
-                                    {isSearching && proj.folderId && folderLabel(proj.folderId) && (
-                                        <> · <i className="fa-regular fa-folder"></i> {folderLabel(proj.folderId)}</>
-                                    )}
-                                </span>
-                                <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
-                                    <IconButton icon="fa-copy" title="Duplicar projeto" onClick={() => setDuplicatingProject(proj)} />
-                                    {proj.canManage && (
-                                        <IconButton icon="fa-folder-open" title="Mover para pasta" onClick={() => setMovingProject(proj)} />
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-
-                    {shownFolders.length === 0 && shownProjects.length === 0 && (
-                        <p style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#64748b', fontSize: '0.85rem', margin: '20px 0' }}>
+                    {levelItems.length === 0 && (
+                        <p style={{ gridColumn: '1 / -1', textAlign: 'center', color: 'var(--th-muted)', fontSize: '0.85rem', margin: '20px 0' }}>
                             {isSearching
                                 ? `Nenhum projeto ou pasta encontrado para "${search.trim()}".`
                                 : currentFolder ? 'Esta pasta ainda está vazia.' : 'Nenhum projeto ainda.'}
@@ -572,8 +674,8 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
             {isChooserOpen && (
                 <ModalShell title="O que deseja criar?" width={360}>
                     {currentFolder && (
-                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>
-                            Local: <strong style={{ color: '#334155' }}>{folderLabel(currentFolder.id)}</strong>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--th-muted)' }}>
+                            Local: <strong style={{ color: 'var(--th-text-3)' }}>{folderLabel(currentFolder.id)}</strong>
                         </p>
                     )}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -654,17 +756,17 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                         {tableSource === 'manual' ? (
                             <div style={{ display: 'flex', gap: '16px' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                    <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Qtd. Linhas</label>
+                                    <label style={{ fontSize: '0.7rem', color: 'var(--th-muted)' }}>Qtd. Linhas</label>
                                     <Input type="number" className="num-input" style={numInputStyle} min="1" max="50" value={numRows} onChange={(e) => setNumRows(e.target.value)} />
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                    <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Qtd. Colunas</label>
+                                    <label style={{ fontSize: '0.7rem', color: 'var(--th-muted)' }}>Qtd. Colunas</label>
                                     <Input type="number" className="num-input" style={numInputStyle} min="1" max="10" value={numCols} onChange={(e) => setNumCols(e.target.value)} />
                                 </div>
                             </div>
                         ) : (
-                            <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', padding: '10px', borderRadius: '6px', textAlign: 'center' }}>
-                                <label style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Selecione o ficheiro Excel (.xlsx):</label>
+                            <div style={{ background: 'var(--th-surface-2)', border: '1px dashed var(--th-border-strong)', padding: '10px', borderRadius: '6px', textAlign: 'center' }}>
+                                <label style={{ fontSize: '0.75rem', color: 'var(--th-text-4)', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Selecione o ficheiro Excel (.xlsx):</label>
                                 <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} style={{ fontSize: '0.75rem', width: '100%' }} />
                                 {importedData.rows.length > 0 && (
                                     <p style={{ fontSize: '0.7rem', color: '#16a34a', margin: '5px 0 0 0', fontWeight: 'bold' }}>

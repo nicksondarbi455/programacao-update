@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { Button } from '../atoms/Button';
 import { EVENT_COLORS, getEventColor } from '../../constants/eventColors';
 
-const labelStyle = { fontSize: '0.75rem', fontWeight: 'bold', color: '#475569' };
+const labelStyle = { fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--th-text-4)' };
 const inputStyle = {
     padding: '8px 10px',
     borderRadius: '6px',
-    border: '1px solid #cbd5e1',
+    border: '1px solid var(--th-border-strong)',
     fontSize: '0.85rem',
-    background: '#f8fafc',
+    background: 'var(--th-surface-2)',
     boxSizing: 'border-box',
     width: '100%'
 };
@@ -30,9 +30,9 @@ export function GroupEventModal({ onConfirm, onCancel }) {
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100000, backdropFilter: 'blur(2px)' }}>
-            <form onSubmit={handleSubmit} style={{ background: '#ffffff', padding: '24px', borderRadius: '12px', width: '380px', maxWidth: '92%', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '14px', fontFamily: 'DM Sans, sans-serif' }}>
+            <form onSubmit={handleSubmit} style={{ background: 'var(--th-surface)', padding: '24px', borderRadius: '12px', width: '380px', maxWidth: '92%', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: '14px', fontFamily: 'DM Sans, sans-serif' }}>
                 <div>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#0f172a' }}>Novo evento</h3>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--th-text)' }}>Novo evento</h3>
                 </div>
 
                 <label style={labelStyle}>Nome do evento</label>
@@ -58,7 +58,7 @@ export function GroupEventModal({ onConfirm, onCancel }) {
                         />
                     ))}
                 </div>
-                <span style={{ fontSize: '0.75rem', color: '#475569' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--th-text-4)' }}>
                     Cor selecionada: <strong>{getEventColor(color).label}</strong>
                 </span>
 

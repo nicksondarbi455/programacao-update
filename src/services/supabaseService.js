@@ -404,6 +404,31 @@ export const supabaseService = {
         await logAction(LOG_ACTIONS.TRASH_EMPTY, { entityType: 'lixeira', details: {} });
     },
 
+    // --- PREFERÊNCIAS DO USUÁRIO (fixar e ordem) ---
+    async getLayout(userEmail) {
+        const { data, error } = await supabase
+            .from('user_item_prefs')
+            .select('item_kind, item_id, pinned, position')
+            .eq('user_email', userEmail.toLowerCase());
+        check('Erro ao carregar preferências', { error });
+        return (data || []).map((r) => ({ kind: r.item_kind, id: r.item_id, pinned: r.pinned, position: r.position }));
+    },
+
+    async saveLayout(userEmail, rows) {
+        if (!rows || rows.length === 0) return;
+        const now = new Date().toISOString();
+        check('Erro ao salvar a ordem', await supabase
+            .from('user_item_prefs')
+            .upsert(rows.map((r) => ({
+                user_email: userEmail.toLowerCase(),
+                item_kind: r.kind,
+                item_id: r.id,
+                pinned: r.pinned,
+                position: r.position,
+                updated_at: now
+            })), { onConflict: 'user_email,item_kind,item_id' }));
+    },
+
     // --- COMENTÁRIOS E HISTÓRICO ---
     async listComments(projectId, targetType, targetId) {
         const { data, error } = await supabase

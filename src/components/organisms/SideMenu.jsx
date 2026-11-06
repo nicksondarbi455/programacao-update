@@ -17,7 +17,9 @@ export function SideMenu({
     showLogs = false,
     pinned = true,
     onTogglePin,
-    mobileOpen = false
+    mobileOpen = false,
+    theme = 'light',
+    onToggleTheme
 }) {
     // Menu não fixado mostra somente os ícones
     const collapsed = !pinned;
@@ -69,6 +71,15 @@ export function SideMenu({
 
             <div className="sidebar-footer">
                 <p className="sidebar-email">{userEmail}</p>
+                <button
+                    type="button"
+                    className="sidebar-logout"
+                    onClick={onToggleTheme}
+                    title={theme === 'dark' ? 'Usar modo claro' : 'Usar modo escuro'}
+                >
+                    <i className={theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon'}></i>
+                    <span>{theme === 'dark' ? 'Modo claro' : 'Modo escuro'}</span>
+                </button>
                 <button
                     type="button"
                     className="sidebar-logout"

@@ -16,8 +16,8 @@ export function MentionsPanel({ email, onOpenProject }) {
     if (mentions.length === 0) return null;
 
     return (
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px', marginBottom: '20px' }}>
-            <div style={{ marginBottom: '10px', fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>
+        <div style={{ background: 'var(--th-surface)', border: '1px solid var(--th-border)', borderRadius: '10px', padding: '14px 16px', marginBottom: '20px' }}>
+            <div style={{ marginBottom: '10px', fontSize: '0.95rem', fontWeight: 700, color: 'var(--th-text)' }}>
                 <i className="fa-regular fa-at" style={{ color: '#2563eb', marginRight: '6px' }}></i>
                 Menções para você
             </div>
@@ -31,12 +31,12 @@ export function MentionsPanel({ email, onOpenProject }) {
                             key={m.id}
                             type="button"
                             onClick={() => onOpenProject(m.project_id)}
-                            style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', fontFamily: 'inherit' }}
+                            style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left', background: 'var(--th-surface-2)', border: '1px solid var(--th-border)', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', fontFamily: 'inherit' }}
                         >
-                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                            <span style={{ fontSize: '0.68rem', color: 'var(--th-muted)' }}>
                                 {m.projects?.name || 'Projeto'} · {m.author_email} · {new Date(m.created_at).toLocaleString('pt-BR')}
                             </span>
-                            <span style={{ fontSize: '0.8rem', color: '#1e293b' }}>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--th-text-2)' }}>
                                 <strong>{subject}</strong> — {plainBody(m.body)}
                             </span>
                         </button>

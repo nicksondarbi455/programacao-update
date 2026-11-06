@@ -40,6 +40,13 @@ export default function App() {
     const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [paletteOpen, setPaletteOpen] = useState(false);
+    // Tema claro ou escuro, lembrado entre acessos
+    const [theme, setTheme] = useState(() => localStorage.getItem('tema') || 'light');
+
+    useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('tema', theme);
+    }, [theme]);
 
     useEffect(() => {
         localStorage.setItem('menuFixado', String(menuPinned));
@@ -152,7 +159,7 @@ export default function App() {
     };
 
     if (session === undefined) {
-        return <p style={{ textAlign: 'center', marginTop: '40vh', color: '#64748b', fontFamily: 'DM Sans, sans-serif' }}>A carregar...</p>;
+        return <p style={{ textAlign: 'center', marginTop: '40vh', color: 'var(--th-muted)', fontFamily: 'DM Sans, sans-serif' }}>A carregar...</p>;
     }
 
     if (recovering) {
@@ -222,6 +229,8 @@ export default function App() {
                 pinned={isMobile ? true : menuPinned}
                 onTogglePin={() => setMenuPinned((p) => !p)}
                 mobileOpen={isMobile && drawerOpen}
+                theme={theme}
+                onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
             />
 
             <main style={{ flex: 1, minWidth: 0, paddingTop: isMobile ? '52px' : 0 }}>

@@ -12,8 +12,8 @@ export function TopBar({
     percentage = 0
 }) {
     return (
-        <div className="top-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px', background: '#ffffff', borderBottom: '1px solid #e2e8f0' }}>
-            <div className="alert-box" style={{ fontSize: '0.85rem', color: '#334155', fontWeight: '600' }}>
+        <div className="top-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px', background: 'var(--th-surface)', borderBottom: '1px solid var(--th-border)' }}>
+            <div className="alert-box" style={{ fontSize: '0.85rem', color: 'var(--th-text-3)', fontWeight: '600' }}>
                 <span>{todayAlertText}</span>
                 <ProgressBar percentage={percentage} />
             </div>

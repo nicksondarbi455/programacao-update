@@ -88,7 +88,7 @@ export function NocTable({
                 e.dataTransfer.setDragImage(e.currentTarget.closest('tr'), 20, 10);
                 onRowDragStart(eq.id);
             }}
-            style={{ cursor: 'grab', color: '#475569', fontSize: '1rem', padding: '0 4px' }}
+            style={{ cursor: 'grab', color: 'var(--th-text-4)', fontSize: '1rem', padding: '0 4px' }}
         >
             <i className="fa-solid fa-grip-vertical"></i>
         </span>
@@ -155,7 +155,7 @@ export function NocTable({
                     <td
                         key={`std-${i}`}
                         colSpan={seg.span}
-                        style={{ textAlign: 'center', padding: '6px 12px', fontWeight: 'bold', color: '#0f172a', letterSpacing: '1px', textTransform: 'uppercase' }}
+                        style={{ textAlign: 'center', padding: '6px 12px', fontWeight: 'bold', color: 'var(--th-text)', letterSpacing: '1px', textTransform: 'uppercase' }}
                     >
                         {isTitle && (isEditMode ? (
                             <input
@@ -164,8 +164,8 @@ export function NocTable({
                                 onChange={(e) => onUpdateField(eq.id, 'groupName', e.target.value)}
                                 placeholder="NOME DO EVENTO"
                                 style={{
-                                    fontWeight: '800', textAlign: 'center', background: '#e2e8f0', borderRadius: '4px',
-                                    border: '1px solid #475569', color: '#0f172a', width: '100%', maxWidth: '100%',
+                                    fontWeight: '800', textAlign: 'center', background: 'var(--th-border)', borderRadius: '4px',
+                                    border: '1px solid #475569', color: 'var(--th-text)', width: '100%', maxWidth: '100%',
                                     boxSizing: 'border-box', display: 'block', padding: '3px 6px', margin: 0
                                 }}
                             />
@@ -180,7 +180,7 @@ export function NocTable({
             let w = parseInt(col.width) || 150;
             let cellValue = eq[col.id] !== undefined ? eq[col.id] : '';
             return (
-                <td key={col.id} className={col.type === 'checkbox' ? 'checkbox-cell' : ''} style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, background: '#cbd5e1' }}>
+                <td key={col.id} className={col.type === 'checkbox' ? 'checkbox-cell' : ''} style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, background: 'var(--th-border-strong)' }}>
                     {col.type === 'checkbox' ? (
                         <Checkbox checked={!!cellValue} onChange={(e) => onUpdateField(eq.id, col.id, e.target.checked)} />
                     ) : (
@@ -203,12 +203,12 @@ export function NocTable({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <h2>Gestão de Dados ({filteredEquipments.length} registos)</h2>
                     {onOpenSettings && (
-                        <button type="button" title="Configurações do projeto" onClick={onOpenSettings} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: '0.95rem', padding: 0, lineHeight: 1 }}>
+                        <button type="button" title="Configurações do projeto" onClick={onOpenSettings} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--th-muted)', fontSize: '0.95rem', padding: 0, lineHeight: 1 }}>
                             <i className="fa-solid fa-gear"></i>
                         </button>
                     )}
                 </div>
-                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>💡 No modo de edição, arraste pelo ícone ⋮⋮ para mover linhas e use a bandeira para marcar um evento.</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--th-muted)' }}>💡 No modo de edição, arraste pelo ícone ⋮⋮ para mover linhas e use a bandeira para marcar um evento.</span>
             </div>
             <div className="table-container">
                 <table id="noc-table" style={{ width: `${totalWidth}px` }}>
@@ -259,7 +259,7 @@ export function NocTable({
                     <tbody>
                         {filteredEquipments.length === 0 ? (
                             <tr>
-                                <td colSpan={columnConfig.length + (isEditMode ? 2 : 1)} style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+                                <td colSpan={columnConfig.length + (isEditMode ? 2 : 1)} style={{ textAlign: 'center', padding: '20px', color: 'var(--th-muted)' }}>
                                     Nenhum registo encontrado.
                                 </td>
                             </tr>
@@ -303,7 +303,7 @@ export function NocTable({
                                             // Se a coluna for exclusiva para Eventos, exibe travada nas linhas padrão
                                             if (col.targetScope === 'events') {
                                                 return (
-                                                    <td key={col.id} style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, textAlign: 'center', color: '#cbd5e1', background: '#f8fafc', fontSize: '0.8rem' }} title="Campo exclusivo para faixas de evento">
+                                                    <td key={col.id} style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, textAlign: 'center', color: '#cbd5e1', background: 'var(--th-surface-2)', fontSize: '0.8rem' }} title="Campo exclusivo para faixas de evento">
                                                         —
                                                     </td>
                                                 );
@@ -332,7 +332,7 @@ export function NocTable({
                                                     className="color-select" 
                                                     value={eq.color || 'padrao'} 
                                                     onChange={(e) => onUpdateField(eq.id, 'color', e.target.value)} 
-                                                    style={{ fontSize: '0.65rem', padding: '2px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '3px' }}
+                                                    style={{ fontSize: '0.65rem', padding: '2px', background: 'var(--th-surface)', border: '1px solid var(--th-border-strong)', borderRadius: '3px' }}
                                                 >
                                                     <option value="padrao">Normal</option>
                                                     <option value="vermelho">🔴 Crítico</option>

@@ -49,9 +49,9 @@ const thStyle = {
     textAlign: 'left',
     fontSize: '0.75rem',
     fontWeight: 700,
-    color: '#475569',
-    background: '#f1f5f9',
-    borderBottom: '1px solid #e2e8f0',
+    color: 'var(--th-text-4)',
+    background: 'var(--th-surface-3)',
+    borderBottom: '1px solid var(--th-border)',
     whiteSpace: 'nowrap'
 };
 
@@ -59,8 +59,8 @@ const tdStyle = {
     height: 'auto', // a regra global de th/td fixa 32px e cortaria os detalhes
     padding: '10px 12px',
     fontSize: '0.8rem',
-    color: '#334155',
-    borderBottom: '1px solid #f1f5f9',
+    color: 'var(--th-text-3)',
+    borderBottom: '1px solid var(--th-surface-3)',
     verticalAlign: 'top',
     whiteSpace: 'normal',
     overflow: 'visible',
@@ -72,7 +72,7 @@ const tagStyle = {
     marginRight: '6px',
     padding: '1px 6px',
     borderRadius: '4px',
-    background: '#eef2ff',
+    background: 'var(--th-tint-blue)',
     color: '#3730a3',
     fontSize: '0.65rem',
     fontWeight: 700,
@@ -109,7 +109,7 @@ function DetailsList({ details }) {
 
     return Object.entries(details).map(([key, value]) => (
         <div key={key}>
-            <span style={{ fontWeight: 600, color: '#475569' }}>{DETAIL_LABELS[key] || key}:</span>{' '}
+            <span style={{ fontWeight: 600, color: 'var(--th-text-4)' }}>{DETAIL_LABELS[key] || key}:</span>{' '}
             {value === null || value === undefined ? '-' : typeof value === 'object' ? JSON.stringify(value) : String(value)}
         </div>
     ));
@@ -127,8 +127,8 @@ const PERIODS = [
 
 const EMPTY_FILTERS = { user: '', action: '', period: 'todos', from: '', to: '' };
 
-const fieldInput = { padding: '7px 9px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.8rem', color: '#0f172a', fontFamily: 'inherit' };
-const fieldLabel = { fontSize: '0.7rem', color: '#64748b', fontWeight: 'bold', marginBottom: '3px', display: 'block' };
+const fieldInput = { padding: '7px 9px', background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--th-text)', fontFamily: 'inherit' };
+const fieldLabel = { fontSize: '0.7rem', color: 'var(--th-muted)', fontWeight: 'bold', marginBottom: '3px', display: 'block' };
 
 // Escapa % e _ para a busca por texto não tratar esses caracteres como curingas
 const escapeLike = (s) => s.replace(/[%_\\]/g, (c) => '\\' + c);
@@ -279,7 +279,7 @@ export function LogsPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
                     <div>
                         <h2 style={{ fontSize: '1.4rem', margin: 0 }}>Logs de Atividade</h2>
-                        <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--th-muted)' }}>
                             {loading ? 'Carregando...' : `${total} ${total === 1 ? 'registro encontrado' : 'registros encontrados'}`}
                         </p>
                     </div>
@@ -292,7 +292,7 @@ export function LogsPage() {
                 </div>
 
                 {/* Filtros */}
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px' }}>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', background: 'var(--th-surface)', border: '1px solid var(--th-border)', borderRadius: '10px', padding: '12px' }}>
                     <div>
                         <label style={fieldLabel}>Usuário</label>
                         <div style={{ display: 'flex', gap: '6px' }}>
@@ -344,12 +344,12 @@ export function LogsPage() {
                 </div>
 
                 {error && (
-                    <p role="alert" style={{ margin: 0, fontSize: '0.8rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px' }}>
+                    <p role="alert" style={{ margin: 0, fontSize: '0.8rem', color: '#b91c1c', background: 'var(--th-tint-red)', border: '1px solid #fecaca', borderRadius: '6px', padding: '8px 12px' }}>
                         ⚠️ Erro ao carregar logs: {error}
                     </p>
                 )}
 
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', overflowX: 'auto' }}>
+                <div style={{ background: 'var(--th-surface)', border: '1px solid var(--th-border)', borderRadius: '10px', overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
                         <thead>
                             <tr>
@@ -363,7 +363,7 @@ export function LogsPage() {
                         <tbody>
                             {loading && logs.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} style={{ ...tdStyle, textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                                    <td colSpan={5} style={{ ...tdStyle, textAlign: 'center', padding: '24px', color: 'var(--th-muted)' }}>
                                         Carregando registros...
                                     </td>
                                 </tr>
@@ -371,7 +371,7 @@ export function LogsPage() {
 
                             {!loading && logs.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} style={{ ...tdStyle, textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                                    <td colSpan={5} style={{ ...tdStyle, textAlign: 'center', padding: '24px', color: 'var(--th-muted)' }}>
                                         Nenhum registro encontrado com estes filtros.
                                     </td>
                                 </tr>
@@ -402,7 +402,7 @@ export function LogsPage() {
                 </div>
 
                 {/* Paginação */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#475569' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: 'var(--th-text-4)' }}>
                     <span>Página {page + 1} de {totalPages}</span>
                     <div style={{ display: 'flex', gap: '6px' }}>
                         <Button size="sm" variant="secondary" disabled={page === 0 || loading} onClick={() => setPage((p) => p - 1)}>
