@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './services/supabase';
 import { AuthPage } from './pages/AuthPage';
+import { NewPasswordPage } from './pages/NewPasswordPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { NocPage } from './pages/NocPage';
 import { UsersPage } from './pages/UsersPage';
@@ -8,6 +9,7 @@ import { TrashPage } from './pages/TrashPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { LogsPage } from './pages/LogsPage';
 import { SideMenu } from './components/organisms/SideMenu';
+import { CommandPalette } from './components/organisms/CommandPalette';
 import { logAction, LOG_ACTIONS } from './services/logService';
 import { usersService } from './services/usersService';
 
@@ -22,23 +24,40 @@ const PLACEHOLDERS = {
 // Minutos sem atividade do usuário até a sessão ser encerrada automaticamente
 const INACTIVITY_MINUTES = 30;
 
+// Abaixo desta largura o menu vira uma gaveta (celular)
+const MOBILE_QUERY = '(max-width: 768px)';
+
 export default function App() {
     // undefined = a verificar sessão | null = sem sessão | objeto = sessão ativa
     const [session, setSession] = useState(undefined);
+    const [recovering, setRecovering] = useState(false);
     const [currentProject, setCurrentProject] = useState(null);
+    const [focusFolderId, setFocusFolderId] = useState(null);
     const [section, setSection] = useState('pastas');
     const [role, setRole] = useState(NO_ROLE);
     // Menu lateral fixado (expandido) ou recolhido (somente ícones), lembrado entre acessos
     const [menuPinned, setMenuPinned] = useState(() => localStorage.getItem('menuFixado') !== 'false');
+    const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [paletteOpen, setPaletteOpen] = useState(false);
 
     useEffect(() => {
         localStorage.setItem('menuFixado', String(menuPinned));
     }, [menuPinned]);
 
     useEffect(() => {
+        const mq = window.matchMedia(MOBILE_QUERY);
+        const onChange = () => setIsMobile(mq.matches);
+        mq.addEventListener('change', onChange);
+        return () => mq.removeEventListener('change', onChange);
+    }, []);
+
+    useEffect(() => {
         supabase.auth.getSession().then(({ data }) => setSession(data.session));
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+            // Link do e-mail de recuperação: mostra a tela de nova senha
+            if (event === 'PASSWORD_RECOVERY') setRecovering(true);
             setSession(newSession);
             if (!newSession) {
                 setCurrentProject(null);
@@ -47,6 +66,18 @@ export default function App() {
         });
 
         return () => subscription.unsubscribe();
+    }, []);
+
+    // Ctrl+K (ou ⌘K) abre a busca global
+    useEffect(() => {
+        const onKey = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                setPaletteOpen((open) => !open);
+            }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
     }, []);
 
     // Papel do utilizador (master / administrador), recarregado a cada login
@@ -101,10 +132,31 @@ export default function App() {
     const handleSelectSection = (id) => {
         setSection(id);
         setCurrentProject(null);
+        setDrawerOpen(false);
+    };
+
+    // Resultados da busca global (Ctrl+K)
+    const handlePaletteProject = (proj) => {
+        setPaletteOpen(false);
+        setDrawerOpen(false);
+        setSection('pastas');
+        handleOpenProject(proj);
+    };
+
+    const handlePaletteFolder = (folderId) => {
+        setPaletteOpen(false);
+        setDrawerOpen(false);
+        setSection('pastas');
+        setCurrentProject(null);
+        setFocusFolderId(folderId);
     };
 
     if (session === undefined) {
         return <p style={{ textAlign: 'center', marginTop: '40vh', color: '#64748b', fontFamily: 'DM Sans, sans-serif' }}>A carregar...</p>;
+    }
+
+    if (recovering) {
+        return <NewPasswordPage onDone={() => setRecovering(false)} />;
     }
 
     if (!session) {
@@ -120,13 +172,15 @@ export default function App() {
                 project={currentProject}
                 userEmail={user.email}
                 onBackToDashboard={() => setCurrentProject(null)}
-            onProjectUpdated={(p) => setCurrentProject(p)}
+                onProjectUpdated={(p) => setCurrentProject(p)}
             />
         ) : (
             <DashboardPage
                 user={user}
                 onSelectProject={handleOpenProject}
                 onLogout={handleLogout}
+                focusFolderId={focusFolderId}
+                onFocusHandled={() => setFocusFolderId(null)}
             />
         );
     } else if (section === 'usuarios') {
@@ -145,6 +199,19 @@ export default function App() {
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh' }}>
+            {isMobile && (
+                <div className="mobile-topbar">
+                    <button type="button" className="mobile-menu-btn" onClick={() => setDrawerOpen(true)} aria-label="Abrir menu">
+                        <i className="fa-solid fa-bars"></i>
+                    </button>
+                    <span className="mobile-title">Ne<span style={{ color: '#3f6cff' }}>x</span>T</span>
+                </div>
+            )}
+
+            {isMobile && drawerOpen && (
+                <div className="mobile-backdrop" onClick={() => setDrawerOpen(false)} />
+            )}
+
             <SideMenu
                 active={section}
                 showUsers={role.isAdmin}
@@ -152,12 +219,23 @@ export default function App() {
                 onSelect={handleSelectSection}
                 userEmail={user.email}
                 onLogout={handleLogout}
-                pinned={menuPinned}
+                pinned={isMobile ? true : menuPinned}
                 onTogglePin={() => setMenuPinned((p) => !p)}
+                mobileOpen={isMobile && drawerOpen}
             />
-            <main style={{ flex: 1, minWidth: 0 }}>
+
+            <main style={{ flex: 1, minWidth: 0, paddingTop: isMobile ? '52px' : 0 }}>
                 {content}
             </main>
+
+            {paletteOpen && (
+                <CommandPalette
+                    userEmail={user.email}
+                    onClose={() => setPaletteOpen(false)}
+                    onOpenProject={handlePaletteProject}
+                    onOpenFolder={handlePaletteFolder}
+                />
+            )}
         </div>
     );
 }

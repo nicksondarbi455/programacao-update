@@ -29,6 +29,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     const [commentTarget, setCommentTarget] = useState(null);
     const [commentCounts, setCommentCounts] = useState({});
     const [people, setPeople] = useState([]);
+    const [realtimeStatus, setRealtimeStatus] = useState('conectando');
     // Estado das linhas no início da edição em lote (para registrar o que mudou)
     const editSnapshotRef = useRef([]);
 
@@ -136,7 +137,8 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
             .on('postgres_changes', { event: '*', schema: 'public', table: 'equipments', filter: `project_id=eq.${project.id}` }, refreshIfIdle)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'column_configs', filter: `project_id=eq.${project.id}` }, refreshIfIdle)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules', filter: `project_id=eq.${project.id}` }, refreshIfIdle)
-            .subscribe();
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'item_comments', filter: `project_id=eq.${project.id}` }, () => refreshCommentCounts())
+            .subscribe((status) => setRealtimeStatus(status === 'SUBSCRIBED' ? 'online' : 'offline'));
 
         return () => {
             supabase.removeChannel(channel);
@@ -587,7 +589,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
             <div style={{ background: '#1e293b', padding: '8px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Projeto: {project.name} {project.isPrivate ? '🔒' : ''}</span>
-                    <span style={{ fontSize: '0.7rem', color: '#22c55e', marginLeft: '10px' }}>🟢 Conectado ao Supabase (Realtime)</span>
+                    <span style={{ fontSize: '0.7rem', color: '#22c55e', marginLeft: '10px' }}>{realtimeStatus === 'online' ? '🟢 Conectado (tempo real)' : '🟠 Reconectando...'}</span>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <Button variant="secondary" size="sm" onClick={handleExportExcel}><i className="fa-regular fa-file-excel"></i> Exportar Excel</Button>

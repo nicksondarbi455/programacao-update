@@ -126,6 +126,7 @@ export function AuthPage() {
     const [loading, setLoading] = useState(false);
 
     const isLogin = mode === 'login';
+    const isRecover = mode === 'recover';
 
     const updateField = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
     const clearForm = () => setForm(EMPTY_FORM);
@@ -142,6 +143,22 @@ export function AuthPage() {
         setMessage(null);
 
         const email = form.email.trim().toLowerCase();
+
+        // Recuperação: envia o link. A mensagem é a mesma exista ou não a conta (não revela e-mails)
+        if (isRecover) {
+            try {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + window.location.pathname
+                });
+                if (error) throw error;
+                setMessage({ type: 'info', text: 'Se este e-mail estiver cadastrado, enviamos um link para redefinir a senha.' });
+            } catch (err) {
+                setMessage({ type: 'error', text: translateError(err) });
+            } finally {
+                setLoading(false);
+            }
+            return;
+        }
 
         try {
             if (isLogin) {
@@ -184,12 +201,14 @@ export function AuthPage() {
         }
     };
 
-    const fields = [
-        ...(!isLogin ? [{ key: 'name', label: 'Nome', type: 'text', autoComplete: 'name' }] : []),
-        { key: 'email', label: 'E-mail', type: 'email', autoComplete: 'email' },
-        { key: 'password', label: 'Senha', type: 'password', autoComplete: isLogin ? 'current-password' : 'new-password', minLength: 6 },
-        ...(!isLogin ? [{ key: 'confirmPassword', label: 'Confirmar senha', type: 'password', autoComplete: 'new-password', minLength: 6 }] : [])
-    ];
+    const fields = isRecover
+        ? [{ key: 'email', label: 'E-mail', type: 'email', autoComplete: 'email' }]
+        : [
+            ...(!isLogin ? [{ key: 'name', label: 'Nome', type: 'text', autoComplete: 'name' }] : []),
+            { key: 'email', label: 'E-mail', type: 'email', autoComplete: 'email' },
+            { key: 'password', label: 'Senha', type: 'password', autoComplete: isLogin ? 'current-password' : 'new-password', minLength: 6 },
+            ...(!isLogin ? [{ key: 'confirmPassword', label: 'Confirmar senha', type: 'password', autoComplete: 'new-password', minLength: 6 }] : [])
+        ];
 
     return (
         <div className="auth-page">
@@ -204,7 +223,9 @@ export function AuthPage() {
                     <div style={{ textAlign: 'center' }}>
                         {isLogin && <h1 style={{ margin: 0, color: '#0f172a', fontFamily: "'Architects Daughter', cursive", fontSize: '2.1rem', fontWeight: 400, letterSpacing: '0.5px', lineHeight: 1 }}>Ne<span style={{ color: '#3f6cff' }}>x</span>T</h1>}
                         {isLogin && <h2 style={{ margin: '10px 0 0 0', color: '#0f172a', fontSize: '1.1rem', fontWeight: '700' }}>Login</h2>}
-                        {!isLogin && <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Crie a sua conta</p>}
+                        {!isLogin && !isRecover && <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Crie a sua conta</p>}
+                        {isRecover && <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem', fontWeight: '700' }}>Recuperar senha</h2>}
+                        {isRecover && <p style={{ margin: '6px 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>Informe o seu e-mail para receber o link.</p>}
                     </div>
 
                     <form onSubmit={handleAuth} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -236,12 +257,32 @@ export function AuthPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75" />
                             </svg>
                             <div className="text">
-                                {loading ? 'Aguarde...' : isLogin ? 'Entrar' : 'Criar conta'}
+                                {loading ? 'Aguarde...' : isRecover ? 'Enviar link' : isLogin ? 'Entrar' : 'Criar conta'}
                             </div>
                         </button>
                     </form>
 
-                    {SHOW_REGISTER && (
+                    {isLogin && (
+                        <button
+                            type="button"
+                            onClick={() => { setMode('recover'); setMessage(null); clearForm(); }}
+                            style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '0.72rem', cursor: 'pointer', marginTop: '10px' }}
+                        >
+                            Esqueci minha senha
+                        </button>
+                    )}
+
+                    {isRecover && (
+                        <button
+                            type="button"
+                            onClick={() => { setMode('login'); setMessage(null); clearForm(); }}
+                            style={{ background: 'none', border: 'none', color: '#2914c8', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '600', marginTop: '16px' }}
+                        >
+                            Voltar ao login
+                        </button>
+                    )}
+
+                    {SHOW_REGISTER && !isRecover && (
                         <button
                             type="button"
                             onClick={switchMode}

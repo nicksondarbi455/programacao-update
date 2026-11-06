@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { supabase } from '../services/supabase';
 import { supabaseService } from '../services/supabaseService';
 import { usersService } from '../services/usersService';
 import { Button } from '../components/atoms/Button';
@@ -58,7 +59,7 @@ function ChoiceCard({ icon, title, description, disabled, onClick }) {
     );
 }
 
-export function DashboardPage({ user, onSelectProject, onLogout }) {
+export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, onFocusHandled }) {
     const [projects, setProjects] = useState([]);
     const [folders, setFolders] = useState([]);
     const [foldersError, setFoldersError] = useState('');
@@ -140,6 +141,46 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             .catch((err) => alert('Erro ao carregar departamentos: ' + err.message))
             .finally(() => setLoadingDeps(false));
     }, [needsDepartments]);
+
+    // Tempo real: qualquer mudança em projetos ou pastas recarrega a lista (com um pequeno atraso)
+    const [liveStatus, setLiveStatus] = useState('conectando');
+    const refreshTimerRef = useRef(null);
+    useEffect(() => {
+        const scheduleRefresh = () => {
+            clearTimeout(refreshTimerRef.current);
+            refreshTimerRef.current = setTimeout(() => {
+                loadAll().catch(() => {});
+            }, 500);
+        };
+
+        const channel = supabase
+            .channel(`dashboard-${user.email}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, scheduleRefresh)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'folders' }, scheduleRefresh)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'folder_departments' }, scheduleRefresh)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'project_departments' }, scheduleRefresh)
+            .subscribe((status) => setLiveStatus(status === 'SUBSCRIBED' ? 'online' : 'offline'));
+
+        return () => {
+            clearTimeout(refreshTimerRef.current);
+            supabase.removeChannel(channel);
+        };
+    }, [user.email]);
+
+    // Abertura vinda da busca global (Ctrl+K): abre a pasta com o caminho até ela
+    useEffect(() => {
+        if (!focusFolderId || folders.length === 0) return;
+        const chain = [];
+        let current = folders.find((f) => f.id === focusFolderId);
+        while (current) {
+            chain.unshift(current.id);
+            const parentId = current.parentId;
+            current = parentId ? folders.find((f) => f.id === parentId) : null;
+        }
+        setSearch('');
+        setFolderPath(chain);
+        if (onFocusHandled) onFocusHandled();
+    }, [focusFolderId, folders, onFocusHandled]);
 
     // --- Pastas: busca, caminho completo e navegação ---
     const folderById = Object.fromEntries(folders.map((f) => [f.id, f]));
@@ -309,7 +350,7 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #cbd5e1', paddingBottom: '15px', marginBottom: '20px' }}>
                 <div>
                     <h2 style={{ margin: 0, color: '#0f172a', fontSize: '1.4rem' }}>Meus Projetos e Serviços</h2>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Sincronização em tempo real ativada.</p>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>{liveStatus === 'online' ? 'Sincronização em tempo real ativada.' : 'Conectando à sincronização em tempo real...'}</p>
                 </div>
                 <Button variant="danger" onClick={onLogout}>Terminar sessão</Button>
             </div>

@@ -528,3 +528,65 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
 .sidebar-brand-name { color: #0f172a; }
 .sidebar-pin { color: #3f6cff; }
 .sidebar-pin:hover { background: rgba(63, 108, 255, 0.12); color: #3f6cff; }
+
+/* ===== Versão para celular (até 768px): menu vira gaveta ===== */
+.mobile-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  z-index: 8000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mobile-menu-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #0f172a;
+  cursor: pointer;
+  padding: 6px;
+}
+
+.mobile-title {
+  font-family: 'Architects Daughter', cursive;
+  font-size: 1.7rem;
+  line-height: 1;
+  color: #0f172a;
+}
+
+.mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 8500;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: auto;
+    width: 240px !important;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    z-index: 9000;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-pin {
+    display: none;
+  }
+}

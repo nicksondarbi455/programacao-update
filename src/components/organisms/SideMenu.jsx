@@ -16,7 +16,8 @@ export function SideMenu({
     showUsers = false,
     showLogs = false,
     pinned = true,
-    onTogglePin
+    onTogglePin,
+    mobileOpen = false
 }) {
     // Menu não fixado mostra somente os ícones
     const collapsed = !pinned;
@@ -29,7 +30,7 @@ export function SideMenu({
     });
 
     return (
-        <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
+        <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' mobile-open' : ''}`}>
             <div className="sidebar-brand">
                 <img
                     src={`${import.meta.env.BASE_URL}logo.png`}
