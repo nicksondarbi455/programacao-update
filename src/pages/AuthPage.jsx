@@ -146,7 +146,11 @@ export function AuthPage() {
         try {
             if (isLogin) {
                 const { error } = await supabase.auth.signInWithPassword({ email, password: form.password });
-                if (error) throw error;
+                if (error) {
+                    // Registra a tentativa falha (sem a senha); o servidor só grava se a conta existir
+                    await supabase.rpc('log_failed_login', { p_email: email, p_motivo: error.message });
+                    throw error;
+                }
                 // Registra apenas o login real (com as credenciais), não a sessão restaurada ao recarregar
                 await logAction(LOG_ACTIONS.LOGIN, { details: getClientInfo() });
                 // O App deteta a sessão via onAuthStateChange e troca de ecrã.

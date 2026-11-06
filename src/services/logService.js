@@ -25,7 +25,14 @@ export const LOG_ACTIONS = {
     FOLDER_EDIT: 'pasta_editada',
     FOLDER_DELETE: 'pasta_excluida',
     FOLDER_RESTORE: 'pasta_restaurada',
-    TRASH_EMPTY: 'lixeira_esvaziada'
+    TRASH_EMPTY: 'lixeira_esvaziada',
+    // Usuários e departamentos (exclusão, admin e senha são gravados pelo próprio banco)
+    USER_CREATE: 'usuario_criado',
+    DEPARTMENT_CREATE: 'departamento_criado',
+    DEPARTMENT_RENAME: 'departamento_renomeado',
+    DEPARTMENT_DELETE: 'departamento_excluido',
+    MEMBER_SET: 'acesso_departamento_definido',
+    MEMBER_REMOVE: 'acesso_departamento_removido'
 };
 
 /**

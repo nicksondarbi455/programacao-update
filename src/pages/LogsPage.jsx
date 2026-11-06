@@ -27,7 +27,18 @@ const ACTION_LABELS = {
     pasta_editada: 'Pasta editada',
     pasta_excluida: 'Pasta para a lixeira',
     pasta_restaurada: 'Pasta restaurada',
-    lixeira_esvaziada: 'Lixeira esvaziada'
+    lixeira_esvaziada: 'Lixeira esvaziada',
+    usuario_criado: 'Usuário criado',
+    usuario_excluido: 'Usuário excluído',
+    admin_concedido: 'Administrador concedido',
+    admin_removido: 'Administrador removido',
+    senha_redefinida: 'Senha redefinida',
+    login_falhou: 'Login falhou',
+    departamento_criado: 'Departamento criado',
+    departamento_renomeado: 'Departamento renomeado',
+    departamento_excluido: 'Departamento excluído',
+    acesso_departamento_definido: 'Acesso a departamento definido',
+    acesso_departamento_removido: 'Acesso a departamento removido'
 };
 
 const thStyle = {
@@ -81,7 +92,11 @@ const DETAIL_LABELS = {
     nome: 'Nome',
     destino: 'Destino',
     dentro_de: 'Dentro de',
-    departamentos: 'Departamentos'
+    departamentos: 'Departamentos',
+    email: 'E-mail',
+    nivel: 'Nível de acesso',
+    departamento: 'Departamento',
+    id: 'ID'
 };
 
 // Mostra cada detalhe em sua própria linha: "Navegador: Chrome 130"

@@ -1,4 +1,5 @@
 import { supabase, createIsolatedClient } from './supabase';
+import { logAction, LOG_ACTIONS } from './logService';
 
 // Lança um erro legível quando o Supabase devolve { error }
 const check = (context, { error }) => {
@@ -75,6 +76,12 @@ export const usersService = {
             friendly.isPasswordError = isPassword;
             throw friendly;
         }
+
+        await logAction(LOG_ACTIONS.USER_CREATE, {
+            entityType: 'usuario',
+            entityId: normalizeEmail(email),
+            details: { nome: name.trim() }
+        });
         return data.user;
     },
 
@@ -111,9 +118,15 @@ export const usersService = {
     },
 
     async createDepartment(name) {
+        const id = 'dep_' + Date.now();
         check('Erro ao criar departamento', await supabase
             .from('departments')
-            .insert({ id: 'dep_' + Date.now(), name: name.trim() }));
+            .insert({ id, name: name.trim() }));
+        await logAction(LOG_ACTIONS.DEPARTMENT_CREATE, {
+            entityType: 'departamento',
+            entityId: id,
+            details: { nome: name.trim() }
+        });
     },
 
     async renameDepartment(id, name) {
@@ -121,10 +134,16 @@ export const usersService = {
             .from('departments')
             .update({ name: name.trim() })
             .eq('id', id));
+        await logAction(LOG_ACTIONS.DEPARTMENT_RENAME, {
+            entityType: 'departamento',
+            entityId: id,
+            details: { nome: name.trim() }
+        });
     },
 
     async deleteDepartment(id) {
         check('Erro ao excluir departamento', await supabase.from('departments').delete().eq('id', id));
+        await logAction(LOG_ACTIONS.DEPARTMENT_DELETE, { entityType: 'departamento', entityId: id });
     },
 
     // Adiciona o utilizador ao departamento, ou atualiza o nível de acesso dele
@@ -134,6 +153,11 @@ export const usersService = {
             user_email: normalizeEmail(email),
             access_level: accessLevel
         }));
+        await logAction(LOG_ACTIONS.MEMBER_SET, {
+            entityType: 'departamento',
+            entityId: departmentId,
+            details: { email: normalizeEmail(email), nivel: accessLevel }
+        });
     },
 
     async removeMember(departmentId, email) {
@@ -142,5 +166,10 @@ export const usersService = {
             .delete()
             .eq('department_id', departmentId)
             .eq('user_email', normalizeEmail(email)));
+        await logAction(LOG_ACTIONS.MEMBER_REMOVE, {
+            entityType: 'departamento',
+            entityId: departmentId,
+            details: { email: normalizeEmail(email) }
+        });
     }
 };
