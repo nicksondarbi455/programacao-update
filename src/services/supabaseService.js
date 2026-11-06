@@ -404,6 +404,95 @@ export const supabaseService = {
         await logAction(LOG_ACTIONS.TRASH_EMPTY, { entityType: 'lixeira', details: {} });
     },
 
+    // --- COMENTÁRIOS E HISTÓRICO ---
+    async listComments(projectId, targetType, targetId) {
+        const { data, error } = await supabase
+            .from('item_comments')
+            .select('*')
+            .eq('project_id', projectId)
+            .eq('target_type', targetType)
+            .eq('target_id', targetId)
+            .order('created_at', { ascending: true });
+        check('Erro ao carregar comentários', { error });
+        return data || [];
+    },
+
+    async addComment({ projectId, targetType, targetId, targetDate, body, mentions }, authorEmail) {
+        const id = 'cmt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+        check('Erro ao enviar comentário', await supabase.from('item_comments').insert([{
+            id,
+            project_id: projectId,
+            target_type: targetType,
+            target_id: targetId,
+            target_date: targetDate || null,
+            author_email: authorEmail.toLowerCase(),
+            body,
+            mentions: mentions || []
+        }]));
+        return id;
+    },
+
+    async deleteComment(commentId) {
+        check('Erro ao excluir comentário', await supabase.from('item_comments').delete().eq('id', commentId));
+    },
+
+    // Quantidade de comentários por alvo: { "linha|ID": 2, "evento|2026-11-18::Ronda": 1 }
+    async getCommentCounts(projectId) {
+        const { data, error } = await supabase
+            .from('item_comments')
+            .select('target_type, target_id')
+            .eq('project_id', projectId);
+        check('Erro ao contar comentários', { error });
+        const counts = {};
+        (data || []).forEach((row) => {
+            const key = `${row.target_type}|${row.target_id}`;
+            counts[key] = (counts[key] || 0) + 1;
+        });
+        return counts;
+    },
+
+    async listHistory(projectId, targetType, targetId) {
+        const { data, error } = await supabase
+            .from('item_history')
+            .select('*')
+            .eq('project_id', projectId)
+            .eq('target_type', targetType)
+            .eq('target_id', targetId)
+            .order('created_at', { ascending: false })
+            .limit(200);
+        check('Erro ao carregar histórico', { error });
+        return data || [];
+    },
+
+    // Histórico não pode travar a edição: se falhar, só avisa no console
+    async addHistory(entries) {
+        if (!entries || entries.length === 0) return;
+        const { error } = await supabase.from('item_history').insert(entries);
+        if (error) console.warn('Falha ao registrar histórico:', error.message);
+    },
+
+    // Pessoas que podem ser mencionadas (perfis são visíveis a todos os usuários)
+    async listPeople() {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('email, full_name')
+            .order('email', { ascending: true });
+        check('Erro ao listar pessoas', { error });
+        return data || [];
+    },
+
+    // Últimas menções ao usuário, com o nome do projeto
+    async listMyMentions(email) {
+        const { data, error } = await supabase
+            .from('item_comments')
+            .select('id, project_id, target_type, target_id, target_date, body, author_email, created_at, projects (name)')
+            .contains('mentions', [email.toLowerCase()])
+            .order('created_at', { ascending: false })
+            .limit(10);
+        check('Erro ao buscar menções', { error });
+        return data || [];
+    },
+
     // --- MANIPULAÇÃO DE LINHAS ---
     // Atualização atómica no servidor (função SQL), sem ler-e-reescrever o JSON no cliente.
     async updateEquipmentField(eqId, projId, field, value) {

@@ -43,7 +43,8 @@ export function NocTable({
     onRowDragStart,
     onRowDrop,
     onToggleEventRow,
-    onOpenNote,
+    onOpenRowComments,
+    commentCounts = {},
     onOpenSettings,
     onDragStart, 
     onDragOver, 
@@ -93,21 +94,23 @@ export function NocTable({
         </span>
     );
 
-    // Coluna de nota no fim de todas as linhas (edição: sempre; visualização: só quando há nota)
-    const renderNoteCell = (eq) => (
-        <td style={{ width: '40px', minWidth: '40px', textAlign: 'center', padding: '0 4px' }}>
-            {(isEditMode || eq.note) && (
+    // Coluna de comentários no fim de todas as linhas: mostra a quantidade de comentários
+    const renderCommentCell = (eq) => {
+        const count = commentCounts[`linha|${eq.id}`] || 0;
+        return (
+            <td style={{ width: '40px', minWidth: '40px', textAlign: 'center', padding: '0 4px' }}>
                 <button
                     type="button"
-                    title={eq.note ? 'Ver nota' : 'Adicionar nota'}
-                    onClick={() => onOpenNote(eq)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0f172a', fontSize: '0.95rem', padding: 0, lineHeight: 1, opacity: eq.note ? 1 : 0.55 }}
+                    title={count ? `${count} comentário(s)` : 'Comentar'}
+                    onClick={() => onOpenRowComments(eq)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: count ? '#2563eb' : '#0f172a', fontSize: '0.95rem', padding: 0, lineHeight: 1, opacity: count ? 1 : 0.55 }}
                 >
-                    <i className={eq.note ? 'fa-solid fa-note-sticky' : 'fa-regular fa-note-sticky'}></i>
+                    <i className={count ? 'fa-solid fa-comment' : 'fa-regular fa-comment'}></i>
+                    {count > 0 && <span style={{ marginLeft: '3px', fontSize: '0.65rem', fontWeight: 700 }}>{count}</span>}
                 </button>
-            )}
-        </td>
-    );
+            </td>
+        );
+    };
 
     // Marca ou desmarca a linha como evento (apenas no modo de edição)
     const renderToggleEvent = (eq) => (
@@ -280,7 +283,7 @@ export function NocTable({
                                                     <Button variant="danger" size="sm" style={{ padding: '2px 8px' }} onClick={() => onDeleteRow(eq.id)}>Excluir evento</Button>
                                                 </td>
                                             )}
-                                            {renderNoteCell(eq)}
+                                            {renderCommentCell(eq)}
                                         </tr>
                                     );
                                 }
@@ -341,7 +344,7 @@ export function NocTable({
                                                 <Button variant="danger" size="sm" style={{ padding: '2px 5px' }} onClick={() => onDeleteRow(eq.id)}>X</Button>
                                             </td>
                                         )}
-                                        {renderNoteCell(eq)}
+                                        {renderCommentCell(eq)}
                                     </tr>
                                 );
                             })

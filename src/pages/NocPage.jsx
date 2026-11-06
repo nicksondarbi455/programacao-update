@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import { localDateStr } from '../utils/dates';
 import { isRowCompleted } from '../components/organisms/NocTable';
 import { logAction, LOG_ACTIONS } from '../services/logService';
-import { NoteModal } from '../components/organisms/NoteModal';
+import { CommentsModal } from '../components/organisms/CommentsModal';
 import { ProjectSettingsModal } from '../components/organisms/ProjectSettingsModal';
 
 export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdated }) {
@@ -26,7 +26,56 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     // Guarda o id da linha que está sendo arrastada
     const dragRowRef = useRef(null);
     // Evento cuja nota está aberta
-    const [noteTarget, setNoteTarget] = useState(null);
+    const [commentTarget, setCommentTarget] = useState(null);
+    const [commentCounts, setCommentCounts] = useState({});
+    const [people, setPeople] = useState([]);
+    // Estado das linhas no início da edição em lote (para registrar o que mudou)
+    const editSnapshotRef = useRef([]);
+
+    const refreshCommentCounts = async () => {
+        try {
+            setCommentCounts(await supabaseService.getCommentCounts(project.id));
+        } catch (err) {
+            console.warn('Erro ao contar comentários:', err.message);
+        }
+    };
+
+    useEffect(() => {
+        refreshCommentCounts();
+        supabaseService.listPeople().then(setPeople).catch(() => {});
+    }, [project.id]);
+
+    // Rótulo legível de uma linha ou evento (usado no histórico e nos comentários)
+    const rowLabel = (eq) => eq.isGroupHeader
+        ? (eq.groupName || 'Evento sem nome')
+        : String(eq[columnConfig[0]?.id] || 'Linha sem nome');
+
+    const rowLabelOf = (id) => {
+        const eq = equipments.find((e) => e.id === id);
+        return eq ? rowLabel(eq) : id;
+    };
+
+    const fieldEntry = (rowId, field, before, after) => ({
+        target_type: 'linha',
+        target_id: rowId,
+        target_label: rowLabelOf(rowId),
+        action: 'campo_alterado',
+        details: {
+            campo: columnConfig.find((c) => c.id === field)?.name || field,
+            de: before ?? '',
+            para: after ?? ''
+        }
+    });
+
+    // Grava o histórico sem esperar (não atrasa a tela)
+    const recordHistory = (entries) => {
+        if (entries.length === 0) return;
+        supabaseService.addHistory(entries.map((e) => ({
+            project_id: project.id,
+            actor_email: (userEmail || '').toLowerCase(),
+            ...e
+        })));
+    };
     // Modal de configurações do projeto
     const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -212,12 +261,16 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     };
 
     const handleUpdateField = async (id, field, value) => {
+        const before = equipments.find((eq) => eq.id === id)?.[field];
         setEquipments(prev => prev.map(eq => eq.id === id ? { ...eq, [field]: value } : eq));
 
         // Em modo de edição guarda só localmente; o Supabase é atualizado ao concluir a edição
         if (isEditModeRef.current) {
             pendingCellsRef.current[id] = { ...(pendingCellsRef.current[id] || {}), [field]: value };
             return;
+        }
+        if (field !== 'color' && String(before ?? '') !== String(value ?? '')) {
+            recordHistory([fieldEntry(id, field, before, value)]);
         }
         await persist(() => supabaseService.updateEquipmentField(id, project.id, field, value));
     };
@@ -226,12 +279,26 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     const handleToggleEdit = async () => {
         if (!isEditModeRef.current) {
             isEditModeRef.current = true;
+            editSnapshotRef.current = equipments;
             setIsEditMode(true);
             return;
         }
 
         const pending = pendingCellsRef.current;
         pendingCellsRef.current = {};
+
+        // Histórico: compara cada campo alterado com o valor do início da edição
+        const entries = [];
+        Object.entries(pending).forEach(([rowId, fields]) => {
+            Object.entries(fields).forEach(([field, value]) => {
+                if (field === 'color') return;
+                const before = editSnapshotRef.current.find((eq) => eq.id === rowId)?.[field];
+                if (String(before ?? '') !== String(value ?? '')) {
+                    entries.push(fieldEntry(rowId, field, before, value));
+                }
+            });
+        });
+        recordHistory(entries);
         isEditModeRef.current = false;
         setIsEditMode(false);
 
@@ -249,11 +316,6 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
 
     // Troca a posição da linha com a vizinha (direction: -1 sobe, 1 desce)
     // SALVAR NOTA DO EVENTO
-    const handleSaveNote = async (eqId, text) => {
-        setEquipments(prev => prev.map(e => e.id === eqId ? { ...e, note: text } : e));
-        setNoteTarget(null);
-        await persist(() => supabaseService.updateEquipmentField(eqId, project.id, 'note', text));
-    };
 
     // ARRASTAR LINHAS: guarda a linha que está sendo arrastada
     const handleRowDragStart = (id) => {
@@ -433,6 +495,13 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
         if (daySched.some(i => i.text === title)) return alert('Este item já está agendado para este dia!');
 
         let newSchedItems = [...daySched, { text: title, completed: false, statusText: 'Agendado', ...(hora ? { hora } : {}) }];
+        recordHistory([{
+            target_type: 'evento',
+            target_id: `${dateStr}::${title}`,
+            target_label: title,
+            action: 'evento_agendado',
+            details: { data: dateStr, horario: hora || null }
+        }]);
         logAction(LOG_ACTIONS.SCHEDULE_ADD, { entityType: 'agendamento', entityId: dateStr, projectId: project.id, details: { data: dateStr, evento: title } });
         let newSchedules = { ...schedules, [dateStr]: newSchedItems };
         setSchedules(newSchedules);
@@ -442,6 +511,15 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
 
     const handleToggleCompleteSchedule = async (dateStr, itemIdx) => {
         const target = (schedules[dateStr] || [])[itemIdx];
+        if (target) {
+            recordHistory([{
+                target_type: 'evento',
+                target_id: `${dateStr}::${target.text}`,
+                target_label: target.text,
+                action: target.completed ? 'evento_reaberto' : 'evento_concluido',
+                details: { data: dateStr }
+            }]);
+        }
         if (target) {
             logAction(target.completed ? LOG_ACTIONS.SCHEDULE_UNCOMPLETE : LOG_ACTIONS.SCHEDULE_COMPLETE, { entityType: 'agendamento', entityId: dateStr, projectId: project.id, details: { data: dateStr, evento: target.text } });
         }
@@ -466,6 +544,16 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     const handleDeleteSchedule = async (dateStr, idx) => {
         const removed = (schedules[dateStr] || [])[idx];
         if (removed) {
+            recordHistory([{
+                target_type: 'evento',
+                target_id: `${dateStr}::${removed.text}`,
+                target_label: removed.text,
+                action: 'evento_removido',
+                details: { data: dateStr }
+            }]);
+        }
+        const removed = (schedules[dateStr] || [])[idx];
+        if (removed) {
             logAction(LOG_ACTIONS.SCHEDULE_REMOVE, { entityType: 'agendamento', entityId: dateStr, projectId: project.id, details: { data: dateStr, evento: removed.text } });
         }
         let daySched = [...(schedules[dateStr] || [])];
@@ -486,7 +574,16 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
             {settingsOpen && (
                 <ProjectSettingsModal project={project} onSave={handleSaveSettings} onClose={() => setSettingsOpen(false)} />
             )}
-            <NoteModal target={noteTarget} readOnly={!isEditMode} onSave={handleSaveNote} onClose={() => setNoteTarget(null)} />
+            {commentTarget && (
+                <CommentsModal
+                    target={commentTarget}
+                    projectId={project.id}
+                    people={people}
+                    currentEmail={(userEmail || '').toLowerCase()}
+                    isAdmin={project.canManage}
+                    onClose={() => { setCommentTarget(null); refreshCommentCounts(); }}
+                />
+            )}
             <div style={{ background: '#1e293b', padding: '8px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Projeto: {project.name} {project.isPrivate ? '🔒' : ''}</span>
@@ -532,10 +629,9 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
                 onRowDrop={handleRowDrop}
                 onToggleEventRow={handleToggleEventRow}
                 onOpenSettings={project.canManage ? () => setSettingsOpen(true) : undefined}
-                onOpenNote={(eq) => setNoteTarget({
-                    ...eq,
-                    _title: eq.isGroupHeader ? (eq.groupName || 'Evento sem nome') : String(eq[columnConfig[0]?.id] || 'Linha sem nome')
-                })}
+                onOpenRowComments={(eq) => setCommentTarget({ type: 'linha', id: eq.id, date: '', label: rowLabel(eq) })}
+                onOpenEventComments={(dateStr, item) => setCommentTarget({ type: 'evento', id: `${dateStr}::${item.text}`, date: dateStr, label: item.text })}
+                commentCounts={commentCounts}
                 onDragStart={handleDragStart}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}

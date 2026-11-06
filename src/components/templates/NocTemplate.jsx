@@ -29,7 +29,9 @@ export function NocTemplate({
     onRowDragStart,
     onRowDrop,
     onToggleEventRow,
-    onOpenNote,
+    onOpenRowComments,
+    onOpenEventComments,
+    commentCounts = {},
     onOpenSettings,
     onDragStart,
     onDragOver,
@@ -109,7 +111,8 @@ export function NocTemplate({
                     onRowDragStart={onRowDragStart}
                     onRowDrop={onRowDrop}
                     onToggleEventRow={onToggleEventRow}
-                    onOpenNote={onOpenNote}
+                    onOpenRowComments={onOpenRowComments}
+                    commentCounts={commentCounts}
                     onOpenSettings={onOpenSettings}
                     onDragStart={onDragStart}
                     onDragOver={onDragOver}
@@ -152,6 +155,8 @@ export function NocTemplate({
                 modalData={modalData}
                 onCloseModal={onCloseModal}
                 onSaveEvent={onSaveEvent}
+                onOpenEventComments={onOpenEventComments}
+                commentCounts={commentCounts}
                 onDeleteSchedule={onDeleteSchedule}
                 onToggleCompleteSchedule={onToggleCompleteSchedule}
                 colModalOpen={colModalOpen}

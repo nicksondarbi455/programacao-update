@@ -11,6 +11,7 @@ import { FolderFormModal } from '../components/organisms/FolderFormModal';
 import { MoveProjectModal } from '../components/organisms/MoveProjectModal';
 import { UpcomingPanel } from '../components/organisms/UpcomingPanel';
 import { DuplicateProjectModal } from '../components/organisms/DuplicateProjectModal';
+import { MentionsPanel } from '../components/organisms/MentionsPanel';
 import * as XLSX from 'xlsx';
 
 const labelStyle = { fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' };
@@ -343,13 +344,22 @@ export function DashboardPage({ user, onSelectProject, onLogout }) {
             </div>
 
             {!isSearching && folderPath.length === 0 && !loading && (
-                <UpcomingPanel
-                    projects={projects}
-                    onOpenProject={(id) => {
-                        const target = projects.find((p) => p.id === id);
-                        if (target) onSelectProject(target);
-                    }}
-                />
+                <>
+                    <MentionsPanel
+                        email={user.email}
+                        onOpenProject={(id) => {
+                            const target = projects.find((p) => p.id === id);
+                            if (target) onSelectProject(target);
+                        }}
+                    />
+                    <UpcomingPanel
+                        projects={projects}
+                        onOpenProject={(id) => {
+                            const target = projects.find((p) => p.id === id);
+                            if (target) onSelectProject(target);
+                        }}
+                    />
+                </>
             )}
 
             {/* Caminho: Início > Pasta > Subpasta, com Voltar */}

@@ -7,6 +7,8 @@ export function Modals({
     onSaveEvent, 
     onDeleteSchedule, 
     onToggleCompleteSchedule, 
+    onOpenEventComments,
+    commentCounts = {},
     colModalOpen, 
     onSaveCol, 
     onCloseCol, 
@@ -112,7 +114,23 @@ export function Modals({
                                                 {item.text}
                                             </span>
                                         </div>
-                                        <Button variant="danger" size="sm" onClick={() => setConfirmItem({ type: 'remove', idx })}>Remover</Button>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            {(() => {
+                                                const count = commentCounts[`evento|${modalData.dateStr}::${item.text}`] || 0;
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        title="Comentários do evento"
+                                                        onClick={() => onOpenEventComments && onOpenEventComments(modalData.dateStr, item)}
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: count ? '#2563eb' : '#64748b', fontSize: '0.85rem', padding: '2px 4px' }}
+                                                    >
+                                                        <i className={count ? 'fa-solid fa-comment' : 'fa-regular fa-comment'}></i>
+                                                        {count > 0 && <span style={{ marginLeft: '3px', fontSize: '0.7rem', fontWeight: 700 }}>{count}</span>}
+                                                    </button>
+                                                );
+                                            })()}
+                                            <Button variant="danger" size="sm" onClick={() => setConfirmItem({ type: 'remove', idx })}>Remover</Button>
+                                        </div>
                                     </div>
                                 ))
                             )}
