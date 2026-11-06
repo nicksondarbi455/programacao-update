@@ -554,7 +554,6 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
                 details: { data: dateStr }
             }]);
         }
-        const removed = (schedules[dateStr] || [])[idx];
         if (removed) {
             logAction(LOG_ACTIONS.SCHEDULE_REMOVE, { entityType: 'agendamento', entityId: dateStr, projectId: project.id, details: { data: dateStr, evento: removed.text } });
         }
