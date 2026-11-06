@@ -102,7 +102,7 @@ export function Modals({
                                 </p>
                             ) : (
                                 modalData.items.map((item, idx) => (
-                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: item.completed ? '#f0fdf4' : '#f8fafc', border: '1px solid var(--th-border)', borderRadius: '6px' }}>
+                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: item.completed ? 'var(--th-tint-green)' : 'var(--th-surface-2)', border: '1px solid var(--th-border)', borderRadius: '6px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <input 
                                                 type="checkbox" 
@@ -110,7 +110,7 @@ export function Modals({
                                                 onChange={() => setConfirmItem({ type: 'toggle', idx, completed: !item.completed })}
                                                 style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                                             />
-                                            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: item.completed ? '#16a34a' : '#1e293b', textDecoration: item.completed ? 'line-through' : 'none', userSelect: 'none' }}>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: item.completed ? '#16a34a' : 'var(--th-text-2)', textDecoration: item.completed ? 'line-through' : 'none', userSelect: 'none' }}>
                                                 {item.text}
                                             </span>
                                         </div>
@@ -122,7 +122,7 @@ export function Modals({
                                                         type="button"
                                                         title="Comentários do evento"
                                                         onClick={() => onOpenEventComments && onOpenEventComments(modalData.dateStr, item)}
-                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: count ? '#2563eb' : '#64748b', fontSize: '0.85rem', padding: '2px 4px' }}
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: count ? '#2563eb' : 'var(--th-muted)', fontSize: '0.85rem', padding: '2px 4px' }}
                                                     >
                                                         <i className={count ? 'fa-solid fa-comment' : 'fa-regular fa-comment'}></i>
                                                         {count > 0 && <span style={{ marginLeft: '3px', fontSize: '0.7rem', fontWeight: 700 }}>{count}</span>}
@@ -175,7 +175,7 @@ export function Modals({
                                                     display: 'block', width: '100%', textAlign: 'left', padding: '7px 10px',
                                                     border: 'none', borderBottom: '1px solid var(--th-surface-3)', cursor: 'pointer',
                                                     fontSize: '0.85rem', color: 'var(--th-text)',
-                                                    background: isPicked ? '#dbeafe' : '#ffffff',
+                                                    background: isPicked ? 'var(--th-tint-blue-2)' : 'var(--th-surface)',
                                                     fontWeight: isPicked ? 'bold' : 'normal'
                                                 }}
                                             >
@@ -196,7 +196,7 @@ export function Modals({
                                 />
                             </div>
 
-                            <span style={{ fontSize: '0.75rem', color: selectedItem ? '#16a34a' : '#94a3b8' }}>
+                            <span style={{ fontSize: '0.75rem', color: selectedItem ? '#16a34a' : 'var(--th-muted-2)' }}>
                                 {selectedItem ? <>Selecionado: <strong>{selectedItem}</strong></> : 'Nenhum evento selecionado'}
                             </span>
 

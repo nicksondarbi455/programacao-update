@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from './services/supabase';
 import { AuthPage } from './pages/AuthPage';
 import { NewPasswordPage } from './pages/NewPasswordPage';
@@ -37,6 +37,8 @@ export default function App() {
     const [role, setRole] = useState(NO_ROLE);
     // Menu lateral fixado (expandido) ou recolhido (somente ícones), lembrado entre acessos
     const [menuPinned, setMenuPinned] = useState(() => localStorage.getItem('menuFixado') !== 'false');
+    // Estado do menu antes de abrir um projeto (para restaurar ao sair)
+    const menuBeforeProjectRef = useRef(null);
     const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [paletteOpen, setPaletteOpen] = useState(false);
@@ -48,9 +50,6 @@ export default function App() {
         localStorage.setItem('tema', theme);
     }, [theme]);
 
-    useEffect(() => {
-        localStorage.setItem('menuFixado', String(menuPinned));
-    }, [menuPinned]);
 
     useEffect(() => {
         const mq = window.matchMedia(MOBILE_QUERY);
@@ -68,6 +67,7 @@ export default function App() {
             setSession(newSession);
             if (!newSession) {
                 setCurrentProject(null);
+                menuBeforeProjectRef.current = null;
                 setSection('pastas');
             }
         });
@@ -131,14 +131,24 @@ export default function App() {
 
     // Abrir um projeto recolhe o menu para dar mais espaço à tela
     const handleOpenProject = (proj) => {
+        if (menuBeforeProjectRef.current === null) menuBeforeProjectRef.current = menuPinned;
         setCurrentProject(proj);
         setMenuPinned(false);
+    };
+
+    // Sair do projeto devolve o menu ao estado em que estava antes
+    const closeProject = () => {
+        setCurrentProject(null);
+        if (menuBeforeProjectRef.current !== null) {
+            setMenuPinned(menuBeforeProjectRef.current);
+            menuBeforeProjectRef.current = null;
+        }
     };
 
     // Trocar de seção fecha qualquer projeto aberto
     const handleSelectSection = (id) => {
         setSection(id);
-        setCurrentProject(null);
+        closeProject();
         setDrawerOpen(false);
     };
 
@@ -154,7 +164,7 @@ export default function App() {
         setPaletteOpen(false);
         setDrawerOpen(false);
         setSection('pastas');
-        setCurrentProject(null);
+        closeProject();
         setFocusFolderId(folderId);
     };
 
@@ -178,7 +188,7 @@ export default function App() {
             <NocPage
                 project={currentProject}
                 userEmail={user.email}
-                onBackToDashboard={() => setCurrentProject(null)}
+                onBackToDashboard={closeProject}
                 onProjectUpdated={(p) => setCurrentProject(p)}
             />
         ) : (
@@ -227,7 +237,12 @@ export default function App() {
                 userEmail={user.email}
                 onLogout={handleLogout}
                 pinned={isMobile ? true : menuPinned}
-                onTogglePin={() => setMenuPinned((p) => !p)}
+                onTogglePin={() => {
+                    setMenuPinned((p) => {
+                        localStorage.setItem('menuFixado', String(!p));
+                        return !p;
+                    });
+                }}
                 mobileOpen={isMobile && drawerOpen}
                 theme={theme}
                 onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}

@@ -132,7 +132,7 @@ export function UpcomingPanel({ projects, onOpenProject }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {groups.map((g) => (
                             <div key={g.dateStr}>
-                                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: g.dateStr === localDateStr(now) ? '#dc2626' : '#475569', textTransform: 'capitalize', marginBottom: '4px' }}>
+                                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: g.dateStr === localDateStr(now) ? '#dc2626' : 'var(--th-text-4)', textTransform: 'capitalize', marginBottom: '4px' }}>
                                     {dayLabel(g.dateStr, now)}
                                 </div>
                                 {g.items.map((e) => (

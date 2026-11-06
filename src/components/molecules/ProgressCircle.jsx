@@ -22,7 +22,7 @@ export function ProgressCircle({ value = 0, size = 64 }) {
                     style={{ transition: 'stroke-dashoffset 0.6s ease' }}
                 />
             </svg>
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#111', fontWeight: 700, fontSize: `${size * 0.22}px` }}>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--th-text)', fontWeight: 700, fontSize: `${size * 0.22}px` }}>
                 {pct}<span style={{ fontSize: `${size * 0.12}px` }}>%</span>
             </div>
         </div>

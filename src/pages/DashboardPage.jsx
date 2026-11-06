@@ -455,7 +455,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                     style={{
                         background: 'linear-gradient(var(--th-surface), var(--th-surface)) padding-box, linear-gradient(135deg, #4e73df 0%, #224abe 100%) border-box',
                         border: '2px solid transparent',
-                        padding: '18px', borderRadius: '12px', cursor: isSearching ? 'pointer' : 'grab',
+                        padding: '18px', borderRadius: '12px', cursor: 'pointer',
                         boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
                         transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                         display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '140px',
@@ -497,7 +497,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                 style={{
                     background: 'linear-gradient(var(--th-surface), var(--th-surface)) padding-box, linear-gradient(45deg, #fada61 0%, #ff9188 50%, #ff5acd 100%) border-box',
                     border: '2px solid transparent',
-                    padding: '18px', borderRadius: '12px', cursor: isSearching ? 'pointer' : 'grab',
+                    padding: '18px', borderRadius: '12px', cursor: 'pointer',
                     boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
                     transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                     display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '140px',
@@ -610,7 +610,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                                 <button
                                     type="button"
                                     onClick={() => goToLevel(i)}
-                                    style={{ ...crumbStyle, fontWeight: isLast ? 700 : 500, color: isLast ? '#0f172a' : '#475569' }}
+                                    style={{ ...crumbStyle, fontWeight: isLast ? 700 : 500, color: isLast ? 'var(--th-text)' : 'var(--th-text-4)' }}
                                 >
                                     {folderById[id]?.name || '...'}
                                 </button>

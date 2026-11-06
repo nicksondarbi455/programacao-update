@@ -103,7 +103,7 @@ export function NocTable({
                     type="button"
                     title={count ? `${count} comentário(s)` : 'Comentar'}
                     onClick={() => onOpenRowComments(eq)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: count ? '#2563eb' : '#0f172a', fontSize: '0.95rem', padding: 0, lineHeight: 1, opacity: count ? 1 : 0.55 }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: count ? '#2563eb' : 'var(--th-text)', fontSize: '0.95rem', padding: 0, lineHeight: 1, opacity: count ? 1 : 0.55 }}
                 >
                     <i className={count ? 'fa-solid fa-comment' : 'fa-regular fa-comment'}></i>
                     {count > 0 && <span style={{ marginLeft: '3px', fontSize: '0.65rem', fontWeight: 700 }}>{count}</span>}

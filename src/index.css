@@ -636,3 +636,10 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
     display: none;
   }
 }
+
+/* Modo escuro: a planilha continua com linhas claras, então o texto das células fica escuro */
+:root[data-theme="dark"] table td,
+:root[data-theme="dark"] table td input[type="text"],
+:root[data-theme="dark"] table td input[type="text"]:read-only {
+    color: #0f172a;
+}

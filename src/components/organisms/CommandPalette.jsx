@@ -114,7 +114,7 @@ export function CommandPalette({ userEmail, onClose, onOpenProject, onOpenFolder
                             type="button"
                             onClick={() => choose(item)}
                             onMouseEnter={() => setActive(idx)}
-                            style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '10px 14px', border: 'none', borderBottom: '1px solid var(--th-surface-3)', background: idx === active ? '#eef2ff' : '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                            style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '10px 14px', border: 'none', borderBottom: '1px solid var(--th-surface-3)', background: idx === active ? 'var(--th-tint-blue)' : 'var(--th-surface)', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
                         >
                             <span style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                                 <i className={item.kind === 'projeto' ? 'fa-regular fa-clipboard' : 'fa-regular fa-folder'} style={{ color: item.kind === 'projeto' ? '#ff5acd' : '#4e73df' }}></i>

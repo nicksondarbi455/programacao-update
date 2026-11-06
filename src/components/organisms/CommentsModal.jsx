@@ -98,7 +98,7 @@ export function CommentsModal({ target, projectId, people, currentEmail, isAdmin
         padding: '6px 4px',
         cursor: 'pointer',
         fontWeight: active ? 700 : 500,
-        color: active ? '#0f172a' : '#64748b',
+        color: active ? 'var(--th-text)' : 'var(--th-muted)',
         fontSize: '0.8rem',
         fontFamily: 'inherit'
     });
@@ -136,7 +136,7 @@ export function CommentsModal({ target, projectId, people, currentEmail, isAdmin
                                 const mentionsMe = (c.mentions || []).includes(currentEmail);
                                 const canDelete = c.author_email === currentEmail || isAdmin;
                                 return (
-                                    <div key={c.id} style={{ background: mentionsMe ? '#fef3c7' : '#f8fafc', border: `1px solid ${mentionsMe ? '#fcd34d' : '#e2e8f0'}`, borderRadius: '8px', padding: '8px 10px' }}>
+                                    <div key={c.id} style={{ background: mentionsMe ? 'var(--th-tint-amber)' : 'var(--th-surface-2)', border: `1px solid ${mentionsMe ? '#fcd34d' : 'var(--th-border)'}`, borderRadius: '8px', padding: '8px 10px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.7rem', color: 'var(--th-muted)', marginBottom: '4px' }}>
                                             <span><strong style={{ color: 'var(--th-text-3)' }}>{c.author_email}</strong> · {new Date(c.created_at).toLocaleString('pt-BR')}</span>
                                             {canDelete && (

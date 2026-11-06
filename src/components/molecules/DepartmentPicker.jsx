@@ -53,7 +53,7 @@ export function DepartmentPicker({ label, departments, selectedIds, onChange, lo
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    color: selectedNames.length > 0 ? '#1e293b' : '#94a3b8'
+                    color: selectedNames.length > 0 ? 'var(--th-text-2)' : 'var(--th-muted-2)'
                 }}>
                     {summary}
                 </span>
@@ -78,7 +78,7 @@ export function DepartmentPicker({ label, departments, selectedIds, onChange, lo
                                     fontSize: '0.8rem',
                                     color: 'var(--th-text-3)',
                                     cursor: 'pointer',
-                                    background: checked ? '#f0fdf4' : '#fff',
+                                    background: checked ? 'var(--th-tint-green)' : 'var(--th-surface)',
                                     borderBottom: '1px solid var(--th-surface-3)'
                                 }}
                             >

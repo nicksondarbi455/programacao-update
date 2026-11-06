@@ -102,7 +102,7 @@ export function TrashPage({ isMaster }) {
                                         </div>
                                     </div>
 
-                                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: days <= 5 ? '#dc2626' : '#64748b', whiteSpace: 'nowrap' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: days <= 5 ? '#dc2626' : 'var(--th-muted)', whiteSpace: 'nowrap' }}>
                                         {days} {days === 1 ? 'dia restante' : 'dias restantes'}
                                     </span>
 
