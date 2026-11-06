@@ -361,6 +361,19 @@ export const supabaseService = {
         });
     },
 
+    // Mover pasta para outra pasta (targetParentId null = raiz). O servidor impede ciclos.
+    async moveFolder(folderId, targetParentId, folderName, targetLabel) {
+        check('Erro ao mover pasta', await supabase.rpc('move_folder', {
+            p_id: folderId,
+            p_parent: targetParentId || null
+        }));
+        await logAction(LOG_ACTIONS.FOLDER_MOVE, {
+            entityType: 'pasta',
+            entityId: folderId,
+            details: { nome: folderName || null, destino: targetLabel || 'Raiz' }
+        });
+    },
+
     // Excluir pasta: vai para a lixeira junto com as subpastas e os projetos dentro dela
     async deleteFolder(folderId, folderName) {
         check('Erro ao enviar pasta para a lixeira', await supabase.rpc('move_to_trash', { p_kind: 'folder', p_id: folderId }));

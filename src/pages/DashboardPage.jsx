@@ -9,7 +9,9 @@ import { ProgressCircle } from '../components/molecules/ProgressCircle';
 import { DepartmentPicker } from '../components/molecules/DepartmentPicker';
 import { ModalShell } from '../components/molecules/ModalShell';
 import { FolderFormModal } from '../components/organisms/FolderFormModal';
-import { MoveProjectModal } from '../components/organisms/MoveProjectModal';
+import { MoveModal } from '../components/organisms/MoveModal';
+import { ProjectSettingsModal } from '../components/organisms/ProjectSettingsModal';
+import { flattenFolderTree, subtreeIds } from '../utils/folderTree';
 import { UpcomingPanel } from '../components/organisms/UpcomingPanel';
 import { DuplicateProjectModal } from '../components/organisms/DuplicateProjectModal';
 import { MentionsPanel } from '../components/organisms/MentionsPanel';
@@ -77,6 +79,8 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
     const [folderModal, setFolderModal] = useState(null); // null | { folder: null (nova) | pasta (editar) }
     const [movingProject, setMovingProject] = useState(null);
     const [duplicatingProject, setDuplicatingProject] = useState(null);
+    const [movingFolder, setMovingFolder] = useState(null);
+    const [settingsProject, setSettingsProject] = useState(null);
 
     // Formulário de projeto
     const [name, setName] = useState('');
@@ -209,9 +213,12 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
         return names.join(' / ');
     };
 
-    const foldersWithLabel = folders
-        .map((f) => ({ ...f, label: folderLabel(f.id) }))
-        .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+    // Pastas na ordem da árvore, começando pela raiz; cada nível tem um recuo
+    const folderOptions = (excludeIds = new Set()) => flattenFolderTree(folders, excludeIds).map((f) => ({
+        ...f,
+        label: `${'\u2003'.repeat(f.depth)}${f.depth ? '↳ ' : ''}${f.name}`
+    }));
+    const foldersWithLabel = folderOptions();
 
     const currentFolderId = folderPath.length > 0 ? folderPath[folderPath.length - 1] : null;
     const currentFolder = currentFolderId ? folderById[currentFolderId] || null : null;
@@ -468,6 +475,9 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                             {pinBadge}
                             <IconButton icon="fa-thumbtack" title={item.pinned ? 'Desafixar' : 'Fixar'} active={item.pinned} onClick={() => togglePin(item)} />
                             {f.canManage && (
+                                <IconButton icon="fa-folder-open" title="Mover pasta" onClick={() => setMovingFolder(f)} />
+                            )}
+                            {f.canManage && (
                                 <IconButton icon="fa-gear" title="Configurações da pasta" onClick={() => setFolderModal({ folder: f })} />
                             )}
                         </div>
@@ -511,6 +521,9 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 {pinBadge}
                                 {proj.isPrivate && <span title="Projeto Privado">🔒</span>}
+                                {proj.canManage && (
+                                    <IconButton icon="fa-gear" title="Configurações do projeto" onClick={() => setSettingsProject(proj)} />
+                                )}
                             </span>
                         </div>
                         <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--th-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
@@ -818,13 +831,51 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                 />
             )}
 
+            {/* Configurações do projeto (sem precisar abrir o projeto) */}
+            {settingsProject && (
+                <ProjectSettingsModal
+                    project={settingsProject}
+                    onClose={() => setSettingsProject(null)}
+                    onSave={async (fields) => {
+                        await supabaseService.updateProject(settingsProject.id, fields);
+                        setSettingsProject(null);
+                        refresh();
+                    }}
+                />
+            )}
+
             {/* Mover projeto para outra pasta */}
             {movingProject && (
-                <MoveProjectModal
-                    project={movingProject}
-                    folders={foldersWithLabel}
+                <MoveModal
+                    title="Mover projeto"
+                    itemName={movingProject.name}
+                    currentFolderId={movingProject.folderId}
+                    options={foldersWithLabel}
                     onCancel={() => setMovingProject(null)}
-                    onMoved={() => { setMovingProject(null); refresh(); }}
+                    onConfirm={async (targetId) => {
+                        const target = foldersWithLabel.find((f) => f.id === targetId);
+                        await supabaseService.updateProject(movingProject.id, {
+                            folderId: targetId,
+                            folderName: target ? target.label : 'Raiz'
+                        });
+                    }}
+                    onDone={() => { setMovingProject(null); refresh(); }}
+                />
+            )}
+
+            {/* Mover pasta para dentro de outra pasta: não pode ir para ela mesma nem para as subpastas */}
+            {movingFolder && (
+                <MoveModal
+                    title="Mover pasta"
+                    itemName={movingFolder.name}
+                    currentFolderId={movingFolder.parentId}
+                    options={folderOptions(subtreeIds(folders, movingFolder.id))}
+                    onCancel={() => setMovingFolder(null)}
+                    onConfirm={async (targetId) => {
+                        const target = foldersWithLabel.find((f) => f.id === targetId);
+                        await supabaseService.moveFolder(movingFolder.id, targetId, movingFolder.name, target ? target.label : 'Raiz');
+                    }}
+                    onDone={() => { setMovingFolder(null); refresh(); }}
                 />
             )}
         </div>

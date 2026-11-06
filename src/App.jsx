@@ -46,9 +46,14 @@ export default function App() {
     const [theme, setTheme] = useState(() => localStorage.getItem('tema') || 'light');
 
     useEffect(() => {
-        document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('tema', theme);
     }, [theme]);
+
+    // O tema escuro vale só dentro do sistema: a tela de login fica sempre com a aparência original
+    useEffect(() => {
+        const dark = Boolean(session) && theme === 'dark';
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    }, [theme, session]);
 
 
     useEffect(() => {

@@ -1,43 +1,38 @@
 import { useState } from 'react';
 import { Button } from '../atoms/Button';
 import { ModalShell } from '../molecules/ModalShell';
-import { supabaseService } from '../../services/supabaseService';
 
-const selectStyle = { padding: '7px', background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', borderRadius: '4px', fontSize: '0.8rem' };
+const selectStyle = { padding: '7px', background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', borderRadius: '4px', fontSize: '0.8rem', color: 'var(--th-text)' };
 const labelStyle = { fontSize: '0.75rem', color: 'var(--th-muted)', fontWeight: 'bold' };
 
-// Move um projeto para uma pasta (ou para a raiz)
-export function MoveProjectModal({ project, folders, onMoved, onCancel }) {
-    const [targetId, setTargetId] = useState(project.folderId || '');
+// Mover um projeto ou uma pasta para outra pasta (ou para a raiz)
+export function MoveModal({ title, itemName, currentFolderId, options, onConfirm, onDone, onCancel }) {
+    const [targetId, setTargetId] = useState(currentFolderId || '');
     const [saving, setSaving] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
         try {
-            const target = folders.find((f) => f.id === targetId);
-            await supabaseService.updateProject(project.id, {
-                folderId: targetId || null,
-                folderName: target ? (target.label || target.name) : 'Raiz'
-            });
-            onMoved();
+            await onConfirm(targetId || null);
+            onDone();
         } catch (err) {
-            alert('Erro ao mover projeto: ' + err.message);
+            alert('Erro ao mover: ' + err.message);
             setSaving(false);
         }
     };
 
     return (
-        <ModalShell title="Mover projeto" width={380}>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--th-text-4)' }}>
-                Projeto: <strong>{project.name}</strong>
+        <ModalShell title={title} width={380}>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--th-text-3)' }}>
+                Item: <strong>{itemName}</strong>
             </p>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <label style={labelStyle}>Pasta de destino</label>
                 <select value={targetId} onChange={(e) => setTargetId(e.target.value)} style={selectStyle}>
-                    <option value="">Nenhuma (raiz)</option>
-                    {folders.map((f) => (
-                        <option key={f.id} value={f.id}>{f.label || f.name}</option>
+                    <option value="">Raiz (Meus Projetos)</option>
+                    {options.map((f) => (
+                        <option key={f.id} value={f.id}>{f.label}</option>
                     ))}
                 </select>
 
