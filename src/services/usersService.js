@@ -26,13 +26,14 @@ export const usersService = {
     async getRole(email) {
         const { data, error } = await supabase
             .from('profiles')
-            .select('is_admin, is_master')
+            .select('is_admin, is_master, tem_acesso_mapa')
             .eq('email', normalizeEmail(email))
             .maybeSingle();
         check('Erro ao verificar permissões', { error });
         return {
             isMaster: Boolean(data?.is_master),
-            isAdmin: Boolean(data?.is_admin || data?.is_master)
+            isAdmin: Boolean(data?.is_admin || data?.is_master),
+            hasMapAccess: Boolean(data?.is_master || data?.tem_acesso_mapa)
         };
     },
 
@@ -40,7 +41,7 @@ export const usersService = {
     async listUsers() {
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, email, full_name, is_admin, is_master, created_at')
+            .select('id, email, full_name, is_admin, is_master, tem_acesso_mapa, created_at')
             .order('created_at', { ascending: false });
         check('Erro ao listar usuários', { error });
         return data || [];
@@ -50,7 +51,7 @@ export const usersService = {
     async findUser(email) {
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, email, full_name, is_admin, is_master, created_at')
+            .select('id, email, full_name, is_admin, is_master, tem_acesso_mapa, created_at')
             .eq('email', normalizeEmail(email))
             .maybeSingle();
         check('Erro ao verificar usuário', { error });
@@ -93,6 +94,13 @@ export const usersService = {
         check('Erro ao alterar administrador', await supabase.rpc('admin_set_app_admin', {
             p_email: normalizeEmail(email),
             p_is_admin: isAdmin
+        }));
+    },
+
+    async setMapAccess(email, value) {
+        check('Erro ao alterar acesso ao mapa', await supabase.rpc('admin_set_map_access', {
+            p_email: normalizeEmail(email),
+            p_value: value
         }));
     },
 

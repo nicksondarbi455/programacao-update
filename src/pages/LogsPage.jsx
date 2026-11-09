@@ -41,7 +41,8 @@ const ACTION_LABELS = {
     acesso_departamento_definido: 'Acesso a departamento definido',
     acesso_departamento_removido: 'Acesso a departamento removido',
     projeto_duplicado: 'Projeto duplicado',
-    pasta_movida: 'Pasta movida'
+    pasta_movida: 'Pasta movida',
+    acesso_mapa_alterado: 'Acesso ao mapa alterado'
 };
 
 const thStyle = {

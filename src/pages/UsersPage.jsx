@@ -229,6 +229,14 @@ function UsersTab({ departments, currentUserEmail, onChange, loaded }) {
         );
     };
 
+    const handleToggleMapAccess = () => {
+        const give = !found.tem_acesso_mapa;
+        runAction(
+            () => usersService.setMapAccess(found.email, give),
+            give ? 'Acesso ao mapa liberado.' : 'Acesso ao mapa removido.'
+        );
+    };
+
     const handleDelete = () => {
         if (!confirm(`Excluir a conta ${found.email}? Esta ação não pode ser desfeita.`)) return;
         runAction(async () => {
@@ -303,6 +311,11 @@ function UsersTab({ departments, currentUserEmail, onChange, loaded }) {
                                 {!isSelf && (
                                     <Button size="sm" variant={found.is_admin ? 'secondary' : 'success'} onClick={handleToggleAdmin} disabled={busy}>
                                         {found.is_admin ? 'Remover administrador' : 'Tornar administrador'}
+                                    </Button>
+                                )}
+                                {!isSelf && (
+                                    <Button size="sm" variant={found.tem_acesso_mapa ? 'secondary' : 'primary'} onClick={handleToggleMapAccess} disabled={busy}>
+                                        <i className="fa-solid fa-map-location-dot"></i> {found.tem_acesso_mapa ? 'Remover acesso ao mapa' : 'Liberar acesso ao mapa'}
                                     </Button>
                                 )}
                                 {!isSelf && (

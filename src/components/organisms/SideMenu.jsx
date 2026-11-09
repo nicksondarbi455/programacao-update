@@ -1,6 +1,7 @@
 // Menu lateral (estilo SB Admin) exibido após o login
 const MENU_ITEMS = [
     { id: 'pastas', label: 'Pastas', icon: 'fa-regular fa-paste' },
+    { id: 'mapa', label: 'Mapa', icon: 'fa-solid fa-map-location-dot' },
     { id: 'usuarios', label: 'Usuários', icon: 'fa-solid fa-users' },
     { id: 'configuracoes', label: 'Configurações', icon: 'fa-solid fa-gear' },
     { id: 'lixeira', label: 'Lixeira', icon: 'fa-regular fa-trash-can' },
@@ -19,7 +20,8 @@ export function SideMenu({
     onTogglePin,
     mobileOpen = false,
     theme = 'light',
-    onToggleTheme
+    onToggleTheme,
+    showMap = false
 }) {
     // Menu não fixado mostra somente os ícones
     const collapsed = !pinned;
@@ -28,6 +30,7 @@ export function SideMenu({
     const visibleItems = MENU_ITEMS.filter((item) => {
         if (item.id === 'usuarios') return showUsers;
         if (item.id === 'logs') return showLogs;
+        if (item.id === 'mapa') return showMap;
         return true;
     });
 

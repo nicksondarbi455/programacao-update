@@ -6,6 +6,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { NocPage } from './pages/NocPage';
 import { UsersPage } from './pages/UsersPage';
 import { TrashPage } from './pages/TrashPage';
+import { MapPage } from './pages/MapPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { LogsPage } from './pages/LogsPage';
 import { SideMenu } from './components/organisms/SideMenu';
@@ -13,7 +14,7 @@ import { CommandPalette } from './components/organisms/CommandPalette';
 import { logAction, LOG_ACTIONS } from './services/logService';
 import { usersService } from './services/usersService';
 
-const NO_ROLE = { isMaster: false, isAdmin: false };
+const NO_ROLE = { isMaster: false, isAdmin: false, hasMapAccess: false };
 
 // Textos das seções que ainda não têm conteúdo
 const PLACEHOLDERS = {
@@ -210,6 +211,10 @@ export default function App() {
                 onFolderPathChange={(path) => { dashboardPathRef.current = path; }}
             />
         );
+    } else if (section === 'mapa') {
+        content = role.hasMapAccess
+            ? <MapPage userEmail={user.email} />
+            : <PlaceholderPage title="Mapa" description="Acesso restrito. Peça ao administrador para liberar o acesso ao mapa." />;
     } else if (section === 'usuarios') {
         content = role.isAdmin
             ? <UsersPage currentUserEmail={user.email} />
@@ -243,6 +248,7 @@ export default function App() {
                 active={section}
                 showUsers={role.isAdmin}
                 showLogs={role.isAdmin}
+                showMap={role.hasMapAccess}
                 onSelect={handleSelectSection}
                 userEmail={user.email}
                 onLogout={handleLogout}
