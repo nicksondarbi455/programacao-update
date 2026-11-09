@@ -7,6 +7,14 @@ export function routeId(a, b) {
     return [a, b].sort().join('|');
 }
 
+// Nome de pasta seguro para o Storage: o Supabase não aceita caracteres como "|" ou espaços nas chaves
+function safeFolderName(id) {
+    return id
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\w-]+/g, '_');
+}
+
 // Nome de arquivo seguro para o Storage (sem acentos nem espaços)
 function safeFileName(name) {
     return name
@@ -51,7 +59,7 @@ export const mapService = {
             .maybeSingle();
         if (readError) throw readError;
 
-        const path = `${id}/${Date.now()}-${safeFileName(file.name)}`;
+        const path = `${safeFolderName(id)}/${Date.now()}-${safeFileName(file.name)}`;
         const { error: uploadError } = await supabase.storage
             .from(BUCKET)
             .upload(path, file, { contentType: file.type || undefined });
