@@ -39,6 +39,8 @@ export default function App() {
     const [menuPinned, setMenuPinned] = useState(() => localStorage.getItem('menuFixado') !== 'false');
     // Estado do menu antes de abrir um projeto (para restaurar ao sair)
     const menuBeforeProjectRef = useRef(null);
+    // Pasta em que o usuário estava no dashboard (para voltar a ela ao sair de um projeto)
+    const dashboardPathRef = useRef([]);
     const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [paletteOpen, setPaletteOpen] = useState(false);
@@ -73,6 +75,7 @@ export default function App() {
             if (!newSession) {
                 setCurrentProject(null);
                 menuBeforeProjectRef.current = null;
+                dashboardPathRef.current = [];
                 setSection('pastas');
             }
         });
@@ -203,6 +206,8 @@ export default function App() {
                 onLogout={handleLogout}
                 focusFolderId={focusFolderId}
                 onFocusHandled={() => setFocusFolderId(null)}
+                initialFolderPath={dashboardPathRef.current}
+                onFolderPathChange={(path) => { dashboardPathRef.current = path; }}
             />
         );
     } else if (section === 'usuarios') {

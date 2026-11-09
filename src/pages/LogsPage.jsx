@@ -74,7 +74,7 @@ const tagStyle = {
     padding: '1px 6px',
     borderRadius: '4px',
     background: 'var(--th-tint-blue)',
-    color: '#3730a3',
+    color: 'var(--th-tag-fg)',
     fontSize: '0.65rem',
     fontWeight: 700,
     textTransform: 'uppercase'
@@ -351,13 +351,13 @@ export function LogsPage() {
                 )}
 
                 <div style={{ background: 'var(--th-surface)', border: '1px solid var(--th-border)', borderRadius: '10px', overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                         <thead>
                             <tr>
-                                <th style={thStyle}>Data/Hora</th>
-                                <th style={thStyle}>Usuário</th>
-                                <th style={thStyle}>Ação</th>
-                                <th style={thStyle}>Entidade / Projeto</th>
+                                <th style={{ ...thStyle, width: '150px' }}>Data/Hora</th>
+                                <th style={{ ...thStyle, width: '200px' }}>Usuário</th>
+                                <th style={{ ...thStyle, width: '170px' }}>Ação</th>
+                                <th style={{ ...thStyle, width: '190px' }}>Entidade / Projeto</th>
                                 <th style={thStyle}>Detalhes</th>
                             </tr>
                         </thead>
@@ -393,7 +393,7 @@ export function LogsPage() {
                                         {log.entity_type && <span style={tagStyle}>{log.entity_type}</span>}
                                         {log.project_id || '-'}
                                     </td>
-                                    <td style={{ ...tdStyle, minWidth: '260px' }}>
+                                    <td style={{ ...tdStyle, overflowWrap: 'anywhere' }}>
                                         <DetailsList details={log.details} />
                                     </td>
                                 </tr>

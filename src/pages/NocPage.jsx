@@ -187,11 +187,10 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
         XLSX.writeFile(workbook, `${safeName}.xlsx`);
     };
 
+    // A confirmação fica no modal de configurações do projeto
     const handleDeleteProject = async () => {
-        if (confirm('Tem certeza de que deseja excluir este projeto? Ele vai para a lixeira e pode ser restaurado em até 30 dias.')) {
-            const ok = await persist(() => supabaseService.deleteProject(project.id, project.name));
-            if (ok) onBackToDashboard();
-        }
+        const ok = await persist(() => supabaseService.deleteProject(project.id, project.name));
+        if (ok) onBackToDashboard();
     };
 
     // Itens que o calendário agenda: eventos (faixas cinzas) se existirem, senão as linhas sem grupo
@@ -573,7 +572,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     return (
         <div>
             {settingsOpen && (
-                <ProjectSettingsModal project={project} onSave={handleSaveSettings} onClose={() => setSettingsOpen(false)} />
+                <ProjectSettingsModal project={project} onSave={handleSaveSettings} onClose={() => setSettingsOpen(false)} onDelete={project.canManage ? handleDeleteProject : undefined} />
             )}
             {commentTarget && (
                 <CommentsModal

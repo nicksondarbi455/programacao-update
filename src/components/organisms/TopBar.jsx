@@ -37,9 +37,6 @@ export function TopBar({
                     </>
                 )}
 
-                {isEditMode && onDeleteProject && (
-                    <Button variant="danger" size="sm" onClick={onDeleteProject}>🗑️ Excluir projeto</Button>
-                )}
             </div>
         </div>
     );

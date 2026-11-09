@@ -61,14 +61,14 @@ function ChoiceCard({ icon, title, description, disabled, onClick }) {
     );
 }
 
-export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, onFocusHandled }) {
+export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, onFocusHandled, initialFolderPath = [], onFolderPathChange }) {
     const [projects, setProjects] = useState([]);
     const [folders, setFolders] = useState([]);
     const [foldersError, setFoldersError] = useState('');
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     // Caminho da pasta aberta: [pasta-raiz, subpasta, sub-subpasta...]. Vazio = Meus Projetos.
-    const [folderPath, setFolderPath] = useState([]);
+    const [folderPath, setFolderPath] = useState(() => [...initialFolderPath]);
     // Ordem e fixação personalizadas: { 'pasta:ID' | 'projeto:ID': { pinned, position } }
     const [layout, setLayout] = useState({});
     const [draggingKey, setDraggingKey] = useState(null);
@@ -183,6 +183,11 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
             supabase.removeChannel(channel);
         };
     }, [user.email]);
+
+    // Guarda a pasta em que o usuário está, para voltar a ela ao sair de um projeto
+    useEffect(() => {
+        if (onFolderPathChange) onFolderPathChange(folderPath);
+    }, [folderPath, onFolderPathChange]);
 
     // Abertura vinda da busca global (Ctrl+K): abre a pasta com o caminho até ela
     useEffect(() => {
@@ -517,13 +522,10 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <h4 style={{ margin: '0 0 4px 0', color: 'var(--th-text)', fontSize: '1rem' }}>{proj.name}</h4>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <h4 style={{ margin: '0 0 4px 0', color: 'var(--th-text)', fontSize: '1rem', flex: 1, minWidth: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', overflowWrap: 'anywhere' }}>{proj.name}</h4>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                                 {pinBadge}
                                 {proj.isPrivate && <span title="Projeto Privado">🔒</span>}
-                                {proj.canManage && (
-                                    <IconButton icon="fa-gear" title="Configurações do projeto" onClick={() => setSettingsProject(proj)} />
-                                )}
                             </span>
                         </div>
                         <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--th-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
@@ -544,6 +546,9 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                         <IconButton icon="fa-copy" title="Duplicar projeto" onClick={() => setDuplicatingProject(proj)} />
                         {proj.canManage && (
                             <IconButton icon="fa-folder-open" title="Mover para pasta" onClick={() => setMovingProject(proj)} />
+                        )}
+                        {proj.canManage && (
+                            <IconButton icon="fa-gear" title="Configurações do projeto" onClick={() => setSettingsProject(proj)} />
                         )}
                     </div>
                 </div>
@@ -836,6 +841,15 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                 <ProjectSettingsModal
                     project={settingsProject}
                     onClose={() => setSettingsProject(null)}
+                    onDelete={async () => {
+                        try {
+                            await supabaseService.deleteProject(settingsProject.id, settingsProject.name);
+                            setSettingsProject(null);
+                            refresh();
+                        } catch (err) {
+                            alert('Erro ao excluir projeto: ' + err.message);
+                        }
+                    }}
                     onSave={async (fields) => {
                         await supabaseService.updateProject(settingsProject.id, fields);
                         setSettingsProject(null);

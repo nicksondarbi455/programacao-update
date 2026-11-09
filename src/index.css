@@ -541,11 +541,24 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
   gap: 8px;
 }
 
+.sidebar-brand-name,
+.sidebar-item span,
+.sidebar-email,
+.sidebar-logout span {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 180px;
+  opacity: 1;
+  transition: opacity 0.2s ease, max-width 0.25s ease;
+}
+
 .sidebar.collapsed .sidebar-brand-name,
 .sidebar.collapsed .sidebar-item span,
 .sidebar.collapsed .sidebar-email,
 .sidebar.collapsed .sidebar-logout span {
-  display: none;
+  max-width: 0;
+  opacity: 0;
 }
 
 .sidebar.collapsed .sidebar-nav {
@@ -637,9 +650,25 @@ th .col-title-display.editable { background: var(--color3); border: 1px solid va
   }
 }
 
-/* Modo escuro: a planilha continua com linhas claras, então o texto das células fica escuro */
-:root[data-theme="dark"] table td,
-:root[data-theme="dark"] table td input[type="text"],
-:root[data-theme="dark"] table td input[type="text"]:read-only {
-    color: #0f172a;
+/* A planilha é sempre uma folha clara, em qualquer tema: texto escuro sobre fundo claro */
+:root {
+    --th-sheet: #ffffff;
+    --th-sheet-text: #0f172a;
+    --th-sheet-muted: #64748b;
+    --th-tag-fg: #3730a3;
+}
+
+:root[data-theme="dark"] {
+    --th-tag-fg: #bfdbfe;
+}
+
+table td,
+table td input[type="text"],
+table td input[type="text"]:read-only {
+    color: var(--th-sheet-text);
+}
+
+table td input[type="text"],
+table td input[type="text"]:read-only {
+    background: var(--th-sheet);
 }
