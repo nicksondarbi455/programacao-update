@@ -81,6 +81,7 @@ export const supabaseService = {
                 showProgress: p.show_progress,
                 progress: p.progress ?? 0,
                 projectType: p.project_type,
+                icon: p.icon || null,
                 ownerEmail: p.user_email,
                 folderId: p.folder_id || null,
                 departmentIds,
@@ -143,6 +144,7 @@ export const supabaseService = {
             has_calendar: projectData.hasCalendar,
             is_private: projectData.isPrivate,
             project_type: projectData.projectType,
+            icon: projectData.icon || null,
             show_progress: projectData.showProgress ?? false,
             folder_id: projectData.folderId || null
         }]));
@@ -237,6 +239,8 @@ export const supabaseService = {
             hasCalendar: source.hasCalendar,
             isPrivate: source.isPrivate,
             showProgress: source.showProgress,
+            projectType: source.projectType,
+            icon: source.icon || null,
             folderId: source.folderId || null,
             departmentIds: source.departmentIds || [],
             columnConfig,
