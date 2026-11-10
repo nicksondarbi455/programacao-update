@@ -1,16 +1,10 @@
-import { Input } from '../atoms/Input';
+import { useRef } from 'react';
 import { Checkbox } from '../atoms/Checkbox';
-import { Button } from '../atoms/Button';
 
-const colorMap = {
-    'vermelho': '#fee2e2', 'azul': '#dbeafe', 'verde': '#dcfce7',
-    'amarelo': '#fef3c7', 'preto': '#f1f5f9', 'padrao': '#ffffff'
-};
-
-// Largura fixa da coluna "Check" (antes "Status", que ficava com 40px e mostrava só "S")
 const CHECK_COL_WIDTH = 70;
+// Ícones de ação (bandeira e comentário) no fim de cada linha
+const iconBtn = { background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: '0.9rem', color: 'var(--th-sheet-text)', lineHeight: 1 };
 
-// Verifica se a linha ou evento possui status de concluído nos agendamentos
 export function isRowCompleted(eq, schedules, columnConfig) {
 
     let label = eq.isGroupHeader ? eq.groupName : (columnConfig[0] ? eq[columnConfig[0].id] : '');
@@ -31,79 +25,124 @@ export function isRowCompleted(eq, schedules, columnConfig) {
     }
     return false;
 }
+// Formatação de uma célula (guardada em eq._fmt[colId]): negrito, alinhamento e cor do texto
+function fmtStyle(fmt) {
+    if (!fmt) return {};
+    return {
+        fontWeight: fmt.b ? 700 : undefined,
+        textAlign: fmt.a || undefined,
+        color: fmt.c || undefined
+    };
+}
 
-export function NocTable({ 
-    columnConfig, 
-    equipments, 
-    isEditMode, 
-    onUpdateField, 
-    onUpdateColName, 
-    onDeleteCol, 
-    onDeleteRow, 
+// Célula de planilha: sem caixa e ocupando a célula inteira.
+// Lembra o valor de antes ao ganhar o foco e avisa ao sair, para gravar só ao terminar.
+function SheetInput({ value, onChange, onCommit, onFocusCell, style, placeholder, readOnly }) {
+    const startRef = useRef(value);
+    return (
+        <input
+            type="text"
+            className="sheet-input"
+            value={value ?? ''}
+            placeholder={placeholder}
+            readOnly={readOnly}
+            style={style}
+            onFocus={() => {
+                startRef.current = value;
+                if (onFocusCell) onFocusCell();
+            }}
+            onChange={(e) => {
+                if (!readOnly) onChange(e.target.value);
+            }}
+            onBlur={() => {
+                if (readOnly) return;
+                if (String(startRef.current ?? '') !== String(value ?? '')) {
+                    onCommit(startRef.current);
+                }
+            }}
+        />
+    );
+}
+
+export function NocTable({
+    columnConfig,
+    equipments,
+    readOnly = false,
+    deleteMode = false,
+    selectedRows = new Set(),
+    selectedCols = new Set(),
+    onToggleRow,
+    onToggleCol,
+    onUpdateField,
+    onCommitField,
+    onUpdateColName,
     onRowDragStart,
     onRowDrop,
     onToggleEventRow,
     onOpenRowComments,
+    activeCell,
+    onActivateCell,
     commentCounts = {},
     onOpenSettings,
-    onDragStart, 
-    onDragOver, 
-    onDrop, 
-    onInitResize, 
+    onDragStart,
+    onDragOver,
+    onDrop,
+    onInitResize,
     schedules = {},
-    searchTerm = '', 
-    statusFilter = 'all' 
+    searchTerm = '',
+    statusFilter = 'all'
 }) {
-    
-    // Só aplica a regra de eventos quando a planilha possui faixas de evento
-    const hasGroupHeaders = equipments.some(eq => eq.isGroupHeader);
+    const hasGroupHeaders = equipments.some((eq) => eq.isGroupHeader);
 
-    const filteredEquipments = equipments.filter(eq => {
-        // Concluído = agendamento marcado como feito no calendário
+    const filteredEquipments = equipments.filter((eq) => {
         const done = isRowCompleted(eq, schedules, columnConfig);
         if (hasGroupHeaders && statusFilter !== 'all' && !eq.isGroupHeader) return false;
         if (statusFilter === 'pending' && done) return false;
         if (statusFilter === 'completed' && !done) return false;
 
         if (eq.isGroupHeader) return true;
-
         if (!searchTerm.trim()) return true;
+
         const term = searchTerm.toLowerCase();
-        
-        return Object.keys(eq).some(key => {
-            let itemVal = eq[key];
-            if (typeof itemVal === 'string' && itemVal.toLowerCase().includes(term)) return true;
-            return false;
-        });
+        return Object.keys(eq).some((key) => typeof eq[key] === 'string' && eq[key].toLowerCase().includes(term));
     });
 
-    // Alça para arrastar a linha (apenas no modo de edição)
-    const renderGrip = (eq) => (
-        <span
-            draggable
-            title="Segure para arrastar e mover a linha"
-            onDragStart={(e) => {
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', eq.id);
-                e.dataTransfer.setDragImage(e.currentTarget.closest('tr'), 20, 10);
-                onRowDragStart(eq.id);
-            }}
-            style={{ cursor: 'grab', color: 'var(--th-sheet-text)', fontSize: '1rem', padding: '0 4px' }}
-        >
-            <i className="fa-solid fa-grip-vertical"></i>
-        </span>
-    );
+    const isActive = (rowId, colId) => !!activeCell && activeCell.rowId === rowId && activeCell.colId === colId;
+    const focusCell = (rowId, colId) => () => {
+        if (onActivateCell) onActivateCell({ rowId, colId });
+    };
 
-    // Coluna de comentários no fim de todas as linhas: mostra a quantidade de comentários
-    const renderCommentCell = (eq) => {
+    const totalWidth = columnConfig.reduce((acc, col) => acc + (parseInt(col.width) || 150), 0)
+        + CHECK_COL_WIDTH + 70 + (deleteMode ? 36 : 0);
+    const emptyColSpan = columnConfig.length + 2 + (deleteMode ? 1 : 0);
+
+    // Caixa de seleção para excluir (só aparece no modo excluir)
+    const renderSelectCell = (checked, onToggle) => (deleteMode ? (
+        <td style={{ width: '36px', minWidth: '36px', textAlign: 'center' }}>
+            <input type="checkbox" checked={checked} onChange={onToggle} />
+        </td>
+    ) : null);
+
+    // Bandeira (marca evento) e comentários, no fim de cada linha
+    const renderActions = (eq) => {
         const count = commentCounts[`linha|${eq.id}`] || 0;
         return (
-            <td style={{ width: '40px', minWidth: '40px', textAlign: 'center', padding: '0 4px' }}>
+            <td style={{ width: '70px', minWidth: '70px', textAlign: 'center', padding: '0 4px' }}>
+                {!readOnly && (
+                    <button
+                        type="button"
+                        title={eq.isGroupHeader ? 'Desmarcar como evento' : 'Marcar como evento'}
+                        onClick={() => onToggleEventRow(eq)}
+                        style={iconBtn}
+                    >
+                        <i className="fa-regular fa-flag"></i>
+                    </button>
+                )}
                 <button
                     type="button"
                     title={count ? `${count} comentário(s)` : 'Comentar'}
                     onClick={() => onOpenRowComments(eq)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: count ? '#2563eb' : 'var(--th-sheet-text)', fontSize: '0.95rem', padding: 0, lineHeight: 1, opacity: count ? 1 : 0.55 }}
+                    style={{ ...iconBtn, color: count ? '#2563eb' : 'var(--th-sheet-text)', opacity: count ? 1 : 0.55 }}
                 >
                     <i className={count ? 'fa-solid fa-comment' : 'fa-regular fa-comment'}></i>
                     {count > 0 && <span style={{ marginLeft: '3px', fontSize: '0.65rem', fontWeight: 700 }}>{count}</span>}
@@ -112,30 +151,59 @@ export function NocTable({
         );
     };
 
-    // Marca ou desmarca a linha como evento (apenas no modo de edição)
-    const renderToggleEvent = (eq) => (
-        <Button
-            variant="secondary"
-            size="sm"
-            style={{ padding: '2px 6px' }}
-            onClick={() => onToggleEventRow(eq)}
-            title={eq.isGroupHeader ? 'Desmarcar como evento' : 'Marcar como evento'}
-        >
-            <i className="fa-regular fa-flag"></i>
-        </Button>
-    );
+    // Célula de uma coluna exclusiva de Eventos nas linhas comuns (não se edita aqui)
+    const renderLockedCell = (col) => {
+        const w = parseInt(col.width) || 150;
+        return (
+            <td key={col.id} className="sheet-cell" style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, textAlign: 'center', color: '#cbd5e1', background: 'var(--th-sheet)' }}>
+                —
+            </td>
+        );
+    };
 
-    const totalWidth = columnConfig.reduce((acc, col) => acc + (parseInt(col.width) || 150), 0) + CHECK_COL_WIDTH + (isEditMode ? 220 : 0);
+    // Célula editável de uma coluna (ou caixa, se a coluna for checkbox)
+    const renderDataCell = (eq, col) => {
+        const w = parseInt(col.width) || 150;
+        const size = { width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px` };
+        const value = eq[col.id] !== undefined ? eq[col.id] : '';
+
+        if (col.type === 'checkbox') {
+            return (
+                <td key={col.id} className="sheet-cell checkbox-cell" style={size}>
+                    <Checkbox
+                        checked={!!value}
+                        onChange={(e) => {
+                            if (readOnly) return;
+                            onUpdateField(eq.id, col.id, e.target.checked);
+                            onCommitField(eq.id, col.id, value, e.target.checked);
+                        }}
+                    />
+                </td>
+            );
+        }
+
+        return (
+            <td key={col.id} className="sheet-cell" style={{ ...size, background: isActive(eq.id, col.id) ? '#eef6ff' : 'var(--th-sheet)' }}>
+                <SheetInput
+                    value={value}
+                    readOnly={readOnly}
+                    style={fmtStyle(eq._fmt && eq._fmt[col.id])}
+                    onFocusCell={focusCell(eq.id, col.id)}
+                    onChange={(v) => onUpdateField(eq.id, col.id, v)}
+                    onCommit={(before) => onCommitField(eq.id, col.id, before)}
+                />
+            </td>
+        );
+    };
 
     /**
-     * Monta as células de uma faixa de Evento Único respeitando a MESMA ordem das colunas
-     * do cabeçalho. Colunas gerais consecutivas viram um único bloco com o nome do evento;
-     * colunas exclusivas de evento (ex.: Check) ficam em célula própria, na sua posição.
-     * Assim a faixa cinza não invade nem desalinha as outras colunas.
+     * Células de uma faixa de Evento Único, na MESMA ordem das colunas do cabeçalho.
+     * Colunas gerais consecutivas viram um bloco com o nome do evento; colunas exclusivas
+     * de evento ficam em célula própria, na sua posição.
      */
-    const renderGroupCells = (eq, completed) => {
+    const renderGroupCells = (eq) => {
         const segments = [];
-        columnConfig.forEach(col => {
+        columnConfig.forEach((col) => {
             if (col.targetScope === 'events') {
                 segments.push({ kind: 'event', col });
             } else {
@@ -146,50 +214,21 @@ export function NocTable({
         });
 
         let titleShown = false;
-
         return segments.map((seg, i) => {
-            if (seg.kind === 'std') {
-                const isTitle = !titleShown;
-                titleShown = true;
-                return (
-                    <td
-                        key={`std-${i}`}
-                        colSpan={seg.span}
-                        style={{ textAlign: 'center', padding: '6px 12px', fontWeight: 'bold', color: 'var(--th-sheet-text)', letterSpacing: '1px', textTransform: 'uppercase' }}
-                    >
-                        {isTitle && (isEditMode ? (
-                            <input
-                                type="text"
-                                value={eq.groupName || ''}
-                                onChange={(e) => onUpdateField(eq.id, 'groupName', e.target.value)}
-                                placeholder="NOME DO EVENTO"
-                                style={{
-                                    fontWeight: '800', textAlign: 'center', background: 'var(--th-sheet)', borderRadius: '4px',
-                                    border: '1px solid #475569', color: 'var(--th-sheet-text)', width: '100%', maxWidth: '100%',
-                                    boxSizing: 'border-box', display: 'block', padding: '3px 6px', margin: 0
-                                }}
-                            />
-                        ) : (
-                            <span>{eq.groupName || 'EVENTO SEM NOME'}</span>
-                        ))}
-                    </td>
-                );
-            }
+            if (seg.kind === 'event') return renderDataCell(eq, seg.col);
 
-            const col = seg.col;
-            let w = parseInt(col.width) || 150;
-            let cellValue = eq[col.id] !== undefined ? eq[col.id] : '';
+            const isTitle = !titleShown;
+            titleShown = true;
             return (
-                <td key={col.id} className={col.type === 'checkbox' ? 'checkbox-cell' : ''} style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, background: 'var(--th-sheet)' }}>
-                    {col.type === 'checkbox' ? (
-                        <Checkbox checked={!!cellValue} onChange={(e) => onUpdateField(eq.id, col.id, e.target.checked)} />
-                    ) : (
-                        <Input
-                            className={isEditMode ? 'editable' : ''}
-                            value={cellValue}
-                            placeholder={col.name}
-                            readOnly={!isEditMode}
-                            onChange={(e) => onUpdateField(eq.id, col.id, e.target.value)}
+                <td key={`std-${i}`} colSpan={seg.span} style={{ textAlign: 'center', padding: 0, fontWeight: 'bold', color: 'var(--th-sheet-text)', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                    {isTitle && (
+                        <SheetInput
+                            value={eq.groupName || ''}
+                            placeholder="NOME DO EVENTO"
+                            readOnly={readOnly}
+                            style={{ fontWeight: 800, textAlign: 'center', textTransform: 'uppercase' }}
+                            onChange={(v) => onUpdateField(eq.id, 'groupName', v)}
+                            onCommit={(before) => onCommitField(eq.id, 'groupName', before)}
                         />
                     )}
                 </td>
@@ -203,148 +242,111 @@ export function NocTable({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <h2>Gestão de Dados ({filteredEquipments.length} registos)</h2>
                     {onOpenSettings && (
-                        <button type="button" title="Configurações do projeto" onClick={onOpenSettings} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--th-sheet-muted)', fontSize: '0.95rem', padding: 0, lineHeight: 1 }}>
+                        <button type="button" title="Configurações do projeto" onClick={onOpenSettings} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--th-sheet-muted)', fontSize: '1rem' }}>
                             <i className="fa-solid fa-gear"></i>
                         </button>
                     )}
                 </div>
-                <span style={{ fontSize: '0.7rem', color: 'var(--th-sheet-muted)' }}>💡 No modo de edição, arraste pelo ícone ⋮⋮ para mover linhas e use a bandeira para marcar um evento.</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--th-sheet-muted)' }}>
+                    {readOnly ? 'Somente leitura' : 'Clique numa célula para editar · segure e arraste uma linha ou coluna para mover'}
+                </span>
             </div>
+
             <div className="table-container">
                 <table id="noc-table" style={{ width: `${totalWidth}px` }}>
                     <thead>
                         <tr>
+                            {deleteMode && <th style={{ width: '36px', minWidth: '36px' }} />}
                             <th style={{ width: `${CHECK_COL_WIDTH}px`, minWidth: `${CHECK_COL_WIDTH}px`, maxWidth: `${CHECK_COL_WIDTH}px`, textAlign: 'center' }}>
                                 Check
                             </th>
 
                             {columnConfig.map((col, idx) => {
-                                let w = parseInt(col.width) || 150;
+                                const w = parseInt(col.width) || 150;
                                 const isEventScope = col.targetScope === 'events';
                                 return (
                                     <th
                                         key={col.id}
-                                        style={{ 
-                                            width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`,
-                                            background: isEventScope ? '#334155' : undefined 
-                                        }}
-                                        draggable={isEditMode}
+                                        style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, background: isEventScope ? '#334155' : undefined }}
+                                        draggable={!readOnly && !deleteMode}
                                         onDragStart={(e) => onDragStart(e, idx)}
                                         onDragOver={onDragOver}
                                         onDrop={(e) => onDrop(e, idx)}
                                         title={isEventScope ? 'Coluna exclusiva de Eventos' : 'Coluna geral'}
                                     >
-                                        {isEditMode && columnConfig.length > 1 && (
-                                            <Button variant="danger" size="sm" style={{ padding: '0 2px', float: 'right' }} onClick={() => onDeleteCol(col.id)}>X</Button>
+                                        {deleteMode && (
+                                            <div style={{ textAlign: 'center' }}>
+                                                <input type="checkbox" checked={selectedCols.has(col.id)} onChange={() => onToggleCol(col.id)} />
+                                            </div>
                                         )}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            
-                                            <span
-                                                className={isEditMode ? "col-title-display editable" : "col-title-display"}
-                                                contentEditable={isEditMode}
-                                                suppressContentEditableWarning={true}
-                                                onBlur={(e) => onUpdateColName(col.id, e.target.innerText)}
-                                            >
-                                                {col.name}
-                                            </span>
-                                        </div>
-                                        <div className="resizer" onMouseDown={(e) => onInitResize(e, idx)} />
+                                        <span
+                                            className="col-title-display editable"
+                                            contentEditable={!readOnly}
+                                            suppressContentEditableWarning={true}
+                                            onBlur={(e) => {
+                                                if (!readOnly) onUpdateColName(col.id, e.target.innerText);
+                                            }}
+                                        >
+                                            {col.name}
+                                        </span>
+                                        {!readOnly && <div className="resizer" onMouseDown={(e) => onInitResize(e, idx)} />}
                                     </th>
                                 );
                             })}
-                            {isEditMode && <th style={{ textAlign: 'center', width: '200px', minWidth: '200px' }}>Prioridade / Ações</th>}
-                            <th style={{ width: '40px', minWidth: '40px' }}></th>
+
+                            <th style={{ width: '70px', minWidth: '70px' }} />
                         </tr>
                     </thead>
+
                     <tbody>
                         {filteredEquipments.length === 0 ? (
                             <tr>
-                                <td colSpan={columnConfig.length + (isEditMode ? 2 : 1)} style={{ textAlign: 'center', padding: '20px', color: 'var(--th-sheet-muted)' }}>
+                                <td colSpan={emptyColSpan} style={{ textAlign: 'center', padding: '20px', color: 'var(--th-sheet-muted)' }}>
                                     Nenhum registo encontrado.
                                 </td>
                             </tr>
                         ) : (
-                            filteredEquipments.map(eq => {
+                            filteredEquipments.map((eq) => {
                                 const completed = isRowCompleted(eq, schedules, columnConfig);
+                                const selected = selectedRows.has(eq.id);
 
-                                // FAIXA CINZA DE EVENTO ÚNICO
+                                // A linha inteira é a área de arrastar (sem ícone de pontinhos)
+                                const dragProps = !readOnly && !deleteMode ? {
+                                    draggable: true,
+                                    onDragStart: (e) => {
+                                        e.dataTransfer.effectAllowed = 'move';
+                                        e.dataTransfer.setData('text/plain', eq.id);
+                                        onRowDragStart(eq.id);
+                                    },
+                                    onDragOver: (e) => e.preventDefault(),
+                                    onDrop: () => onRowDrop(eq.id)
+                                } : {};
+
                                 if (eq.isGroupHeader) {
                                     return (
-                                        <tr key={eq.id} style={{ backgroundColor: completed ? '#86efac' : '#94a3b8', borderBottom: '2px solid #64748b' }} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); onRowDrop(eq.id); }}>
+                                        <tr key={eq.id} {...dragProps} style={{ backgroundColor: completed ? '#86efac' : '#94a3b8', borderBottom: '2px solid #64748b' }}>
+                                            {renderSelectCell(selected, () => onToggleRow(eq.id))}
                                             <td style={{ textAlign: 'center', fontSize: '1rem' }}>
-                                                {isEditMode ? renderGrip(eq) : (completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null)}
+                                                {completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null}
                                             </td>
-
-                                            {renderGroupCells(eq, completed)}
-
-                                            {isEditMode && (
-                                                <td style={{ textAlign: 'center', width: '200px' }}>
-                                                    {renderToggleEvent(eq)}
-                                                    <Button variant="danger" size="sm" style={{ padding: '2px 8px' }} onClick={() => onDeleteRow(eq.id)}>Excluir evento</Button>
-                                                </td>
-                                            )}
-                                            {renderCommentCell(eq)}
+                                            {renderGroupCells(eq)}
+                                            {renderActions(eq)}
                                         </tr>
                                     );
                                 }
 
-                                // LINHA DE DADOS PADRÃO
-                                let rowBg = completed ? '#f0fdf4' : (colorMap[eq.color] || '#ffffff');
-
                                 return (
-                                    <tr key={eq.id} style={{ backgroundColor: rowBg, borderLeft: eq.groupId ? '4px solid #8b5cf6' : 'none' }} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); onRowDrop(eq.id); }}>
+                                    <tr
+                                        key={eq.id}
+                                        {...dragProps}
+                                        style={{ backgroundColor: completed ? '#f0fdf4' : 'var(--th-sheet)', borderLeft: eq.groupId ? '4px solid #8b5cf6' : 'none' }}
+                                    >
+                                        {renderSelectCell(selected, () => onToggleRow(eq.id))}
                                         <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                                            {isEditMode ? renderGrip(eq) : (completed ? <i className="fa-solid fa-circle-check" title="Concluído" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null)}
+                                            {completed ? <i className="fa-solid fa-circle-check" title="Concluído" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null}
                                         </td>
-
-                                        {columnConfig.map(col => {
-                                            let w = parseInt(col.width) || 150;
-                                            
-                                            // Se a coluna for exclusiva para Eventos, exibe travada nas linhas padrão
-                                            if (col.targetScope === 'events') {
-                                                return (
-                                                    <td key={col.id} style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, textAlign: 'center', color: '#cbd5e1', background: 'var(--th-sheet)', fontSize: '0.8rem' }} title="Campo exclusivo para faixas de evento">
-                                                        —
-                                                    </td>
-                                                );
-                                            }
-
-                                            let cellValue = eq[col.id] !== undefined ? eq[col.id] : '';
-                                            return (
-                                                <td key={col.id} className={col.type === 'checkbox' ? 'checkbox-cell' : ''} style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px` }}>
-                                                    {col.type === 'checkbox' ? (
-                                                        <Checkbox checked={!!cellValue} onChange={(e) => onUpdateField(eq.id, col.id, e.target.checked)} />
-                                                    ) : (
-                                                        <Input
-                                                            className={isEditMode ? 'editable' : ''}
-                                                            value={cellValue}
-                                                            readOnly={!isEditMode}
-                                                            onChange={(e) => onUpdateField(eq.id, col.id, e.target.value)}
-                                                        />
-                                                    )}
-                                                </td>
-                                            );
-                                        })}
-
-                                        {isEditMode && (
-                                            <td style={{ textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '4px', alignItems: 'center', height: '32px', width: '200px' }}>
-                                                <select 
-                                                    className="color-select" 
-                                                    value={eq.color || 'padrao'} 
-                                                    onChange={(e) => onUpdateField(eq.id, 'color', e.target.value)} 
-                                                    style={{ fontSize: '0.65rem', padding: '2px', background: 'var(--th-sheet)', border: '1px solid var(--th-border-strong)', borderRadius: '3px' }}
-                                                >
-                                                    <option value="padrao">Normal</option>
-                                                    <option value="vermelho">🔴 Crítico</option>
-                                                    <option value="amarelo">🟡 Atenção</option>
-                                                    <option value="verde">🟢 Baixa</option>
-                                                    <option value="azul">🔵 Info</option>
-                                                </select>
-                                                {renderToggleEvent(eq)}
-                                                <Button variant="danger" size="sm" style={{ padding: '2px 5px' }} onClick={() => onDeleteRow(eq.id)}>X</Button>
-                                            </td>
-                                        )}
-                                        {renderCommentCell(eq)}
+                                        {columnConfig.map((col) => (col.targetScope === 'events' ? renderLockedCell(col) : renderDataCell(eq, col)))}
+                                        {renderActions(eq)}
                                     </tr>
                                 );
                             })

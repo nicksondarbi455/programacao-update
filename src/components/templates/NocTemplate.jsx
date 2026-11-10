@@ -9,23 +9,18 @@ import { RowQuantityModal } from '../organisms/RowQuantityModal';
 export function NocTemplate({
     todayAlertText,
     percentage,
-    connectionStatus,
-    connectionText,
-    isEditMode,
-    onToggleEdit,
+    readOnly,
     onNewRow,
     onNewCol,
     onNewItem,
     rowModalOpen,
     onConfirmRows,
     onCloseRowModal,
-    onDeleteProject,
     columnConfig,
     equipments,
     onUpdateField,
+    onCommitField,
     onUpdateColName,
-    onDeleteCol,
-    onDeleteRow,
     onRowDragStart,
     onRowDrop,
     onToggleEventRow,
@@ -60,7 +55,18 @@ export function NocTemplate({
     scheduledLabels,
     groupModalOpen,
     onConfirmGroup,
-    onCloseGroupModal
+    onCloseGroupModal,
+    activeCell,
+    onActivateCell,
+    activeFormat,
+    onFormat,
+    deleteMode,
+    selectedRows,
+    selectedCols,
+    onToggleRowSel,
+    onToggleColSel,
+    onToggleDeleteMode,
+    onConfirmDelete
 }) {
     return (
         /* Espaçamento inferior reforçado para garantir que o rodapé da tabela não fique escondido */
@@ -68,12 +74,18 @@ export function NocTemplate({
             <TopBar
                 todayAlertText={todayAlertText}
                 percentage={percentage}
-                isEditMode={isEditMode}
-                onToggleEdit={onToggleEdit}
+                readOnly={readOnly}
                 onNewRow={onNewRow}
                 onNewCol={onNewCol}
                 onNewItem={onNewItem}
-                onDeleteProject={onDeleteProject}
+                hasActiveCell={!!activeCell}
+                activeFormat={activeFormat}
+                onFormat={onFormat}
+                isDeleteMode={deleteMode}
+                selectedCount={selectedRows.size + selectedCols.size}
+                onToggleDelete={onToggleDeleteMode}
+                onCancelDelete={onToggleDeleteMode}
+                onConfirmDelete={onConfirmDelete}
             />
 
             <div style={{ padding: '0 20px', marginTop: '15px' }}>
@@ -103,15 +115,21 @@ export function NocTemplate({
                 <NocTable
                     columnConfig={columnConfig}
                     equipments={equipments}
-                    isEditMode={isEditMode}
+                    readOnly={readOnly}
+                    deleteMode={deleteMode}
+                    selectedRows={selectedRows}
+                    selectedCols={selectedCols}
+                    onToggleRow={onToggleRowSel}
+                    onToggleCol={onToggleColSel}
                     onUpdateField={onUpdateField}
+                    onCommitField={onCommitField}
                     onUpdateColName={onUpdateColName}
-                    onDeleteCol={onDeleteCol}
-                    onDeleteRow={onDeleteRow}
                     onRowDragStart={onRowDragStart}
                     onRowDrop={onRowDrop}
                     onToggleEventRow={onToggleEventRow}
                     onOpenRowComments={onOpenRowComments}
+                    activeCell={activeCell}
+                    onActivateCell={onActivateCell}
                     commentCounts={commentCounts}
                     onOpenSettings={onOpenSettings}
                     onDragStart={onDragStart}

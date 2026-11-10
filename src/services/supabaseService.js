@@ -216,7 +216,12 @@ export const supabaseService = {
             const { id, color, position, ...data } = eq;
             const remapped = {};
             Object.entries(data).forEach(([key, value]) => {
-                remapped[colMap[key] || key] = value;
+                if (key === '_fmt' && value) {
+                    // A formatação guarda os IDs das colunas dentro dela: também precisa ser remapeada
+                    remapped._fmt = Object.fromEntries(Object.entries(value).map(([c, f]) => [colMap[c] || c, f]));
+                } else {
+                    remapped[colMap[key] || key] = value;
+                }
             });
             return {
                 id: `eq_${stamp}_${idx}`,

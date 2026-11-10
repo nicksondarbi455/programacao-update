@@ -14,7 +14,11 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     const [equipments, setEquipments] = useState(project.equipments || []);
     const [columnConfig, setColumnConfig] = useState(project.columnConfig || []);
     const [schedules, setSchedules] = useState(project.schedules || {});
-    const [isEditMode, setIsEditMode] = useState(false);
+    // Célula ativa (recebe a formatação), e linhas/colunas marcadas para excluir
+    const [activeCell, setActiveCell] = useState(null);
+    const [deleteMode, setDeleteMode] = useState(false);
+    const [selectedRows, setSelectedRows] = useState(new Set());
+    const [selectedCols, setSelectedCols] = useState(new Set());
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     const [colModalOpen, setColModalOpen] = useState(false);
     const [rowModalOpen, setRowModalOpen] = useState(false);
@@ -30,8 +34,6 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     const [commentCounts, setCommentCounts] = useState({});
     const [people, setPeople] = useState([]);
     const [realtimeStatus, setRealtimeStatus] = useState('conectando');
-    // Estado das linhas no início da edição em lote (para registrar o que mudou)
-    const editSnapshotRef = useRef([]);
 
     const refreshCommentCounts = async () => {
         try {
@@ -86,9 +88,6 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     // Nº de gravações em curso; enquanto > 0 o realtime não substitui o estado local
     const pendingWritesRef = useRef(0);
     // Alterações feitas em modo de edição, ainda não enviadas: { [rowId]: { [campo]: valor } }
-    const pendingCellsRef = useRef({});
-    // Espelho do estado isEditMode para ser lido dentro de callbacks (realtime, handlers)
-    const isEditModeRef = useRef(false);
 
     const columnConfigRef = useRef(columnConfig);
     useEffect(() => {
@@ -128,7 +127,9 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     // Atualização vinda do servidor; ignorada enquanto existe gravação local pendente
     // Não substitui a tela enquanto há gravações pendentes ou enquanto a tabela está em edição
     const refreshIfIdle = () => {
-        if (pendingWritesRef.current === 0 && !isEditModeRef.current) refreshData();
+        // Não recarrega enquanto alguém digita numa célula, para não apagar o que está sendo escrito
+        const digitando = document.activeElement && document.activeElement.classList.contains('sheet-input');
+        if (pendingWritesRef.current === 0 && !digitando) refreshData();
     };
 
     useEffect(() => {
@@ -261,58 +262,86 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
         return { weekCount, tomorrowCount };
     };
 
-    const handleUpdateField = async (id, field, value) => {
-        const before = equipments.find((eq) => eq.id === id)?.[field];
+    // Digitação: atualiza só a tela. A gravação acontece quando a célula perde o foco (handleCommitField).
+    const handleUpdateField = (id, field, value) => {
         setEquipments(prev => prev.map(eq => eq.id === id ? { ...eq, [field]: value } : eq));
+    };
 
-        // Em modo de edição guarda só localmente; o Supabase é atualizado ao concluir a edição
-        if (isEditModeRef.current) {
-            pendingCellsRef.current[id] = { ...(pendingCellsRef.current[id] || {}), [field]: value };
-            return;
-        }
-        if (field !== 'color' && String(before ?? '') !== String(value ?? '')) {
-            recordHistory([fieldEntry(id, field, before, value)]);
-        }
+    // Grava o campo ao sair da célula. "before" é o valor de quando a célula ganhou o foco;
+    // "after" é informado quando o novo valor já é conhecido (caixas de seleção).
+    const handleCommitField = async (id, field, before, after) => {
+        const value = after !== undefined ? after : equipments.find((eq) => eq.id === id)?.[field];
+        if (String(before ?? '') === String(value ?? '')) return;
+        recordHistory([fieldEntry(id, field, before, value)]);
         await persist(() => supabaseService.updateEquipmentField(id, project.id, field, value));
     };
 
-    // Inicia a edição ou, ao concluir, envia todas as alterações de uma vez
-    const handleToggleEdit = async () => {
-        if (!isEditModeRef.current) {
-            isEditModeRef.current = true;
-            editSnapshotRef.current = equipments;
-            setIsEditMode(true);
-            return;
+    // Formatação da célula ativa: negrito, alinhamento e cor, guardadas em _fmt da própria linha
+    const activeFormat = activeCell
+        ? (equipments.find((eq) => eq.id === activeCell.rowId)?._fmt?.[activeCell.colId] || {})
+        : {};
+
+    const handleFormat = async (patch) => {
+        if (!activeCell) return;
+        const { rowId, colId } = activeCell;
+        const row = equipments.find((eq) => eq.id === rowId);
+        if (!row) return;
+
+        const nextCell = { ...(row._fmt?.[colId] || {}), ...patch };
+        // Remove o que ficou vazio (sem negrito, sem alinhamento e sem cor)
+        Object.keys(nextCell).forEach((k) => {
+            if (nextCell[k] === false || nextCell[k] === null || nextCell[k] === undefined || nextCell[k] === '') {
+                delete nextCell[k];
+            }
+        });
+
+        const nextFmt = { ...(row._fmt || {}) };
+        if (Object.keys(nextCell).length > 0) nextFmt[colId] = nextCell;
+        else delete nextFmt[colId];
+
+        setEquipments(prev => prev.map(eq => eq.id === rowId ? { ...eq, _fmt: nextFmt } : eq));
+        await persist(() => supabaseService.updateEquipmentField(rowId, project.id, '_fmt', nextFmt));
+    };
+
+    // Excluir: liga/desliga o modo de seleção (caixas nas linhas e colunas)
+    const handleToggleDeleteMode = () => {
+        setDeleteMode((m) => !m);
+        setSelectedRows(new Set());
+        setSelectedCols(new Set());
+    };
+
+    const toggleSet = (setter) => (id) => setter((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+    });
+    const toggleRowSel = toggleSet(setSelectedRows);
+    const toggleColSel = toggleSet(setSelectedCols);
+
+    const handleConfirmDelete = async () => {
+        const rowIds = [...selectedRows];
+        const colIds = [...selectedCols];
+        if (rowIds.length + colIds.length === 0) return;
+
+        const partes = [];
+        if (rowIds.length) partes.push(`${rowIds.length} linha(s)`);
+        if (colIds.length) partes.push(`${colIds.length} coluna(s)`);
+        if (!window.confirm(`Excluir ${partes.join(' e ')}? Esta ação não pode ser desfeita.`)) return;
+
+        if (rowIds.length) {
+            setEquipments(prev => prev.filter(eq => !selectedRows.has(eq.id)));
+            await persist(() => Promise.all(rowIds.map(id => supabaseService.deleteEquipment(id))));
+        }
+        if (colIds.length) {
+            const updated = columnConfig.filter(c => !selectedCols.has(c.id)).map((c, i) => ({ ...c, position: i }));
+            setColumnConfig(updated);
+            await persist(() => supabaseService.updateColumnConfig(project.id, updated));
         }
 
-        const pending = pendingCellsRef.current;
-        pendingCellsRef.current = {};
-
-        // Histórico: compara cada campo alterado com o valor do início da edição
-        const entries = [];
-        Object.entries(pending).forEach(([rowId, fields]) => {
-            Object.entries(fields).forEach(([field, value]) => {
-                if (field === 'color') return;
-                const before = editSnapshotRef.current.find((eq) => eq.id === rowId)?.[field];
-                if (String(before ?? '') !== String(value ?? '')) {
-                    entries.push(fieldEntry(rowId, field, before, value));
-                }
-            });
-        });
-        recordHistory(entries);
-        isEditModeRef.current = false;
-        setIsEditMode(false);
-
-        await persist(async () => {
-            await Promise.all(
-                Object.entries(pending).flatMap(([rowId, fields]) =>
-                    Object.entries(fields).map(([field, value]) =>
-                        supabaseService.updateEquipmentField(rowId, project.id, field, value)
-                    )
-                )
-            );
-        });
-        await refreshData();
+        setDeleteMode(false);
+        setSelectedRows(new Set());
+        setSelectedCols(new Set());
     };
 
     // Troca a posição da linha com a vizinha (direction: -1 sobe, 1 desce)
@@ -607,8 +636,19 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
                 percentage={calculateProgress()}
                 connectionStatus="online"
                 connectionText="Supabase Cloud"
-                isEditMode={isEditMode}
-                onToggleEdit={project.canEdit ? handleToggleEdit : undefined}
+                readOnly={!project.canEdit}
+                activeCell={activeCell}
+                onActivateCell={setActiveCell}
+                activeFormat={activeFormat}
+                onFormat={handleFormat}
+                onCommitField={handleCommitField}
+                deleteMode={deleteMode}
+                selectedRows={selectedRows}
+                selectedCols={selectedCols}
+                onToggleRowSel={toggleRowSel}
+                onToggleColSel={toggleColSel}
+                onToggleDeleteMode={handleToggleDeleteMode}
+                onConfirmDelete={handleConfirmDelete}
                 onNewRow={() => setRowModalOpen(true)}
                 rowModalOpen={rowModalOpen}
                 onConfirmRows={handleAddNewRows}
