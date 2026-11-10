@@ -5,6 +5,10 @@ const CHECK_COL_WIDTH = 70;
 // Largura da coluna com o número da linha (à esquerda do Check)
 const ROW_NUM_WIDTH = 44;
 
+// Cores de seleção (estilo Google Sheets)
+const SELECT_BLUE = '#1a73e8';
+const SELECT_TINT = '#d2e3fc';
+
 // Ícones de ação (bandeira e comentário) no fim de cada linha
 const iconBtn = { background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: '0.9rem', color: 'var(--th-sheet-text)', lineHeight: 1 };
 
@@ -120,14 +124,30 @@ export function NocTable({
 
     const isActive = (rowId, colId) => !!activeCell && activeCell.rowId === rowId && activeCell.colId === colId;
 
-    const cellBg = (rowId, colId, active) => {
-        if (active) return '#bfdbfe';
-        if (selRows.has(rowId) || selCols.has(colId)) return '#dbeafe';
-        return 'var(--th-sheet)';
-    };
-
     const focusCell = (rowId, colId) => () => {
         if (onActivateCell) onActivateCell({ rowId, colId });
+    };
+
+    // Cor de fundo da linha antes de qualquer seleção: faixa de evento (cinza ou verde) ou linha comum
+    const rowBase = (eq, completed) => {
+        if (eq.isGroupHeader) return completed ? '#86efac' : '#94a3b8';
+        return completed ? '#f0fdf4' : 'var(--th-sheet)';
+    };
+
+    // Estilo de uma célula: cor da linha, seleção (azul) e cor de fundo escolhida pelo usuário
+    const cellLook = (eq, colId, base, extra = {}) => {
+        const isGroup = !!eq.isGroupHeader;
+        const rowSel = selRows.has(eq.id);
+        const colSel = selCols.has(colId);
+        const fmt = eq._fmt && eq._fmt[colId];
+
+        let bg = base;
+        if (!isGroup && (rowSel || colSel)) bg = SELECT_TINT;
+        if (fmt && fmt.bg) bg = fmt.bg;
+
+        // Faixa de evento selecionada ganha só a borda azul (mantém a cor do evento)
+        const outline = isActive(eq.id, colId) || (isGroup && rowSel);
+        return { background: bg, boxShadow: outline ? `inset 0 0 0 2px ${SELECT_BLUE}` : 'none', ...extra };
     };
 
     const totalWidth = columnConfig.reduce((acc, col) => acc + (parseInt(col.width) || 150), 0)
@@ -135,8 +155,9 @@ export function NocTable({
     const emptyColSpan = columnConfig.length + 3;
 
     // Número da linha: clique seleciona a linha (Ctrl soma, Shift vai até a linha anterior selecionada)
-    const renderRowNum = (eq, index) => {
+    const renderRowNum = (eq, index, base) => {
         const selected = selRows.has(eq.id);
+        const isGroup = !!eq.isGroupHeader;
         return (
             <td
                 className="row-num"
@@ -145,8 +166,8 @@ export function NocTable({
                 style={{
                     width: `${ROW_NUM_WIDTH}px`, minWidth: `${ROW_NUM_WIDTH}px`, maxWidth: `${ROW_NUM_WIDTH}px`,
                     textAlign: 'center', cursor: 'pointer', userSelect: 'none', fontSize: '0.72rem',
-                    color: selected ? '#1e3a8a' : 'var(--th-sheet-muted)',
-                    background: selected ? '#93c5fd' : 'var(--th-surface-2)',
+                    background: selected ? SELECT_BLUE : (isGroup ? base : 'var(--th-surface-2)'),
+                    color: selected ? '#ffffff' : 'var(--th-sheet-muted)',
                     fontWeight: selected ? 700 : 400
                 }}
             >
@@ -156,10 +177,11 @@ export function NocTable({
     };
 
     // Bandeira (marca evento) e comentários, no fim de cada linha
-    const renderActions = (eq) => {
+    const renderActions = (eq, base) => {
         const count = commentCounts[`linha|${eq.id}`] || 0;
+        const bg = !eq.isGroupHeader && selRows.has(eq.id) ? SELECT_TINT : base;
         return (
-            <td style={{ width: '70px', minWidth: '70px', textAlign: 'center', padding: '0 4px' }}>
+            <td style={{ width: '70px', minWidth: '70px', textAlign: 'center', padding: '0 4px', background: bg }}>
                 {!readOnly && (
                     <button
                         type="button"
@@ -184,14 +206,14 @@ export function NocTable({
     };
 
     // Célula de uma coluna exclusiva de Eventos nas linhas comuns (não se edita aqui)
-    const renderLockedCell = (col, eq) => {
+    const renderLockedCell = (col, eq, base) => {
         const w = parseInt(col.width) || 150;
         return (
             <td
                 key={col.id}
                 className="sheet-cell"
-                onClick={() => onActivateCell && onActivateCell({ rowId: eq.id, colId: col.id })}
-                style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, textAlign: 'center', color: '#cbd5e1', background: cellBg(eq.id, col.id, false) }}
+                onClick={focusCell(eq.id, col.id)}
+                style={cellLook(eq, col.id, base, { width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, textAlign: 'center', color: '#cbd5e1' })}
             >
                 —
             </td>
@@ -199,12 +221,11 @@ export function NocTable({
     };
 
     // Célula editável de uma coluna (ou caixa, se a coluna for checkbox)
-    const renderDataCell = (eq, col) => {
+    const renderDataCell = (eq, col, base) => {
         const w = parseInt(col.width) || 150;
         const size = { width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px` };
         const value = eq[col.id] !== undefined ? eq[col.id] : '';
-        const active = isActive(eq.id, col.id);
-        const look = { ...size, background: cellBg(eq.id, col.id, active), boxShadow: active ? 'inset 0 0 0 2px #2563eb' : 'none' };
+        const look = cellLook(eq, col.id, base, size);
 
         if (col.type === 'checkbox') {
             return (
@@ -240,7 +261,7 @@ export function NocTable({
      * Colunas gerais consecutivas viram um bloco com o nome do evento; colunas exclusivas
      * de evento ficam em célula própria, na sua posição.
      */
-    const renderGroupCells = (eq) => {
+    const renderGroupCells = (eq, base) => {
         const segments = [];
         columnConfig.forEach((col) => {
             if (col.targetScope === 'events') {
@@ -254,18 +275,22 @@ export function NocTable({
 
         let titleShown = false;
         return segments.map((seg, i) => {
-            if (seg.kind === 'event') return renderDataCell(eq, seg.col);
+            if (seg.kind === 'event') return renderDataCell(eq, seg.col, base);
 
             const isTitle = !titleShown;
             titleShown = true;
             return (
-                <td key={`std-${i}`} colSpan={seg.span} style={{ textAlign: 'center', padding: 0, fontWeight: 'bold', color: 'var(--th-sheet-text)', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                <td
+                    key={`std-${i}`}
+                    colSpan={seg.span}
+                    style={cellLook(eq, '__titulo__', base, { padding: 0, fontWeight: 'bold', color: 'var(--th-sheet-text)', letterSpacing: '1px', textTransform: 'uppercase', textAlign: 'center' })}
+                >
                     {isTitle && (
                         <SheetInput
                             value={eq.groupName || ''}
                             placeholder="NOME DO EVENTO"
                             readOnly={readOnly}
-                            style={{ fontWeight: 800, textAlign: 'center', textTransform: 'uppercase' }}
+                            style={{ fontWeight: 800, textAlign: 'center', textTransform: 'uppercase', background: 'transparent' }}
                             onChange={(v) => onUpdateField(eq.id, 'groupName', v)}
                             onCommit={(before) => onCommitField(eq.id, 'groupName', before)}
                         />
@@ -315,7 +340,7 @@ export function NocTable({
                                         key={col.id}
                                         style={{
                                             width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`,
-                                            background: selected ? '#3b82f6' : (isEventScope ? '#334155' : undefined),
+                                            background: selected ? SELECT_BLUE : (isEventScope ? '#334155' : undefined),
                                             cursor: 'pointer'
                                         }}
                                         draggable={!readOnly}
@@ -378,6 +403,7 @@ export function NocTable({
                         ) : (
                             filteredEquipments.map((eq, index) => {
                                 const completed = isRowCompleted(eq, schedules, columnConfig);
+                                const base = rowBase(eq, completed);
 
                                 // A linha inteira pode ser arrastada para mudar de posição
                                 const dragProps = !readOnly ? {
@@ -391,15 +417,17 @@ export function NocTable({
                                     onDrop: () => onRowDrop(eq.id)
                                 } : {};
 
+                                const checkBg = !eq.isGroupHeader && selRows.has(eq.id) ? SELECT_TINT : base;
+
                                 if (eq.isGroupHeader) {
                                     return (
-                                        <tr key={eq.id} {...dragProps} style={{ backgroundColor: completed ? '#86efac' : '#94a3b8', borderBottom: '2px solid #64748b' }}>
-                                            {renderRowNum(eq, index)}
-                                            <td style={{ textAlign: 'center', fontSize: '1rem' }}>
+                                        <tr key={eq.id} {...dragProps} style={{ backgroundColor: base, borderBottom: '2px solid #64748b' }}>
+                                            {renderRowNum(eq, index, base)}
+                                            <td style={{ textAlign: 'center', fontSize: '1rem', background: base }}>
                                                 {completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null}
                                             </td>
-                                            {renderGroupCells(eq)}
-                                            {renderActions(eq)}
+                                            {renderGroupCells(eq, base)}
+                                            {renderActions(eq, base)}
                                         </tr>
                                     );
                                 }
@@ -408,14 +436,14 @@ export function NocTable({
                                     <tr
                                         key={eq.id}
                                         {...dragProps}
-                                        style={{ backgroundColor: completed ? '#f0fdf4' : 'var(--th-sheet)', borderLeft: eq.groupId ? '4px solid #8b5cf6' : 'none' }}
+                                        style={{ backgroundColor: base, borderLeft: eq.groupId ? '4px solid #8b5cf6' : 'none' }}
                                     >
-                                        {renderRowNum(eq, index)}
-                                        <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                                        {renderRowNum(eq, index, base)}
+                                        <td style={{ textAlign: 'center', verticalAlign: 'middle', background: checkBg }}>
                                             {completed ? <i className="fa-solid fa-circle-check" title="Concluído" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null}
                                         </td>
-                                        {columnConfig.map((col) => (col.targetScope === 'events' ? renderLockedCell(col, eq) : renderDataCell(eq, col)))}
-                                        {renderActions(eq)}
+                                        {columnConfig.map((col) => (col.targetScope === 'events' ? renderLockedCell(col, eq, base) : renderDataCell(eq, col, base)))}
+                                        {renderActions(eq, base)}
                                     </tr>
                                 );
                             })
