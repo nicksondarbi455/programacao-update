@@ -42,13 +42,10 @@ export function TopBar({
     onNewRow,
     onNewCol,
     onNewItem,
-    hasActiveCell = false,
+    hasTarget = false,
     activeFormat = {},
     onFormat,
-    isDeleteMode = false,
     selectedCount = 0,
-    onToggleDelete,
-    onCancelDelete,
     onConfirmDelete
 }) {
     return (
@@ -64,33 +61,23 @@ export function TopBar({
                         <Button variant="primary" size="sm" onClick={onNewRow}><i className="fa-regular fa-plus"></i> Linha</Button>
                         <Button variant="primary" size="sm" onClick={onNewCol}><i className="fa-regular fa-plus"></i> Coluna</Button>
                         <Button variant="primary" size="sm" onClick={onNewItem}><i className="fa-regular fa-plus"></i> Evento</Button>
-
-                        {isDeleteMode ? (
-                            <>
-                                <Button variant="secondary" size="sm" onClick={onCancelDelete}>Cancelar</Button>
-                                <Button variant="danger" size="sm" onClick={onConfirmDelete} disabled={selectedCount === 0}>
-                                    <i className="fa-regular fa-trash-can"></i> Excluir selecionadas ({selectedCount})
-                                </Button>
-                            </>
-                        ) : (
-                            <Button variant="danger" size="sm" onClick={onToggleDelete}>
-                                <i className="fa-regular fa-trash-can"></i> Excluir
-                            </Button>
-                        )}
+                        <Button variant="danger" size="sm" onClick={onConfirmDelete} disabled={selectedCount === 0}>
+                            <i className="fa-regular fa-trash-can"></i> Excluir selecionadas ({selectedCount})
+                        </Button>
                     </div>
 
                     <div className="format-bar" style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <FormatBtn active={!!activeFormat.b} disabled={!hasActiveCell} title="Negrito" onClick={() => onFormat({ b: !activeFormat.b })}>
+                        <FormatBtn active={!!activeFormat.b} disabled={!hasTarget} title="Negrito" onClick={() => onFormat({ b: 'toggle' })}>
                             <b>B</b>
                         </FormatBtn>
 
-                        <FormatBtn active={activeFormat.a === 'left'} disabled={!hasActiveCell} title="Alinhar à esquerda" onClick={() => onFormat({ a: 'left' })}>
+                        <FormatBtn active={activeFormat.a === 'left'} disabled={!hasTarget} title="Alinhar à esquerda" onClick={() => onFormat({ a: 'left' })}>
                             <i className="fa-solid fa-align-left"></i>
                         </FormatBtn>
-                        <FormatBtn active={activeFormat.a === 'center'} disabled={!hasActiveCell} title="Centralizar" onClick={() => onFormat({ a: 'center' })}>
+                        <FormatBtn active={activeFormat.a === 'center'} disabled={!hasTarget} title="Centralizar" onClick={() => onFormat({ a: 'center' })}>
                             <i className="fa-solid fa-align-center"></i>
                         </FormatBtn>
-                        <FormatBtn active={activeFormat.a === 'right'} disabled={!hasActiveCell} title="Alinhar à direita" onClick={() => onFormat({ a: 'right' })}>
+                        <FormatBtn active={activeFormat.a === 'right'} disabled={!hasTarget} title="Alinhar à direita" onClick={() => onFormat({ a: 'right' })}>
                             <i className="fa-solid fa-align-right"></i>
                         </FormatBtn>
 
@@ -102,7 +89,7 @@ export function TopBar({
                                 type="button"
                                 title={`Texto ${cor.label.toLowerCase()}`}
                                 aria-label={`Texto ${cor.label.toLowerCase()}`}
-                                disabled={!hasActiveCell}
+                                disabled={!hasTarget}
                                 onClick={() => onFormat({ c: cor.value })}
                                 style={{
                                     width: '22px',
@@ -111,18 +98,20 @@ export function TopBar({
                                     background: cor.value,
                                     border: activeFormat.c === cor.value ? '3px solid #fff' : '2px solid var(--th-border-strong)',
                                     boxShadow: activeFormat.c === cor.value ? '0 0 0 2px #2563eb' : 'none',
-                                    cursor: hasActiveCell ? 'pointer' : 'not-allowed',
-                                    opacity: hasActiveCell ? 1 : 0.5
+                                    cursor: hasTarget ? 'pointer' : 'not-allowed',
+                                    opacity: hasTarget ? 1 : 0.5
                                 }}
                             />
                         ))}
 
-                        <FormatBtn disabled={!hasActiveCell} title="Limpar formatação" onClick={() => onFormat({ b: false, a: null, c: null })}>
+                        <FormatBtn disabled={!hasTarget} title="Limpar formatação" onClick={() => onFormat({ b: false, a: null, c: null })}>
                             <i className="fa-solid fa-eraser"></i>
                         </FormatBtn>
 
-                        {!hasActiveCell && (
-                            <span style={{ fontSize: '0.7rem', color: 'var(--th-muted)', marginLeft: '6px' }}>Clique numa célula para formatar</span>
+                        {!hasTarget && (
+                            <span style={{ fontSize: '0.7rem', color: 'var(--th-muted)', marginLeft: '6px' }}>
+                                Selecione uma célula, linhas (número) ou colunas (cabeçalho) para formatar
+                            </span>
                         )}
                     </div>
                 </div>

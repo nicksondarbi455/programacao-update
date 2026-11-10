@@ -14,11 +14,12 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     const [equipments, setEquipments] = useState(project.equipments || []);
     const [columnConfig, setColumnConfig] = useState(project.columnConfig || []);
     const [schedules, setSchedules] = useState(project.schedules || {});
-    // Célula ativa (recebe a formatação), e linhas/colunas marcadas para excluir
+    // Seleção: célula ativa, linhas e colunas selecionadas (podem ser várias ao mesmo tempo)
     const [activeCell, setActiveCell] = useState(null);
-    const [deleteMode, setDeleteMode] = useState(false);
-    const [selectedRows, setSelectedRows] = useState(new Set());
-    const [selectedCols, setSelectedCols] = useState(new Set());
+    const [selRows, setSelRows] = useState(new Set());
+    const [selCols, setSelCols] = useState(new Set());
+    const [rowAnchor, setRowAnchor] = useState(null);
+    const [colAnchor, setColAnchor] = useState(null);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     const [colModalOpen, setColModalOpen] = useState(false);
     const [rowModalOpen, setRowModalOpen] = useState(false);
@@ -277,51 +278,132 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     };
 
     // Formatação da célula ativa: negrito, alinhamento e cor, guardadas em _fmt da própria linha
-    const activeFormat = activeCell
+    const activeFormat = activeCell && selRows.size === 0 && selCols.size === 0
         ? (equipments.find((eq) => eq.id === activeCell.rowId)?._fmt?.[activeCell.colId] || {})
         : {};
 
-    const handleFormat = async (patch) => {
-        if (!activeCell) return;
-        const { rowId, colId } = activeCell;
-        const row = equipments.find((eq) => eq.id === rowId);
-        if (!row) return;
+    // Células afetadas: as da seleção (linhas e/ou colunas) ou só a célula ativa
+    const formatTargets = () => {
+        if (selRows.size === 0 && selCols.size === 0) return activeCell ? [activeCell] : [];
+        const targets = [];
+        equipments.forEach((eq) => {
+            columnConfig.forEach((col) => {
+                if (selRows.has(eq.id) || selCols.has(col.id)) targets.push({ rowId: eq.id, colId: col.id });
+            });
+        });
+        return targets;
+    };
 
-        const nextCell = { ...(row._fmt?.[colId] || {}), ...patch };
-        // Remove o que ficou vazio (sem negrito, sem alinhamento e sem cor)
-        Object.keys(nextCell).forEach((k) => {
-            if (nextCell[k] === false || nextCell[k] === null || nextCell[k] === undefined || nextCell[k] === '') {
-                delete nextCell[k];
-            }
+    // Aplica a formatação (negrito 'toggle', alinhamento ou cor) em todas as células afetadas
+    const handleFormat = async (patch) => {
+        const targets = formatTargets();
+        if (targets.length === 0) return;
+
+        const changedRows = {};
+        equipments.forEach((eq) => {
+            const colIds = targets.filter((t) => t.rowId === eq.id).map((t) => t.colId);
+            if (colIds.length === 0) return;
+
+            const nextFmt = { ...(eq._fmt || {}) };
+            colIds.forEach((colId) => {
+                const current = nextFmt[colId] || {};
+                const next = { ...current };
+                Object.entries(patch).forEach(([k, v]) => {
+                    next[k] = v === 'toggle' ? !current[k] : v;
+                });
+                // Remove o que ficou vazio (sem negrito, sem alinhamento e sem cor)
+                Object.keys(next).forEach((k) => {
+                    if (next[k] === false || next[k] === null || next[k] === undefined || next[k] === '') delete next[k];
+                });
+                if (Object.keys(next).length > 0) nextFmt[colId] = next;
+                else delete nextFmt[colId];
+            });
+            changedRows[eq.id] = nextFmt;
         });
 
-        const nextFmt = { ...(row._fmt || {}) };
-        if (Object.keys(nextCell).length > 0) nextFmt[colId] = nextCell;
-        else delete nextFmt[colId];
-
-        setEquipments(prev => prev.map(eq => eq.id === rowId ? { ...eq, _fmt: nextFmt } : eq));
-        await persist(() => supabaseService.updateEquipmentField(rowId, project.id, '_fmt', nextFmt));
+        setEquipments(prev => prev.map(eq => (changedRows[eq.id] ? { ...eq, _fmt: changedRows[eq.id] } : eq)));
+        for (const rowId of Object.keys(changedRows)) {
+            await persist(() => supabaseService.updateEquipmentField(rowId, project.id, '_fmt', changedRows[rowId]));
+        }
     };
 
-    // Excluir: liga/desliga o modo de seleção (caixas nas linhas e colunas)
-    const handleToggleDeleteMode = () => {
-        setDeleteMode((m) => !m);
-        setSelectedRows(new Set());
-        setSelectedCols(new Set());
+    // ---- Seleção ----
+    // Clique numa célula: seleciona só ela
+    const handleActivateCell = (cell) => {
+        setActiveCell(cell);
+        setSelRows(new Set());
+        setSelCols(new Set());
     };
 
-    const toggleSet = (setter) => (id) => setter((prev) => {
-        const next = new Set(prev);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        return next;
-    });
-    const toggleRowSel = toggleSet(setSelectedRows);
-    const toggleColSel = toggleSet(setSelectedCols);
+    // Número da linha: clique seleciona a linha. Ctrl/Cmd soma à seleção. Shift vai até a linha anterior marcada.
+    const handleRowClick = (rowId, e, orderedIds) => {
+        const multi = e.ctrlKey || e.metaKey;
+        setActiveCell(null);
 
+        if (e.shiftKey && rowAnchor && orderedIds.includes(rowAnchor)) {
+            const a = orderedIds.indexOf(rowAnchor);
+            const b = orderedIds.indexOf(rowId);
+            const [lo, hi] = a < b ? [a, b] : [b, a];
+            const range = orderedIds.slice(lo, hi + 1);
+            setSelRows(prev => (multi ? new Set([...prev, ...range]) : new Set(range)));
+            if (!multi) setSelCols(new Set());
+            return;
+        }
+
+        if (multi) {
+            setSelRows(prev => {
+                const next = new Set(prev);
+                if (next.has(rowId)) next.delete(rowId);
+                else next.add(rowId);
+                return next;
+            });
+        } else {
+            setSelRows(new Set([rowId]));
+            setSelCols(new Set());
+        }
+        setRowAnchor(rowId);
+    };
+
+    // Cabeçalho da coluna: clique seleciona a coluna. Ctrl soma. Shift vai até a coluna anterior marcada.
+    const handleColClick = (colId, e, orderedIds) => {
+        const multi = e.ctrlKey || e.metaKey;
+        setActiveCell(null);
+
+        if (e.shiftKey && colAnchor && orderedIds.includes(colAnchor)) {
+            const a = orderedIds.indexOf(colAnchor);
+            const b = orderedIds.indexOf(colId);
+            const [lo, hi] = a < b ? [a, b] : [b, a];
+            const range = orderedIds.slice(lo, hi + 1);
+            setSelCols(prev => (multi ? new Set([...prev, ...range]) : new Set(range)));
+            if (!multi) setSelRows(new Set());
+            return;
+        }
+
+        if (multi) {
+            setSelCols(prev => {
+                const next = new Set(prev);
+                if (next.has(colId)) next.delete(colId);
+                else next.add(colId);
+                return next;
+            });
+        } else {
+            setSelCols(new Set([colId]));
+            setSelRows(new Set());
+        }
+        setColAnchor(colId);
+    };
+
+    // Canto superior: seleciona todas as linhas e colunas
+    const handleSelectAll = () => {
+        setActiveCell(null);
+        setSelRows(new Set(equipments.map(eq => eq.id)));
+        setSelCols(new Set(columnConfig.map(c => c.id)));
+    };
+
+    // Excluir a seleção (linhas e colunas marcadas), depois de confirmar
     const handleConfirmDelete = async () => {
-        const rowIds = [...selectedRows];
-        const colIds = [...selectedCols];
+        const rowIds = [...selRows];
+        const colIds = [...selCols];
         if (rowIds.length + colIds.length === 0) return;
 
         const partes = [];
@@ -330,18 +412,18 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
         if (!window.confirm(`Excluir ${partes.join(' e ')}? Esta ação não pode ser desfeita.`)) return;
 
         if (rowIds.length) {
-            setEquipments(prev => prev.filter(eq => !selectedRows.has(eq.id)));
+            setEquipments(prev => prev.filter(eq => !selRows.has(eq.id)));
             await persist(() => Promise.all(rowIds.map(id => supabaseService.deleteEquipment(id))));
         }
         if (colIds.length) {
-            const updated = columnConfig.filter(c => !selectedCols.has(c.id)).map((c, i) => ({ ...c, position: i }));
+            const updated = columnConfig.filter(c => !selCols.has(c.id)).map((c, i) => ({ ...c, position: i }));
             setColumnConfig(updated);
             await persist(() => supabaseService.updateColumnConfig(project.id, updated));
         }
 
-        setDeleteMode(false);
-        setSelectedRows(new Set());
-        setSelectedCols(new Set());
+        setSelRows(new Set());
+        setSelCols(new Set());
+        setActiveCell(null);
     };
 
     // Troca a posição da linha com a vizinha (direction: -1 sobe, 1 desce)
@@ -638,16 +720,15 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
                 connectionText="Supabase Cloud"
                 readOnly={!project.canEdit}
                 activeCell={activeCell}
-                onActivateCell={setActiveCell}
+                onActivateCell={handleActivateCell}
                 activeFormat={activeFormat}
                 onFormat={handleFormat}
                 onCommitField={handleCommitField}
-                deleteMode={deleteMode}
-                selectedRows={selectedRows}
-                selectedCols={selectedCols}
-                onToggleRowSel={toggleRowSel}
-                onToggleColSel={toggleColSel}
-                onToggleDeleteMode={handleToggleDeleteMode}
+                selRows={selRows}
+                selCols={selCols}
+                onRowClick={handleRowClick}
+                onColClick={handleColClick}
+                onSelectAll={handleSelectAll}
                 onConfirmDelete={handleConfirmDelete}
                 onNewRow={() => setRowModalOpen(true)}
                 rowModalOpen={rowModalOpen}

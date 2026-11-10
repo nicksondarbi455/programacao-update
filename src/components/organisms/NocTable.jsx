@@ -1,7 +1,10 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Checkbox } from '../atoms/Checkbox';
 
 const CHECK_COL_WIDTH = 70;
+// Largura da coluna com o número da linha (à esquerda do Check)
+const ROW_NUM_WIDTH = 44;
+
 // Ícones de ação (bandeira e comentário) no fim de cada linha
 const iconBtn = { background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: '0.9rem', color: 'var(--th-sheet-text)', lineHeight: 1 };
 
@@ -25,6 +28,7 @@ export function isRowCompleted(eq, schedules, columnConfig) {
     }
     return false;
 }
+
 // Formatação de uma célula (guardada em eq._fmt[colId]): negrito, alinhamento e cor do texto
 function fmtStyle(fmt) {
     if (!fmt) return {};
@@ -68,11 +72,13 @@ export function NocTable({
     columnConfig,
     equipments,
     readOnly = false,
-    deleteMode = false,
-    selectedRows = new Set(),
-    selectedCols = new Set(),
-    onToggleRow,
-    onToggleCol,
+    selRows = new Set(),
+    selCols = new Set(),
+    activeCell,
+    onActivateCell,
+    onRowClick,
+    onColClick,
+    onSelectAll,
     onUpdateField,
     onCommitField,
     onUpdateColName,
@@ -80,8 +86,6 @@ export function NocTable({
     onRowDrop,
     onToggleEventRow,
     onOpenRowComments,
-    activeCell,
-    onActivateCell,
     commentCounts = {},
     onOpenSettings,
     onDragStart,
@@ -92,6 +96,9 @@ export function NocTable({
     searchTerm = '',
     statusFilter = 'all'
 }) {
+    // Coluna que está sendo renomeada (duplo clique no nome)
+    const [editingCol, setEditingCol] = useState(null);
+
     const hasGroupHeaders = equipments.some((eq) => eq.isGroupHeader);
 
     const filteredEquipments = equipments.filter((eq) => {
@@ -107,21 +114,46 @@ export function NocTable({
         return Object.keys(eq).some((key) => typeof eq[key] === 'string' && eq[key].toLowerCase().includes(term));
     });
 
+    // Ordem visível das linhas e de todas as colunas (usadas para a seleção com Shift)
+    const orderedRowIds = filteredEquipments.map((eq) => eq.id);
+    const orderedColIds = columnConfig.map((col) => col.id);
+
     const isActive = (rowId, colId) => !!activeCell && activeCell.rowId === rowId && activeCell.colId === colId;
+
+    const cellBg = (rowId, colId, active) => {
+        if (active) return '#bfdbfe';
+        if (selRows.has(rowId) || selCols.has(colId)) return '#dbeafe';
+        return 'var(--th-sheet)';
+    };
+
     const focusCell = (rowId, colId) => () => {
         if (onActivateCell) onActivateCell({ rowId, colId });
     };
 
     const totalWidth = columnConfig.reduce((acc, col) => acc + (parseInt(col.width) || 150), 0)
-        + CHECK_COL_WIDTH + 70 + (deleteMode ? 36 : 0);
-    const emptyColSpan = columnConfig.length + 2 + (deleteMode ? 1 : 0);
+        + ROW_NUM_WIDTH + CHECK_COL_WIDTH + 70;
+    const emptyColSpan = columnConfig.length + 3;
 
-    // Caixa de seleção para excluir (só aparece no modo excluir)
-    const renderSelectCell = (checked, onToggle) => (deleteMode ? (
-        <td style={{ width: '36px', minWidth: '36px', textAlign: 'center' }}>
-            <input type="checkbox" checked={checked} onChange={onToggle} />
-        </td>
-    ) : null);
+    // Número da linha: clique seleciona a linha (Ctrl soma, Shift vai até a linha anterior selecionada)
+    const renderRowNum = (eq, index) => {
+        const selected = selRows.has(eq.id);
+        return (
+            <td
+                className="row-num"
+                title="Clique para selecionar a linha (Ctrl para várias, Shift para um intervalo)"
+                onClick={(e) => onRowClick(eq.id, e, orderedRowIds)}
+                style={{
+                    width: `${ROW_NUM_WIDTH}px`, minWidth: `${ROW_NUM_WIDTH}px`, maxWidth: `${ROW_NUM_WIDTH}px`,
+                    textAlign: 'center', cursor: 'pointer', userSelect: 'none', fontSize: '0.72rem',
+                    color: selected ? '#1e3a8a' : 'var(--th-sheet-muted)',
+                    background: selected ? '#93c5fd' : 'var(--th-surface-2)',
+                    fontWeight: selected ? 700 : 400
+                }}
+            >
+                {index + 1}
+            </td>
+        );
+    };
 
     // Bandeira (marca evento) e comentários, no fim de cada linha
     const renderActions = (eq) => {
@@ -152,10 +184,15 @@ export function NocTable({
     };
 
     // Célula de uma coluna exclusiva de Eventos nas linhas comuns (não se edita aqui)
-    const renderLockedCell = (col) => {
+    const renderLockedCell = (col, eq) => {
         const w = parseInt(col.width) || 150;
         return (
-            <td key={col.id} className="sheet-cell" style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, textAlign: 'center', color: '#cbd5e1', background: 'var(--th-sheet)' }}>
+            <td
+                key={col.id}
+                className="sheet-cell"
+                onClick={() => onActivateCell && onActivateCell({ rowId: eq.id, colId: col.id })}
+                style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, textAlign: 'center', color: '#cbd5e1', background: cellBg(eq.id, col.id, false) }}
+            >
                 —
             </td>
         );
@@ -166,10 +203,12 @@ export function NocTable({
         const w = parseInt(col.width) || 150;
         const size = { width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px` };
         const value = eq[col.id] !== undefined ? eq[col.id] : '';
+        const active = isActive(eq.id, col.id);
+        const look = { ...size, background: cellBg(eq.id, col.id, active), boxShadow: active ? 'inset 0 0 0 2px #2563eb' : 'none' };
 
         if (col.type === 'checkbox') {
             return (
-                <td key={col.id} className="sheet-cell checkbox-cell" style={size}>
+                <td key={col.id} className="sheet-cell checkbox-cell" style={look} onClick={focusCell(eq.id, col.id)}>
                     <Checkbox
                         checked={!!value}
                         onChange={(e) => {
@@ -183,7 +222,7 @@ export function NocTable({
         }
 
         return (
-            <td key={col.id} className="sheet-cell" style={{ ...size, background: isActive(eq.id, col.id) ? '#eef6ff' : 'var(--th-sheet)' }}>
+            <td key={col.id} className="sheet-cell" style={look}>
                 <SheetInput
                     value={value}
                     readOnly={readOnly}
@@ -248,7 +287,9 @@ export function NocTable({
                     )}
                 </div>
                 <span style={{ fontSize: '0.7rem', color: 'var(--th-sheet-muted)' }}>
-                    {readOnly ? 'Somente leitura' : 'Clique numa célula para editar · segure e arraste uma linha ou coluna para mover'}
+                    {readOnly
+                        ? 'Somente leitura'
+                        : 'Clique numa célula · número da linha para selecionar · cabeçalho para selecionar coluna · duplo clique no nome para renomear'}
                 </span>
             </div>
 
@@ -256,7 +297,11 @@ export function NocTable({
                 <table id="noc-table" style={{ width: `${totalWidth}px` }}>
                     <thead>
                         <tr>
-                            {deleteMode && <th style={{ width: '36px', minWidth: '36px' }} />}
+                            <th
+                                title="Selecionar tudo"
+                                onClick={() => onSelectAll && onSelectAll()}
+                                style={{ width: `${ROW_NUM_WIDTH}px`, minWidth: `${ROW_NUM_WIDTH}px`, maxWidth: `${ROW_NUM_WIDTH}px`, cursor: 'pointer' }}
+                            />
                             <th style={{ width: `${CHECK_COL_WIDTH}px`, minWidth: `${CHECK_COL_WIDTH}px`, maxWidth: `${CHECK_COL_WIDTH}px`, textAlign: 'center' }}>
                                 Check
                             </th>
@@ -264,31 +309,56 @@ export function NocTable({
                             {columnConfig.map((col, idx) => {
                                 const w = parseInt(col.width) || 150;
                                 const isEventScope = col.targetScope === 'events';
+                                const selected = selCols.has(col.id);
                                 return (
                                     <th
                                         key={col.id}
-                                        style={{ width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, background: isEventScope ? '#334155' : undefined }}
-                                        draggable={!readOnly && !deleteMode}
+                                        style={{
+                                            width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`,
+                                            background: selected ? '#3b82f6' : (isEventScope ? '#334155' : undefined),
+                                            cursor: 'pointer'
+                                        }}
+                                        draggable={!readOnly}
                                         onDragStart={(e) => onDragStart(e, idx)}
                                         onDragOver={onDragOver}
                                         onDrop={(e) => onDrop(e, idx)}
-                                        title={isEventScope ? 'Coluna exclusiva de Eventos' : 'Coluna geral'}
+                                        onClick={(e) => {
+                                            if (editingCol === col.id) return;
+                                            if (onColClick) onColClick(col.id, e, orderedColIds);
+                                        }}
+                                        title={isEventScope ? 'Coluna exclusiva de Eventos (clique para selecionar)' : 'Coluna geral (clique para selecionar)'}
                                     >
-                                        {deleteMode && (
-                                            <div style={{ textAlign: 'center' }}>
-                                                <input type="checkbox" checked={selectedCols.has(col.id)} onChange={() => onToggleCol(col.id)} />
-                                            </div>
+                                        {editingCol === col.id ? (
+                                            <input
+                                                className="col-title-input"
+                                                autoFocus
+                                                defaultValue={col.name}
+                                                onClick={(e) => e.stopPropagation()}
+                                                onBlur={(e) => {
+                                                    const novo = e.target.value.trim();
+                                                    if (novo && novo !== col.name && !readOnly) onUpdateColName(col.id, novo);
+                                                    setEditingCol(null);
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') e.currentTarget.blur();
+                                                    if (e.key === 'Escape') {
+                                                        e.currentTarget.value = col.name;
+                                                        e.currentTarget.blur();
+                                                    }
+                                                }}
+                                            />
+                                        ) : (
+                                            <span
+                                                className="col-title-display"
+                                                onDoubleClick={(e) => {
+                                                    if (readOnly) return;
+                                                    e.stopPropagation();
+                                                    setEditingCol(col.id);
+                                                }}
+                                            >
+                                                {col.name}
+                                            </span>
                                         )}
-                                        <span
-                                            className="col-title-display editable"
-                                            contentEditable={!readOnly}
-                                            suppressContentEditableWarning={true}
-                                            onBlur={(e) => {
-                                                if (!readOnly) onUpdateColName(col.id, e.target.innerText);
-                                            }}
-                                        >
-                                            {col.name}
-                                        </span>
                                         {!readOnly && <div className="resizer" onMouseDown={(e) => onInitResize(e, idx)} />}
                                     </th>
                                 );
@@ -306,12 +376,11 @@ export function NocTable({
                                 </td>
                             </tr>
                         ) : (
-                            filteredEquipments.map((eq) => {
+                            filteredEquipments.map((eq, index) => {
                                 const completed = isRowCompleted(eq, schedules, columnConfig);
-                                const selected = selectedRows.has(eq.id);
 
-                                // A linha inteira é a área de arrastar (sem ícone de pontinhos)
-                                const dragProps = !readOnly && !deleteMode ? {
+                                // A linha inteira pode ser arrastada para mudar de posição
+                                const dragProps = !readOnly ? {
                                     draggable: true,
                                     onDragStart: (e) => {
                                         e.dataTransfer.effectAllowed = 'move';
@@ -325,7 +394,7 @@ export function NocTable({
                                 if (eq.isGroupHeader) {
                                     return (
                                         <tr key={eq.id} {...dragProps} style={{ backgroundColor: completed ? '#86efac' : '#94a3b8', borderBottom: '2px solid #64748b' }}>
-                                            {renderSelectCell(selected, () => onToggleRow(eq.id))}
+                                            {renderRowNum(eq, index)}
                                             <td style={{ textAlign: 'center', fontSize: '1rem' }}>
                                                 {completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null}
                                             </td>
@@ -341,11 +410,11 @@ export function NocTable({
                                         {...dragProps}
                                         style={{ backgroundColor: completed ? '#f0fdf4' : 'var(--th-sheet)', borderLeft: eq.groupId ? '4px solid #8b5cf6' : 'none' }}
                                     >
-                                        {renderSelectCell(selected, () => onToggleRow(eq.id))}
+                                        {renderRowNum(eq, index)}
                                         <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                                             {completed ? <i className="fa-solid fa-circle-check" title="Concluído" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null}
                                         </td>
-                                        {columnConfig.map((col) => (col.targetScope === 'events' ? renderLockedCell(col) : renderDataCell(eq, col)))}
+                                        {columnConfig.map((col) => (col.targetScope === 'events' ? renderLockedCell(col, eq) : renderDataCell(eq, col)))}
                                         {renderActions(eq)}
                                     </tr>
                                 );

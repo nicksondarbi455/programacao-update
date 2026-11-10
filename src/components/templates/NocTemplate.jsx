@@ -60,14 +60,16 @@ export function NocTemplate({
     onActivateCell,
     activeFormat,
     onFormat,
-    deleteMode,
-    selectedRows,
-    selectedCols,
-    onToggleRowSel,
-    onToggleColSel,
-    onToggleDeleteMode,
+    selRows,
+    selCols,
+    onRowClick,
+    onColClick,
+    onSelectAll,
     onConfirmDelete
 }) {
+    const selectedCount = selRows.size + selCols.size;
+    const hasTarget = !!activeCell || selectedCount > 0;
+
     return (
         /* Espaçamento inferior reforçado para garantir que o rodapé da tabela não fique escondido */
         <div style={{ paddingBottom: '160px', minHeight: '100vh', boxSizing: 'border-box' }}>
@@ -78,13 +80,10 @@ export function NocTemplate({
                 onNewRow={onNewRow}
                 onNewCol={onNewCol}
                 onNewItem={onNewItem}
-                hasActiveCell={!!activeCell}
+                hasTarget={hasTarget}
                 activeFormat={activeFormat}
                 onFormat={onFormat}
-                isDeleteMode={deleteMode}
-                selectedCount={selectedRows.size + selectedCols.size}
-                onToggleDelete={onToggleDeleteMode}
-                onCancelDelete={onToggleDeleteMode}
+                selectedCount={selectedCount}
                 onConfirmDelete={onConfirmDelete}
             />
 
@@ -116,11 +115,13 @@ export function NocTemplate({
                     columnConfig={columnConfig}
                     equipments={equipments}
                     readOnly={readOnly}
-                    deleteMode={deleteMode}
-                    selectedRows={selectedRows}
-                    selectedCols={selectedCols}
-                    onToggleRow={onToggleRowSel}
-                    onToggleCol={onToggleColSel}
+                    selRows={selRows}
+                    selCols={selCols}
+                    activeCell={activeCell}
+                    onActivateCell={onActivateCell}
+                    onRowClick={onRowClick}
+                    onColClick={onColClick}
+                    onSelectAll={onSelectAll}
                     onUpdateField={onUpdateField}
                     onCommitField={onCommitField}
                     onUpdateColName={onUpdateColName}
@@ -128,8 +129,6 @@ export function NocTemplate({
                     onRowDrop={onRowDrop}
                     onToggleEventRow={onToggleEventRow}
                     onOpenRowComments={onOpenRowComments}
-                    activeCell={activeCell}
-                    onActivateCell={onActivateCell}
                     commentCounts={commentCounts}
                     onOpenSettings={onOpenSettings}
                     onDragStart={onDragStart}

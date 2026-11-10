@@ -694,6 +694,20 @@ table td input[type="text"]:read-only {
 }
 
 .sheet-input:focus {
-    background: #eef6ff;
-    box-shadow: inset 0 0 0 2px #2563eb;
+    background: transparent;
+    box-shadow: none;
+}
+
+/* Renomear coluna (duplo clique no nome) */
+.col-title-input {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    font-weight: 700;
+    color: #0f172a;
+    background: #ffffff;
+    border: 1px solid #2563eb;
+    border-radius: 3px;
+    padding: 2px 4px;
+    outline: none;
 }
