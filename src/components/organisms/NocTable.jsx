@@ -98,15 +98,21 @@ export function NocTable({
     onInitResize,
     schedules = {},
     searchTerm = '',
-    statusFilter = 'all'
+    statusFilter = 'all',
+    projectType = 'pontual'
 }) {
     // Coluna que está sendo renomeada (duplo clique no nome)
     const [editingCol, setEditingCol] = useState(null);
 
     const hasGroupHeaders = equipments.some((eq) => eq.isGroupHeader);
 
+    // Projeto recorrente: não tem coluna Check nem linha verde (revisões que sempre se repetem)
+    const isRecurring = projectType === 'recorrente';
+    const isDone = (eq) => !isRecurring && isRowCompleted(eq, schedules, columnConfig);
+    const checkWidth = isRecurring ? 0 : CHECK_COL_WIDTH;
+
     const filteredEquipments = equipments.filter((eq) => {
-        const done = isRowCompleted(eq, schedules, columnConfig);
+        const done = isDone(eq);
         if (hasGroupHeaders && statusFilter !== 'all' && !eq.isGroupHeader) return false;
         if (statusFilter === 'pending' && done) return false;
         if (statusFilter === 'completed' && !done) return false;
@@ -142,17 +148,20 @@ export function NocTable({
         const fmt = eq._fmt && eq._fmt[colId];
 
         let bg = base;
-        if (!isGroup && (rowSel || colSel)) bg = SELECT_TINT;
+        if (!isGroup && colSel) bg = SELECT_TINT;
         if (fmt && fmt.bg) bg = fmt.bg;
 
-        // Faixa de evento selecionada ganha só a borda azul (mantém a cor do evento)
-        const outline = isActive(eq.id, colId) || (isGroup && rowSel);
+        // Linha selecionada e célula ativa usam a mesma borda azul; a cor da célula continua visível
+        const outline = isActive(eq.id, colId) || rowSel;
         return { background: bg, boxShadow: outline ? `inset 0 0 0 2px ${SELECT_BLUE}` : 'none', ...extra };
     };
 
     const totalWidth = columnConfig.reduce((acc, col) => acc + (parseInt(col.width) || 150), 0)
-        + ROW_NUM_WIDTH + CHECK_COL_WIDTH + 70;
-    const emptyColSpan = columnConfig.length + 3;
+        + ROW_NUM_WIDTH + checkWidth + 70;
+    const emptyColSpan = columnConfig.length + (isRecurring ? 2 : 3);
+
+    // Borda azul de seleção de linha (mesmo estilo da célula ativa)
+    const rowOutline = (eq) => (selRows.has(eq.id) ? { boxShadow: `inset 0 0 0 2px ${SELECT_BLUE}` } : {});
 
     // Número da linha: clique seleciona a linha (Ctrl soma, Shift vai até a linha anterior selecionada)
     const renderRowNum = (eq, index, base) => {
@@ -179,9 +188,8 @@ export function NocTable({
     // Bandeira (marca evento) e comentários, no fim de cada linha
     const renderActions = (eq, base) => {
         const count = commentCounts[`linha|${eq.id}`] || 0;
-        const bg = !eq.isGroupHeader && selRows.has(eq.id) ? SELECT_TINT : base;
         return (
-            <td style={{ width: '70px', minWidth: '70px', textAlign: 'center', padding: '0 4px', background: bg }}>
+            <td style={{ width: '70px', minWidth: '70px', textAlign: 'center', padding: '0 4px', background: base, ...rowOutline(eq) }}>
                 {!readOnly && (
                     <button
                         type="button"
@@ -327,9 +335,11 @@ export function NocTable({
                                 onClick={() => onSelectAll && onSelectAll()}
                                 style={{ width: `${ROW_NUM_WIDTH}px`, minWidth: `${ROW_NUM_WIDTH}px`, maxWidth: `${ROW_NUM_WIDTH}px`, cursor: 'pointer' }}
                             />
-                            <th style={{ width: `${CHECK_COL_WIDTH}px`, minWidth: `${CHECK_COL_WIDTH}px`, maxWidth: `${CHECK_COL_WIDTH}px`, textAlign: 'center' }}>
-                                Check
-                            </th>
+                            {!isRecurring && (
+                                <th style={{ width: `${CHECK_COL_WIDTH}px`, minWidth: `${CHECK_COL_WIDTH}px`, maxWidth: `${CHECK_COL_WIDTH}px`, textAlign: 'center' }}>
+                                    Check
+                                </th>
+                            )}
 
                             {columnConfig.map((col, idx) => {
                                 const w = parseInt(col.width) || 150;
@@ -403,7 +413,7 @@ export function NocTable({
                             </tr>
                         ) : (
                             filteredEquipments.map((eq, index) => {
-                                const completed = isRowCompleted(eq, schedules, columnConfig);
+                                const completed = isDone(eq);
                                 const base = rowBase(eq, completed);
 
                                 // A linha inteira pode ser arrastada para mudar de posição
@@ -418,15 +428,15 @@ export function NocTable({
                                     onDrop: () => onRowDrop(eq.id)
                                 } : {};
 
-                                const checkBg = !eq.isGroupHeader && selRows.has(eq.id) ? SELECT_TINT : base;
-
                                 if (eq.isGroupHeader) {
                                     return (
                                         <tr key={eq.id} {...dragProps} style={{ backgroundColor: base, borderBottom: '2px solid #64748b' }}>
                                             {renderRowNum(eq, index, base)}
-                                            <td style={{ textAlign: 'center', fontSize: '1rem', background: base }}>
-                                                {completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null}
-                                            </td>
+                                            {!isRecurring && (
+                                                <td style={{ textAlign: 'center', fontSize: '1rem', background: base, ...rowOutline(eq) }}>
+                                                    {completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null}
+                                                </td>
+                                            )}
                                             {renderGroupCells(eq, base)}
                                             {renderActions(eq, base)}
                                         </tr>
@@ -440,9 +450,11 @@ export function NocTable({
                                         style={{ backgroundColor: base, borderLeft: eq.groupId ? '4px solid #8b5cf6' : 'none' }}
                                     >
                                         {renderRowNum(eq, index, base)}
-                                        <td style={{ textAlign: 'center', verticalAlign: 'middle', background: checkBg }}>
-                                            {completed ? <i className="fa-solid fa-circle-check" title="Concluído" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null}
-                                        </td>
+                                        {!isRecurring && (
+                                            <td style={{ textAlign: 'center', verticalAlign: 'middle', background: base, ...rowOutline(eq) }}>
+                                                {completed ? <i className="fa-solid fa-circle-check" title="Concluído" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null}
+                                            </td>
+                                        )}
                                         {columnConfig.map((col) => (col.targetScope === 'events' ? renderLockedCell(col, eq, base) : renderDataCell(eq, col, base)))}
                                         {renderActions(eq, base)}
                                     </tr>

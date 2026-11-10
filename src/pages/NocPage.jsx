@@ -203,6 +203,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
 
     // Percentual = itens marcados como feito no calendário / total de itens
     const calculateProgress = () => {
+        if (project.projectType === 'recorrente') return 0;
         const items = getTrackableItems();
         if (items.length === 0) return 0;
         const done = items.filter(eq => isRowCompleted(eq, schedules, columnConfig)).length;
@@ -719,6 +720,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
                 connectionStatus="online"
                 connectionText="Supabase Cloud"
                 readOnly={!project.canEdit}
+                projectType={project.projectType}
                 activeCell={activeCell}
                 onActivateCell={handleActivateCell}
                 activeFormat={activeFormat}

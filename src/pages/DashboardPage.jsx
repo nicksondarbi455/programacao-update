@@ -88,6 +88,8 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
     const [hasCalendar, setHasCalendar] = useState(true);
     const [isPrivate, setIsPrivate] = useState(false);
     const [showProgress, setShowProgress] = useState(false);
+    // Acompanhamento do projeto: 'pontual' (com check e linha verde) ou 'recorrente' (revisões que se repetem)
+    const [projectType, setProjectType] = useState('pontual');
     const [selectedDeptIds, setSelectedDeptIds] = useState([]);
     const [projectFolderId, setProjectFolderId] = useState('');
     const [tableSource, setTableSource] = useState('manual');
@@ -265,6 +267,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
         setHasCalendar(true);
         setIsPrivate(false);
         setShowProgress(false);
+        setProjectType('pontual');
         setSelectedDeptIds([]);
         setProjectFolderId('');
         setTableSource('manual');
@@ -355,7 +358,8 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                 description: description.trim(),
                 hasCalendar,
                 isPrivate,
-                showProgress,
+                showProgress: projectType === 'pontual' && showProgress,
+                projectType,
                 folderId: projectFolderId || null,
                 departmentIds: isPrivate ? [] : selectedDeptIds,
                 columnConfig: initialColumns,
@@ -740,11 +744,19 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                                 <span style={{ display: 'inline-flex', flexShrink: 0 }}><Checkbox checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} /></span>
                                 Projeto Privado
                             </label>
-                            <label style={checkLabelStyle}>
-                                <span style={{ display: 'inline-flex', flexShrink: 0 }}><Checkbox checked={showProgress} onChange={(e) => setShowProgress(e.target.checked)} /></span>
-                                Mostrar progresso
-                            </label>
+                            {projectType === 'pontual' && (
+                                <label style={checkLabelStyle}>
+                                    <span style={{ display: 'inline-flex', flexShrink: 0 }}><Checkbox checked={showProgress} onChange={(e) => setShowProgress(e.target.checked)} /></span>
+                                    Mostrar progresso
+                                </label>
+                            )}
                         </div>
+
+                        <label style={labelStyle}>Acompanhamento</label>
+                        <select value={projectType} onChange={(e) => setProjectType(e.target.value)} style={selectStyle}>
+                            <option value="pontual">Pontual (eventos concluídos ficam com check e linha verde)</option>
+                            <option value="recorrente">Recorrente (revisões que se repetem, sem check)</option>
+                        </select>
 
                         <label style={labelStyle}>Pasta</label>
                         <select value={projectFolderId} onChange={(e) => setProjectFolderId(e.target.value)} style={selectStyle}>

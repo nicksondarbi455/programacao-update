@@ -65,7 +65,8 @@ export function NocTemplate({
     onRowClick,
     onColClick,
     onSelectAll,
-    onConfirmDelete
+    onConfirmDelete,
+    projectType
 }) {
     const selectedCount = selRows.size + selCols.size;
     const hasTarget = !!activeCell || selectedCount > 0;
@@ -96,6 +97,7 @@ export function NocTemplate({
                         onChange={(e) => setSearchTerm(e.target.value)}
                         style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--th-border-strong)', width: '300px', fontSize: '0.85rem' }}
                     />
+                    {projectType !== 'recorrente' && (
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '0.8rem' }}>
                         <span style={{ color: 'var(--th-muted)', fontWeight: 'bold' }}>Filtrar:</span>
                         {[['all', 'Todos'], ['pending', 'Pendentes'], ['completed', 'Concluídos']].map(([value, label]) => (
@@ -109,6 +111,7 @@ export function NocTemplate({
                             </Button>
                         ))}
                     </div>
+                    )}
                 </div>
 
                 <NocTable
@@ -138,6 +141,7 @@ export function NocTemplate({
                     schedules={schedules}
                     searchTerm={searchTerm}
                     statusFilter={statusFilter}
+                    projectType={projectType}
                 />
             </div>
 
