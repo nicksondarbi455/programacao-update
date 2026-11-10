@@ -103,6 +103,7 @@ export const supabaseService = {
         if (fields.hasCalendar !== undefined) payload.has_calendar = fields.hasCalendar;
         if (fields.progress !== undefined) payload.progress = fields.progress;
         if (fields.folderId !== undefined) payload.folder_id = fields.folderId || null;
+        if (fields.icon !== undefined) payload.icon = fields.icon || null;
 
         // Atualiza o projeto primeiro: se ficar privado, o servidor já remove os departamentos
         if (Object.keys(payload).length > 0) {

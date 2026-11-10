@@ -11,7 +11,8 @@ import { ModalShell } from '../components/molecules/ModalShell';
 import { FolderFormModal } from '../components/organisms/FolderFormModal';
 import { MoveModal } from '../components/organisms/MoveModal';
 import { ProjectSettingsModal } from '../components/organisms/ProjectSettingsModal';
-import { PROJECT_ICONS, DEFAULT_PROJECT_ICON } from '../constants/projectIcons';
+import { DEFAULT_PROJECT_ICON } from '../constants/projectIcons';
+import { ProjectIconPicker } from '../components/molecules/ProjectIconPicker';
 import { flattenFolderTree, subtreeIds } from '../utils/folderTree';
 import { UpcomingPanel } from '../components/organisms/UpcomingPanel';
 import { DuplicateProjectModal } from '../components/organisms/DuplicateProjectModal';
@@ -93,7 +94,6 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
     const [projectType, setProjectType] = useState('pontual');
     // Ícone do card do projeto (null = ícone padrão) e se a grade de ícones está aberta
     const [projectIcon, setProjectIcon] = useState(null);
-    const [iconPickerOpen, setIconPickerOpen] = useState(false);
     const [selectedDeptIds, setSelectedDeptIds] = useState([]);
     const [projectFolderId, setProjectFolderId] = useState('');
     const [tableSource, setTableSource] = useState('manual');
@@ -273,7 +273,6 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
         setShowProgress(false);
         setProjectType('pontual');
         setProjectIcon(null);
-        setIconPickerOpen(false);
         setSelectedDeptIds([]);
         setProjectFolderId('');
         setTableSource('manual');
@@ -531,7 +530,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                 }}
             >
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                    <span aria-hidden="true" style={{ width: '44px', height: '44px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.15rem', color: '#db2777', background: 'var(--th-surface-2)', border: '1px solid var(--th-border)' }}>
+                    <span aria-hidden="true" style={{ width: '44px', height: '44px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.15rem', color: 'var(--th-text)', background: 'var(--th-surface-2)', border: '1px solid var(--th-border)' }}>
                         <i className={proj.icon || DEFAULT_PROJECT_ICON}></i>
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -746,46 +745,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                         />
 
                         <label style={labelStyle}>Ícone</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <button
-                                type="button"
-                                onClick={() => setIconPickerOpen((open) => !open)}
-                                aria-label="Escolher ícone"
-                                style={{ width: '44px', height: '44px', borderRadius: '10px', border: '1px solid var(--th-border-strong)', background: 'var(--th-surface-2)', color: '#db2777', fontSize: '1.15rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            >
-                                <i className={projectIcon || DEFAULT_PROJECT_ICON}></i>
-                            </button>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--th-muted)' }}>
-                                {iconPickerOpen ? 'Clique num ícone para escolher' : (projectIcon ? 'Trocar ícone' : 'Escolher ícone')}
-                            </span>
-                            {projectIcon && (
-                                <button
-                                    type="button"
-                                    onClick={() => setProjectIcon(null)}
-                                    style={{ marginLeft: 'auto', fontSize: '0.75rem', background: 'none', border: 'none', color: 'var(--th-muted)', cursor: 'pointer', textDecoration: 'underline' }}
-                                >
-                                    Usar padrão
-                                </button>
-                            )}
-                        </div>
-                        {iconPickerOpen && (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '6px', padding: '8px', border: '1px solid var(--th-border-strong)', borderRadius: '8px', background: 'var(--th-surface-2)' }}>
-                                {PROJECT_ICONS.map((opt) => {
-                                    const selected = projectIcon === opt.value;
-                                    return (
-                                        <button
-                                            key={opt.value}
-                                            type="button"
-                                            aria-label={opt.label}
-                                            onClick={() => { setProjectIcon(opt.value); setIconPickerOpen(false); }}
-                                            style={{ height: '36px', borderRadius: '6px', cursor: 'pointer', color: selected ? '#ffffff' : 'var(--th-text)', background: selected ? '#db2777' : 'var(--th-surface)', border: selected ? '1px solid #db2777' : '1px solid var(--th-border)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                        >
-                                            <i className={opt.value}></i>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        )}
+                        <ProjectIconPicker value={projectIcon} onChange={setProjectIcon} />
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', margin: '2px 0' }}>
                             <label style={checkLabelStyle}>

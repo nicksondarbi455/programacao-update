@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Checkbox } from '../atoms/Checkbox';
 import { Button } from '../atoms/Button';
 import { DepartmentPicker } from '../molecules/DepartmentPicker';
+import { ProjectIconPicker } from '../molecules/ProjectIconPicker';
 import { usersService } from '../../services/usersService';
 
 const labelStyle = { fontSize: '0.75rem', color: 'var(--th-text-4)', fontWeight: '700' };
@@ -16,6 +17,7 @@ export function ProjectSettingsModal({ project, onSave, onClose, onDelete }) {
     const [name, setName] = useState(project.name || '');
     const [description, setDescription] = useState(project.description || '');
     const [showProgress, setShowProgress] = useState(!!project.showProgress);
+    const [icon, setIcon] = useState(project.icon || null);
     const [isPrivate, setIsPrivate] = useState(!!project.isPrivate);
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [hasCalendar, setHasCalendar] = useState(project.hasCalendar !== false);
@@ -43,6 +45,7 @@ export function ProjectSettingsModal({ project, onSave, onClose, onDelete }) {
                 showProgress,
                 isPrivate,
                 hasCalendar,
+                icon,
                 departmentIds: isPrivate ? [] : departmentIds
             });
         } catch (err) {
@@ -65,6 +68,11 @@ export function ProjectSettingsModal({ project, onSave, onClose, onDelete }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <label style={labelStyle}>Descrição</label>
                     <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} style={{ ...fieldStyle, resize: 'vertical' }} />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={labelStyle}>Ícone</label>
+                    <ProjectIconPicker value={icon} onChange={setIcon} />
                 </div>
 
                 <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
