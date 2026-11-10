@@ -99,25 +99,26 @@ export function ProjectSettingsModal({ project, onSave, onClose, onDelete }) {
 
                 {error && <p role="alert" style={{ margin: 0, fontSize: '0.75rem', color: '#b91c1c' }}>⚠️ {error}</p>}
 
-                {onDelete && (
-                    <div style={{ borderTop: '1px solid var(--th-border)', paddingTop: '12px', marginTop: '4px' }}>
-                        {!confirmDelete ? (
-                            <Button variant="danger" className="btn-modal" onClick={() => setConfirmDelete(true)}><span><i className="fa-solid fa-trash"></i> Excluir projeto</span></Button>
-                        ) : (
-                            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <strong style={{ fontSize: '0.85rem', color: '#991b1b' }}>Tem certeza que deseja excluir este projeto?</strong>
-                                <span style={{ fontSize: '0.75rem', color: '#b91c1c' }}>O projeto vai para a lixeira e pode ser restaurado em até 30 dias.</span>
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                    <Button variant="secondary" className="btn-modal" onClick={() => setConfirmDelete(false)}><span>Cancelar</span></Button>
-                                    <Button variant="danger" className="btn-modal" onClick={onDelete}><span>Sim, excluir</span></Button>
-                                </div>
-                            </div>
-                        )}
+                {onDelete && confirmDelete && (
+                    <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <strong style={{ fontSize: '0.85rem', color: '#991b1b' }}>Tem certeza que deseja excluir este projeto?</strong>
+                        <span style={{ fontSize: '0.75rem', color: '#b91c1c' }}>O projeto vai para a lixeira e pode ser restaurado em até 30 dias.</span>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                            <Button variant="secondary" className="btn-modal" onClick={() => setConfirmDelete(false)}><span>Cancelar</span></Button>
+                            <Button variant="danger" className="btn-modal" onClick={onDelete}><span>Sim, excluir</span></Button>
+                        </div>
                     </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
-                    <Button variant="secondary" className="btn-modal" onClick={onClose}><span>Cancelar</span></Button>
-                    <Button variant="primary" className="btn-modal" onClick={handleSave} disabled={saving || !name.trim()}><span>{saving ? 'Salvando...' : 'Salvar'}</span></Button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                    <div>
+                        {onDelete && !confirmDelete && (
+                            <Button variant="danger" className="btn-modal" onClick={() => setConfirmDelete(true)}><span><i className="fa-solid fa-trash"></i> Excluir projeto</span></Button>
+                        )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <Button variant="secondary" className="btn-modal" onClick={onClose}><span>Cancelar</span></Button>
+                        <Button variant="primary" className="btn-modal" onClick={handleSave} disabled={saving || !name.trim()}><span>{saving ? 'Salvando...' : 'Salvar'}</span></Button>
+                    </div>
                 </div>
             </div>
         </div>

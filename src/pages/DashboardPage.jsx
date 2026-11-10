@@ -754,8 +754,8 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
 
                         <label style={labelStyle}>Acompanhamento</label>
                         <select value={projectType} onChange={(e) => setProjectType(e.target.value)} style={selectStyle}>
-                            <option value="pontual">Pontual (eventos concluídos ficam com check e linha verde)</option>
-                            <option value="recorrente">Recorrente (revisões que se repetem, sem check)</option>
+                            <option value="pontual">Pontual</option>
+                            <option value="recorrente">Recorrente</option>
                         </select>
 
                         <label style={labelStyle}>Pasta</label>
