@@ -54,7 +54,7 @@ function SheetInput({ value, onChange, onCommit, onFocusCell, style, placeholder
             value={value ?? ''}
             placeholder={placeholder}
             readOnly={readOnly}
-            style={style}
+            style={{ background: 'transparent', ...style }}
             onFocus={() => {
                 startRef.current = value;
                 if (onFocusCell) onFocusCell();
@@ -338,6 +338,7 @@ export function NocTable({
                                 return (
                                     <th
                                         key={col.id}
+                                        className={selCols.has(col.id) ? 'col-selected' : undefined}
                                         style={{
                                             width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`,
                                             background: selected ? SELECT_BLUE : (isEventScope ? '#334155' : undefined),

@@ -670,7 +670,7 @@ table td input[type="text"]:read-only {
 
 table td input[type="text"],
 table td input[type="text"]:read-only {
-    background: var(--th-sheet);
+    background: transparent;
 }
 
 /* Planilha: célula de texto sem caixa, ocupando a célula inteira (como numa planilha) */
@@ -710,4 +710,11 @@ table td input[type="text"]:read-only {
     border-radius: 3px;
     padding: 2px 4px;
     outline: none;
+}
+
+/* Coluna selecionada: cabeçalho azul (vence o estilo geral do cabeçalho) */
+th.col-selected,
+th.col-selected .col-title-display {
+    background: #1a73e8 !important;
+    color: #ffffff !important;
 }

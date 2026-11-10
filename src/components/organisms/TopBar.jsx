@@ -55,8 +55,7 @@ function FormatBtn({ active, disabled, title, onClick, children }) {
 }
 
 // Botão com paleta: "A" para cor do texto e balde para cor de fundo (como no Google Sheets)
-function ColorPicker({ kind, title, disabled, current, onPick, children }) {
-    const [open, setOpen] = useState(false);
+function ColorPicker({ kind, title, disabled, current, onPick, children, open, onToggle, onClose }) {
     const barra = current || (kind === 'text' ? '#000000' : 'transparent');
 
     return (
@@ -66,7 +65,7 @@ function ColorPicker({ kind, title, disabled, current, onPick, children }) {
                 title={title}
                 aria-label={title}
                 disabled={disabled}
-                onClick={() => setOpen((o) => !o)}
+                onClick={onToggle}
                 style={{ ...btnStyle, width: '34px', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1 }}
             >
                 {children}
@@ -88,13 +87,13 @@ function ColorPicker({ kind, title, disabled, current, onPick, children }) {
                             type="button"
                             title={c.label}
                             aria-label={c.label}
-                            onClick={() => { onPick(c.value); setOpen(false); }}
+                            onClick={() => { onPick(c.value); onClose(); }}
                             style={{ width: '22px', height: '22px', borderRadius: '4px', background: c.value, border: '1px solid #cbd5e1', cursor: 'pointer' }}
                         />
                     ))}
                     <button
                         type="button"
-                        onClick={() => { onPick(null); setOpen(false); }}
+                        onClick={() => { onPick(null); onClose(); }}
                         style={{ gridColumn: '1 / -1', fontSize: '0.72rem', background: 'none', border: '1px solid var(--th-border-strong)', borderRadius: '4px', padding: '3px', cursor: 'pointer', color: 'var(--th-text)' }}
                     >
                         {kind === 'text' ? 'Texto sem cor (padrão)' : 'Sem cor de fundo'}
@@ -118,6 +117,8 @@ export function TopBar({
     selectedCount = 0,
     onConfirmDelete
 }) {
+    // Só uma paleta de cor aberta por vez (texto ou fundo)
+    const [openPicker, setOpenPicker] = useState(null);
     return (
         <div className="top-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px', background: 'var(--th-surface)', borderBottom: '1px solid var(--th-border)', gap: '12px', flexWrap: 'wrap' }}>
             <div className="alert-box" style={{ fontSize: '0.85rem', color: 'var(--th-text-3)', fontWeight: '600' }}>
@@ -153,13 +154,16 @@ export function TopBar({
 
                         <span style={{ width: '1px', height: '20px', background: 'var(--th-border-strong)', margin: '0 4px' }} />
 
-                        <ColorPicker kind="text" title="Cor do texto" disabled={!hasTarget} current={activeFormat.c} onPick={(v) => onFormat({ c: v })}>
+                        <ColorPicker kind="text" title="Cor do texto" disabled={!hasTarget} current={activeFormat.c} onPick={(v) => onFormat({ c: v })} open={openPicker === 'text'} onToggle={() => setOpenPicker(openPicker === 'text' ? null : 'text')} onClose={() => setOpenPicker(null)}>
                             <span style={{ fontWeight: 700, fontSize: '0.9rem', lineHeight: 1 }}>A</span>
                         </ColorPicker>
 
-                        <ColorPicker kind="fill" title="Cor de fundo" disabled={!hasTarget} current={activeFormat.bg} onPick={(v) => onFormat({ bg: v })}>
+                        <ColorPicker kind="fill" title="Cor de fundo" disabled={!hasTarget} current={activeFormat.bg} onPick={(v) => onFormat({ bg: v })} open={openPicker === 'fill'} onToggle={() => setOpenPicker(openPicker === 'fill' ? null : 'fill')} onClose={() => setOpenPicker(null)}>
                             <i className="fa-solid fa-fill-drip"></i>
                         </ColorPicker>
+                        {openPicker && (
+                            <div onClick={() => setOpenPicker(null)} style={{ position: 'fixed', inset: 0, zIndex: 55 }} />
+                        )}
 
                         <FormatBtn disabled={!hasTarget} title="Limpar formatação" onClick={() => onFormat({ b: false, a: null, c: null, bg: null })}>
                             <i className="fa-solid fa-eraser"></i>
