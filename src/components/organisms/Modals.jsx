@@ -13,7 +13,8 @@ export function Modals({
     onSaveCol, 
     onCloseCol, 
     columnConfig,
-    scheduledLabels = new Set()
+    scheduledLabels = new Set(),
+    projectType = 'pontual'
 }) {
     const [selectedItem, setSelectedItem] = useState('');
     const [customColName, setCustomColName] = useState('');
@@ -69,7 +70,15 @@ export function Modals({
     const term = eventSearch.trim().toLowerCase();
     // Esconde da busca os eventos já agendados em qualquer dia ou marcados como feito
     const completedLabels = new Set((modalData.items || []).filter(i => i.completed).map(i => i.text));
-    const filteredOptions = eventOptions.filter(opt => !scheduledLabels.has(opt.label) && !completedLabels.has(opt.label) && opt.label.toLowerCase().includes(term));
+    // Pontual: cada evento só aparece uma vez (some quando já agendado ou concluído).
+    // Recorrente: o evento continua disponível para ser agendado em outras datas; só some do próprio dia.
+    const isRecurring = projectType === 'recorrente';
+    const scheduledThisDay = new Set((modalData.items || []).map(i => i.text));
+    const filteredOptions = eventOptions.filter(opt => {
+        if (scheduledThisDay.has(opt.label)) return false;
+        if (!isRecurring && (scheduledLabels.has(opt.label) || completedLabels.has(opt.label))) return false;
+        return opt.label.toLowerCase().includes(term);
+    });
 
     const closeDayModal = () => {
         setSelectedItem('');

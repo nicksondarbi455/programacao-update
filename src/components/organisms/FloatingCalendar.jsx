@@ -6,7 +6,7 @@ const colorHexMap = {
     'amarelo': '#d97706', 'preto': '#475569', 'padrao': '#2914c8'
 };
 
-export function FloatingCalendar({ isOpen, onToggle, schedules, equipments, onOpenModal, onToggleComplete, weekCount, tomorrowCount }) {
+export function FloatingCalendar({ isOpen, onToggle, schedules, equipments, onOpenModal, onToggleComplete, weekCount, tomorrowCount, projectType, onOpenHistory }) {
 
     // Dia sob o cursor: guarda apenas a referência e a posição; os itens são lidos
     // de "schedules" na renderização, para o balão refletir sempre o estado atual.
@@ -148,7 +148,12 @@ export function FloatingCalendar({ isOpen, onToggle, schedules, equipments, onOp
             <div className="calendar-btn-wrapper">
                 {tomorrowCount > 0 && <div className="notif-badge badge-tomorrow">{tomorrowCount}</div>}
                 {weekCount > 0 && <div className="notif-badge badge-week">{weekCount}</div>}
-                <Button variant="primary" className="calendar-toggle-btn" onClick={onToggle}><i className="fa-regular fa-calendar-days"></i> Calendário</Button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {projectType === 'recorrente' && (
+                        <Button variant="secondary" className="calendar-toggle-btn" onClick={onOpenHistory}><i className="fa-solid fa-clock-rotate-left"></i> Histórico</Button>
+                    )}
+                    <Button variant="primary" className="calendar-toggle-btn" onClick={onToggle}><i className="fa-regular fa-calendar-days"></i> Calendário</Button>
+                </div>
             </div>
         </div>
     );

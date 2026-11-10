@@ -66,7 +66,8 @@ export function NocTemplate({
     onColClick,
     onSelectAll,
     onConfirmDelete,
-    projectType
+    projectType,
+    onOpenHistory
 }) {
     const selectedCount = selRows.size + selCols.size;
     const hasTarget = !!activeCell || selectedCount > 0;
@@ -155,6 +156,8 @@ export function NocTemplate({
                     onToggleComplete={onToggleComplete}
                     weekCount={weekCount}
                     tomorrowCount={tomorrowCount}
+                    projectType={projectType}
+                    onOpenHistory={onOpenHistory}
                 />
             )}
 
@@ -185,6 +188,7 @@ export function NocTemplate({
                 onCloseCol={onCloseCol}
                 columnConfig={columnConfig}
                 scheduledLabels={scheduledLabels}
+                projectType={projectType}
             />
         </div>
     );

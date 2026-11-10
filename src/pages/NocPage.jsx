@@ -9,6 +9,7 @@ import { isRowCompleted } from '../components/organisms/NocTable';
 import { logAction, LOG_ACTIONS } from '../services/logService';
 import { CommentsModal } from '../components/organisms/CommentsModal';
 import { ProjectSettingsModal } from '../components/organisms/ProjectSettingsModal';
+import { RecurrenceHistoryModal } from '../components/organisms/RecurrenceHistoryModal';
 
 export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdated }) {
     const [equipments, setEquipments] = useState(project.equipments || []);
@@ -21,6 +22,8 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     const [rowAnchor, setRowAnchor] = useState(null);
     const [colAnchor, setColAnchor] = useState(null);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+    // Histórico de conclusões (somente projetos recorrentes)
+    const [historyOpen, setHistoryOpen] = useState(false);
     const [colModalOpen, setColModalOpen] = useState(false);
     const [rowModalOpen, setRowModalOpen] = useState(false);
     const [modalData, setModalData] = useState({ isOpen: false, dateStr: '', friendlyDate: '', items: [], equipments: [] });
@@ -606,6 +609,8 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
         let dateStr = modalData.dateStr;
         let daySched = schedules[dateStr] || [];
         if (daySched.some(i => i.text === title)) return alert('Este item já está agendado para este dia!');
+        const jaAgendado = Object.values(schedules).flat().some(i => i.text === title);
+        if (project.projectType !== 'recorrente' && jaAgendado) return alert('Em projetos pontuais, cada evento só pode ser agendado uma vez.');
 
         let newSchedItems = [...daySched, { text: title, completed: false, statusText: 'Agendado', ...(hora ? { hora } : {}) }];
         recordHistory([{
@@ -641,7 +646,8 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
                 const nextCompleted = !item.completed;
                 return { 
                     ...item, 
-                    completed: nextCompleted, 
+                    completed: nextCompleted,
+                    completedAt: nextCompleted ? new Date().toISOString() : undefined, 
                     statusText: nextCompleted ? '✔ Realizado com Sucesso' : '⏳ Pendente / Agendado' 
                 };
             }
@@ -683,6 +689,9 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
 
     return (
         <div>
+            {historyOpen && (
+                <RecurrenceHistoryModal schedules={schedules} onClose={() => setHistoryOpen(false)} />
+            )}
             {settingsOpen && (
                 <ProjectSettingsModal project={project} onSave={handleSaveSettings} onClose={() => setSettingsOpen(false)} onDelete={project.canManage ? handleDeleteProject : undefined} />
             )}
@@ -766,6 +775,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
                 onToggleComplete={handleToggleCompleteSchedule}
                 weekCount={weekCount}
                 tomorrowCount={tomorrowCount}
+                onOpenHistory={() => setHistoryOpen(true)}
                 modalData={modalData}
                 onSaveEvent={handleSaveEvent}
                 onCloseModal={() => setModalData(prev => ({ ...prev, isOpen: false }))}

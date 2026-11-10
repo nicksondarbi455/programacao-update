@@ -8,7 +8,9 @@ export function CalendarWidget({
     onOpenModal,
     onToggleComplete,
     weekCount = 0,
-    tomorrowCount = 0
+    tomorrowCount = 0,
+    projectType,
+    onOpenHistory
 }) {
     return (
         <FloatingCalendar
@@ -20,6 +22,8 @@ export function CalendarWidget({
             onToggleComplete={onToggleComplete}
             weekCount={weekCount}
             tomorrowCount={tomorrowCount}
+            projectType={projectType}
+            onOpenHistory={onOpenHistory}
         />
     );
 }
