@@ -9,7 +9,6 @@ export const PROJECT_ICONS = [
     { value: 'fa-solid fa-timeline', label: 'Linha do tempo' },
     { value: 'fa-solid fa-cloud', label: 'Nuvem' },
     { value: 'fa-solid fa-cloud-arrow-down', label: 'Download na nuvem' },
-    { value: 'fa-solid fa-square-binary', label: 'Binário' },
     { value: 'fa-solid fa-sd-card', label: 'Cartão' },
     { value: 'fa-solid fa-hard-drive', label: 'Disco' },
     { value: 'fa-solid fa-car', label: 'Carro' },

@@ -36,7 +36,7 @@ export function ProjectIconPicker({ value, onChange }) {
                 )}
             </div>
             {open && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '6px', padding: '8px', border: '1px solid var(--th-border-strong)', borderRadius: '8px', background: 'var(--th-surface-2)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(36px, 1fr))', gap: '6px', width: '100%', boxSizing: 'border-box', minWidth: 0, padding: '8px', border: '1px solid var(--th-border-strong)', borderRadius: '8px', background: 'var(--th-surface-2)' }}>
                     {PROJECT_ICONS.map((opt) => {
                         const selected = value === opt.value;
                         return (
