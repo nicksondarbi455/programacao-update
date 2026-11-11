@@ -718,3 +718,13 @@ th.col-selected .col-title-display {
     background: #1a73e8 !important;
     color: #ffffff !important;
 }
+
+/* Mapa: nomes dos CPDs menores; somem quando o zoom está afastado */
+.cpd-tooltip {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 4px;
+}
+.map-zoom-out .cpd-tooltip {
+    display: none;
+}

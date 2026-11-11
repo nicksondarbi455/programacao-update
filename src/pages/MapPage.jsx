@@ -5,6 +5,8 @@ import { Button } from '../components/atoms/Button';
 
 const TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}';
 const CORES_TIPO = { CPD: '#2563eb', COLO: '#16a34a' };
+// Abaixo deste zoom os nomes dos CPDs somem, deixando só os ícones
+const ZOOM_MINIMO_NOMES = 11;
 const EMPTY_FORM = { origem: '', destino: '', descricao: '', cabos: [{ nome: '', cor: '#2196F3' }], file: null };
 
 const inputStyle = { width: '100%', boxSizing: 'border-box', padding: '7px 8px', background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', borderRadius: '4px', fontSize: '0.8rem', color: 'var(--th-text)' };
@@ -57,6 +59,13 @@ export function MapPage({ userEmail }) {
                     viab: L.layerGroup().addTo(mapa)
                 };
                 mapRef.current = mapa;
+
+                // Esconde os nomes dos CPDs quando o zoom está afastado
+                const atualizaNomes = () => {
+                    mapa.getContainer().classList.toggle('map-zoom-out', mapa.getZoom() < ZOOM_MINIMO_NOMES);
+                };
+                mapa.on('zoomend', atualizaNomes);
+                atualizaNomes();
                 setPronto(true);
             })
             .catch((err) => {
@@ -80,12 +89,12 @@ export function MapPage({ userEmail }) {
             const cor = CORES_TIPO[dc.tipo] || '#64748b';
             const icone = L.divIcon({
                 className: '',
-                html: `<div style="width:12px;height:12px;border-radius:50%;background:${cor};border:2px solid #fff;"></div>`,
-                iconSize: [12, 12],
-                iconAnchor: [6, 6]
+                html: `<i class="fa-solid fa-server" style="color:${cor};font-size:18px;line-height:18px;text-shadow:0 0 3px #fff,0 0 3px #fff;"></i>`,
+                iconSize: [18, 18],
+                iconAnchor: [9, 9]
             });
             L.marker([dc.lat, dc.lng], { icon: icone })
-                .bindTooltip(escaparHtml(dc.nome), { permanent: true, direction: 'right', offset: [6, 0] })
+                .bindTooltip(escaparHtml(dc.nome), { permanent: true, direction: 'right', offset: [10, 0], className: 'cpd-tooltip' })
                 .addTo(grupo);
         });
     };
@@ -243,8 +252,8 @@ export function MapPage({ userEmail }) {
                 <div>
                     <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--th-text)' }}>Mapa de rede</h2>
                     <div style={{ display: 'flex', gap: '10px', marginTop: '6px', fontSize: '0.7rem', color: 'var(--th-muted)' }}>
-                        <span><span style={{ color: CORES_TIPO.CPD }}>●</span> CPD</span>
-                        <span><span style={{ color: CORES_TIPO.COLO }}>●</span> COLO</span>
+                        <span><i className="fa-solid fa-server" style={{ color: CORES_TIPO.CPD }}></i> CPD</span>
+                        <span><i className="fa-solid fa-server" style={{ color: CORES_TIPO.COLO }}></i> COLO</span>
                         <span><span style={{ color: '#7c3aed' }}>━</span> Rota</span>
                     </div>
                 </div>
