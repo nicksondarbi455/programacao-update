@@ -27,12 +27,14 @@ export function FloatingCalendar({ isOpen, onToggle, schedules, equipments, onOp
 
     const hoverItems = hoverInfo ? (schedules[hoverInfo.dateStr] || []) : [];
 
-    // Gera os cards dos próximos 6 meses
+    // Gera os cards: 2 meses passados, o mês atual e os meses seguintes
     const renderMonths = () => {
         let months = [];
         let currentDate = new Date();
-        for (let i = 0; i < 24; i++) {
-            let monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+        const MESES_PASSADOS = 2;
+        const TOTAL_MESES = 26; // 2 passados + atual + 23 futuros
+        for (let i = 0; i < TOTAL_MESES; i++) {
+            let monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - MESES_PASSADOS + i, 1);
             let year = monthDate.getFullYear();
             let month = monthDate.getMonth();
             let daysInMonth = new Date(year, month + 1, 0).getDate();
