@@ -8,8 +8,6 @@ const ROW_NUM_WIDTH = 44;
 // Cores de seleção (estilo Google Sheets)
 const SELECT_BLUE = '#1a73e8';
 const SELECT_TINT = '#d2e3fc';
-// Identificador da linha do cabeçalho (usado para selecionar uma célula do cabeçalho)
-const HEADER_ROW = '__header__';
 
 // Ícones de ação (bandeira e comentário) no fim de cada linha
 const iconBtn = { background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: '0.9rem', color: 'var(--th-sheet-text)', lineHeight: 1 };
@@ -209,6 +207,18 @@ export function NocTable({
         }
     };
 
+    // Copia uma linha inteira (todas as colunas) ou uma coluna inteira (todas as linhas)
+    const copyRowAll = (rowId) => {
+        if (orderedColIds.length === 0) return;
+        const rect = buildRect({ rowId, colId: orderedColIds[0] }, { rowId, colId: orderedColIds[orderedColIds.length - 1] });
+        if (rect) copyText(rangeToText(rect));
+    };
+    const copyColAll = (colId) => {
+        if (orderedRowIds.length === 0) return;
+        const rect = buildRect({ rowId: orderedRowIds[0], colId }, { rowId: orderedRowIds[orderedRowIds.length - 1], colId });
+        if (rect) copyText(rangeToText(rect));
+    };
+
     // Arrastar o mouse entre células: marca o retângulo e, ao soltar, copia o conteúdo marcado
     const dragRef = useRef(null);
     const latestRef = useRef({});
@@ -296,8 +306,11 @@ export function NocTable({
         return (
             <td
                 className="row-num"
-                title="Clique para selecionar a linha (Ctrl para várias, Shift para um intervalo). Arraste pelo número para mover a linha."
-                onClick={(e) => onRowClick(eq.id, e, orderedRowIds)}
+                title="Clique seleciona e copia a linha (Ctrl para várias, Shift para um intervalo). Arraste pelo número para mover a linha."
+                onClick={(e) => {
+                    onRowClick(eq.id, e, orderedRowIds);
+                    if (!e.ctrlKey && !e.metaKey && !e.shiftKey) copyRowAll(eq.id);
+                }}
                 {...dragProps}
                 style={{
                     width: `${ROW_NUM_WIDTH}px`, minWidth: `${ROW_NUM_WIDTH}px`, maxWidth: `${ROW_NUM_WIDTH}px`,
@@ -484,7 +497,6 @@ export function NocTable({
                                         style={{
                                             width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`,
                                             background: selected ? SELECT_BLUE : (isEventScope ? '#334155' : undefined),
-                                            boxShadow: isActive(HEADER_ROW, col.id) ? `inset 0 0 0 2px ${SELECT_BLUE}` : undefined,
                                             cursor: 'pointer'
                                         }}
                                         draggable={!readOnly}
@@ -493,14 +505,10 @@ export function NocTable({
                                         onDrop={(e) => onDrop(e, idx)}
                                         onClick={(e) => {
                                             if (editingCol === col.id) return;
-                                            // Clique simples seleciona só esta célula do cabeçalho; Ctrl/Shift selecionam a coluna inteira
-                                            if (e.ctrlKey || e.metaKey || e.shiftKey) {
-                                                if (onColClick) onColClick(col.id, e, orderedColIds);
-                                                return;
-                                            }
-                                            if (onActivateCell) onActivateCell({ rowId: HEADER_ROW, colId: col.id });
+                                            if (onColClick) onColClick(col.id, e, orderedColIds);
+                                            if (!e.ctrlKey && !e.metaKey && !e.shiftKey) copyColAll(col.id);
                                         }}
-                                        title={isEventScope ? 'Coluna exclusiva de Eventos (clique seleciona a célula, Shift+clique seleciona a coluna)' : 'Coluna geral (clique seleciona a célula, Shift+clique seleciona a coluna)'}
+                                        title={isEventScope ? 'Coluna exclusiva de Eventos (clique seleciona e copia a coluna; Ctrl/Shift para várias)' : 'Coluna geral (clique seleciona e copia a coluna; Ctrl/Shift para várias)'}
                                     >
                                         {editingCol === col.id ? (
                                             <input
