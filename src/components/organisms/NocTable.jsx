@@ -288,7 +288,7 @@ export function NocTable({
         if (fmt && fmt.bg) bg = fmt.bg;
 
         // Linha selecionada, célula ativa e área arrastada usam a mesma borda azul; a cor da célula continua visível
-        const outline = isActive(eq.id, colId) || rowSel || inSel;
+        const outline = isActive(eq.id, colId) || rowSel || colSel || inSel;
         return { background: bg, boxShadow: outline ? `inset 0 0 0 2px ${SELECT_BLUE}` : 'none', ...extra };
     };
 
