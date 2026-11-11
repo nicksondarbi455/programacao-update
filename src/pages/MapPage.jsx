@@ -7,6 +7,13 @@ const TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/Wo
 const CORES_TIPO = { CPD: '#2563eb', COLO: '#16a34a' };
 // Abaixo deste zoom os nomes dos CPDs somem, deixando só os ícones
 const ZOOM_MINIMO_NOMES = 11;
+// Opções do card de cada CPD (à esquerda)
+const CPD_ABAS = [
+    { id: 'hack', label: 'Hack' },
+    { id: 'preventivas', label: 'Preventivas' },
+    { id: 'equipamentos', label: 'Equipamentos' },
+    { id: 'informacoes', label: 'Informações' }
+];
 const EMPTY_FORM = { origem: '', destino: '', descricao: '', cabos: [{ nome: '', cor: '#2196F3' }], file: null };
 
 const inputStyle = { width: '100%', boxSizing: 'border-box', padding: '7px 8px', background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', borderRadius: '4px', fontSize: '0.8rem', color: 'var(--th-text)' };
@@ -42,6 +49,16 @@ export function MapPage({ userEmail }) {
     const [viab, setViab] = useState({ coords: '', cpd: 'auto' });
     const [resultado, setResultado] = useState(null);
     const [calculando, setCalculando] = useState(false);
+    // Card de status da rede (minimizável)
+    const [statusAberto, setStatusAberto] = useState(true);
+    // CPD aberto no card (ao clicar no ícone) e a opção escolhida
+    const [cpdSelecionado, setCpdSelecionado] = useState(null);
+    const [cpdAba, setCpdAba] = useState(null);
+
+    const abrirCpd = (dc) => {
+        setCpdSelecionado(dc);
+        setCpdAba(null);
+    };
 
     // 1) Cria o mapa uma vez
     useEffect(() => {
@@ -95,6 +112,7 @@ export function MapPage({ userEmail }) {
             });
             L.marker([dc.lat, dc.lng], { icon: icone })
                 .bindTooltip(escaparHtml(dc.nome), { permanent: true, direction: 'right', offset: [10, 0], className: 'cpd-tooltip' })
+                .on('click', () => abrirCpd(dc))
                 .addTo(grupo);
         });
     };
@@ -112,7 +130,7 @@ export function MapPage({ userEmail }) {
             try {
                 const arquivo = await mapService.downloadRouteFile(rota.arquivo_path);
                 const camada = await parseRouteFile(arquivo, rota.nome_arquivo);
-                if (camada.setStyle) camada.setStyle({ color: '#7c3aed', weight: 4, opacity: 0.85 });
+                if (camada.setStyle) camada.setStyle({ color: '#7c3aed', weight: 2, opacity: 0.85 });
 
                 const cabos = (rota.cabos || []).map((c) =>
                     `<div style="display:flex;align-items:center;gap:5px;font-size:12px;margin-bottom:3px;">` +
@@ -352,6 +370,61 @@ export function MapPage({ userEmail }) {
                 {erro && (
                     <div role="alert" style={{ position: 'absolute', top: '12px', left: '12px', right: '12px', zIndex: 500, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: '6px', padding: '10px', fontSize: '0.8rem' }}>
                         Erro no mapa: {erro}
+                    </div>
+                )}
+                <div style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 600, width: '270px', background: '#ffffff', border: '1px solid #d1d5db', borderRadius: '10px', boxShadow: '0 4px 14px rgba(0,0,0,0.15)', overflow: 'hidden', boxSizing: 'border-box' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px' }}>
+                        <span className="status-dot-blink" aria-hidden="true" />
+                        <strong style={{ flex: 1, fontSize: '0.85rem', color: '#1f2937' }}>Sem incidentes na rede</strong>
+                        <button
+                            type="button"
+                            onClick={() => setStatusAberto((aberto) => !aberto)}
+                            aria-label={statusAberto ? 'Minimizar' : 'Expandir'}
+                            title={statusAberto ? 'Minimizar' : 'Expandir'}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '0.9rem', padding: '2px 4px' }}
+                        >
+                            <i className={statusAberto ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'}></i>
+                        </button>
+                    </div>
+                    {statusAberto && (
+                        <div style={{ height: '140px', background: '#ffffff', borderTop: '1px solid #e5e7eb' }} />
+                    )}
+                </div>
+                {cpdSelecionado && (
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 650, width: '560px', maxWidth: 'calc(100% - 40px)', height: '360px', maxHeight: 'calc(100% - 40px)', background: '#ffffff', border: '1px solid #d1d5db', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>
+                            <i className="fa-solid fa-server" style={{ color: CORES_TIPO[cpdSelecionado.tipo] || '#64748b' }}></i>
+                            <strong style={{ flex: 1, fontSize: '1rem', color: '#1f2937' }}>{cpdSelecionado.nome}</strong>
+                            <button
+                                type="button"
+                                onClick={() => setCpdSelecionado(null)}
+                                aria-label="Fechar"
+                                title="Fechar"
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '1rem', padding: '2px 6px' }}
+                            >
+                                <i className="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+                            <nav style={{ width: '170px', flexShrink: 0, borderRight: '1px solid #e5e7eb', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px', boxSizing: 'border-box' }}>
+                                {CPD_ABAS.map((aba) => {
+                                    const ativa = cpdAba === aba.id;
+                                    return (
+                                        <button
+                                            key={aba.id}
+                                            type="button"
+                                            onClick={() => setCpdAba(aba.id)}
+                                            style={{ textAlign: 'left', padding: '9px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: ativa ? 700 : 500, color: ativa ? '#ffffff' : '#1f2937', background: ativa ? '#1a73e8' : '#f3f4f6', border: 'none' }}
+                                        >
+                                            {aba.label}
+                                        </button>
+                                    );
+                                })}
+                            </nav>
+                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', color: '#6b7280', fontSize: '0.95rem', textAlign: 'center' }}>
+                                {cpdAba ? 'trabalhando nisso' : 'Selecione uma opção'}
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
