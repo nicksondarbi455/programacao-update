@@ -62,6 +62,8 @@ export function NocTemplate({
     onFormat,
     selRows,
     selCols,
+    selRange,
+    onRangeSelect,
     onRowClick,
     onColClick,
     onSelectAll,
@@ -121,6 +123,8 @@ export function NocTemplate({
                     readOnly={readOnly}
                     selRows={selRows}
                     selCols={selCols}
+                    selRange={selRange}
+                    onRangeSelect={onRangeSelect}
                     activeCell={activeCell}
                     onActivateCell={onActivateCell}
                     onRowClick={onRowClick}

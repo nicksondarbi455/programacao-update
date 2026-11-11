@@ -19,6 +19,8 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     const [activeCell, setActiveCell] = useState(null);
     const [selRows, setSelRows] = useState(new Set());
     const [selCols, setSelCols] = useState(new Set());
+    // Área selecionada arrastando o mouse entre células (de/para)
+    const [selRange, setSelRange] = useState(null);
     const [rowAnchor, setRowAnchor] = useState(null);
     const [colAnchor, setColAnchor] = useState(null);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -337,12 +339,22 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
         setActiveCell(cell);
         setSelRows(new Set());
         setSelCols(new Set());
+        setSelRange(null);
+    };
+
+    // Arrastar o mouse sobre as células: marca a área (a célula de partida fica ativa)
+    const handleRangeSelect = (from, to) => {
+        setActiveCell(from);
+        setSelRows(new Set());
+        setSelCols(new Set());
+        setSelRange({ from, to });
     };
 
     // Número da linha: clique seleciona a linha. Ctrl/Cmd soma à seleção. Shift vai até a linha anterior marcada.
     const handleRowClick = (rowId, e, orderedIds) => {
         const multi = e.ctrlKey || e.metaKey;
         setActiveCell(null);
+        setSelRange(null);
 
         if (e.shiftKey && rowAnchor && orderedIds.includes(rowAnchor)) {
             const a = orderedIds.indexOf(rowAnchor);
@@ -372,6 +384,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     const handleColClick = (colId, e, orderedIds) => {
         const multi = e.ctrlKey || e.metaKey;
         setActiveCell(null);
+        setSelRange(null);
 
         if (e.shiftKey && colAnchor && orderedIds.includes(colAnchor)) {
             const a = orderedIds.indexOf(colAnchor);
@@ -400,6 +413,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     // Canto superior: seleciona todas as linhas e colunas
     const handleSelectAll = () => {
         setActiveCell(null);
+        setSelRange(null);
         setSelRows(new Set(equipments.map(eq => eq.id)));
         setSelCols(new Set(columnConfig.map(c => c.id)));
     };
@@ -428,6 +442,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
         setSelRows(new Set());
         setSelCols(new Set());
         setActiveCell(null);
+        setSelRange(null);
     };
 
     // Troca a posição da linha com a vizinha (direction: -1 sobe, 1 desce)
@@ -737,6 +752,8 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
                 onCommitField={handleCommitField}
                 selRows={selRows}
                 selCols={selCols}
+                selRange={selRange}
+                onRangeSelect={handleRangeSelect}
                 onRowClick={handleRowClick}
                 onColClick={handleColClick}
                 onSelectAll={handleSelectAll}

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Checkbox } from '../atoms/Checkbox';
 
 const CHECK_COL_WIDTH = 70;
@@ -8,6 +8,8 @@ const ROW_NUM_WIDTH = 44;
 // Cores de seleção (estilo Google Sheets)
 const SELECT_BLUE = '#1a73e8';
 const SELECT_TINT = '#d2e3fc';
+// Identificador da linha do cabeçalho (usado para selecionar uma célula do cabeçalho)
+const HEADER_ROW = '__header__';
 
 // Ícones de ação (bandeira e comentário) no fim de cada linha
 const iconBtn = { background: 'none', border: 'none', cursor: 'pointer', padding: '0 3px', fontSize: '0.9rem', color: 'var(--th-sheet-text)', lineHeight: 1 };
@@ -44,29 +46,51 @@ function fmtStyle(fmt) {
 }
 
 // Célula de planilha: sem caixa e ocupando a célula inteira.
-// Lembra o valor de antes ao ganhar o foco e avisa ao sair, para gravar só ao terminar.
-function SheetInput({ value, onChange, onCommit, onFocusCell, style, placeholder, readOnly }) {
+// Um clique só seleciona (campo somente leitura, com o texto ainda selecionável).
+// Duplo clique (ou Enter/F2) libera a edição. Lembra o valor de antes e grava ao sair da célula.
+function SheetInput({ value, onChange, onCommit, onFocusCell, style, placeholder, readOnly, editing, canEdit, onStartEdit, onStopEdit }) {
     const startRef = useRef(value);
+    const inputRef = useRef(null);
+
+    // Ao entrar em edição, o cursor vai para o fim do texto
+    useEffect(() => {
+        if (editing && inputRef.current) {
+            const el = inputRef.current;
+            el.focus();
+            const end = el.value.length;
+            el.setSelectionRange(end, end);
+        }
+    }, [editing]);
+
     return (
         <input
+            ref={inputRef}
             type="text"
             className="sheet-input"
             value={value ?? ''}
             placeholder={placeholder}
-            readOnly={readOnly}
-            style={{ background: 'transparent', ...style }}
+            readOnly={readOnly || !editing}
+            style={{ background: 'transparent', cursor: editing ? 'text' : 'cell', ...style }}
             onFocus={() => {
                 startRef.current = value;
                 if (onFocusCell) onFocusCell();
             }}
             onChange={(e) => {
-                if (!readOnly) onChange(e.target.value);
+                if (!readOnly && editing) onChange(e.target.value);
+            }}
+            onKeyDown={(e) => {
+                if (!editing && canEdit && onStartEdit && (e.key === 'Enter' || e.key === 'F2')) {
+                    e.preventDefault();
+                    onStartEdit();
+                } else if (editing && e.key === 'Enter') {
+                    e.currentTarget.blur();
+                }
             }}
             onBlur={() => {
-                if (readOnly) return;
-                if (String(startRef.current ?? '') !== String(value ?? '')) {
+                if (editing && !readOnly && String(startRef.current ?? '') !== String(value ?? '')) {
                     onCommit(startRef.current);
                 }
+                if (onStopEdit) onStopEdit();
             }}
         />
     );
@@ -78,6 +102,8 @@ export function NocTable({
     readOnly = false,
     selRows = new Set(),
     selCols = new Set(),
+    selRange = null,
+    onRangeSelect,
     activeCell,
     onActivateCell,
     onRowClick,
@@ -134,6 +160,93 @@ export function NocTable({
         if (onActivateCell) onActivateCell({ rowId, colId });
     };
 
+    // Célula em edição (duplo clique, Enter ou F2)
+    const [editingCell, setEditingCell] = useState(null);
+    const isEditingCell = (rowId, colId) => !!editingCell && editingCell.rowId === rowId && editingCell.colId === colId;
+
+    // Retângulo entre duas células (linhas e colunas na ordem da tela)
+    const buildRect = (from, to) => {
+        const r1 = orderedRowIds.indexOf(from.rowId);
+        const r2 = orderedRowIds.indexOf(to.rowId);
+        const c1 = orderedColIds.indexOf(from.colId);
+        const c2 = orderedColIds.indexOf(to.colId);
+        if (r1 < 0 || r2 < 0 || c1 < 0 || c2 < 0) return null;
+        const rowList = orderedRowIds.slice(Math.min(r1, r2), Math.max(r1, r2) + 1);
+        const colList = orderedColIds.slice(Math.min(c1, c2), Math.max(c1, c2) + 1);
+        return { rowList, colList, rows: new Set(rowList), cols: new Set(colList) };
+    };
+    const rangeRect = selRange ? buildRect(selRange.from, selRange.to) : null;
+    const inRange = (rowId, colId) => !!rangeRect && rangeRect.rows.has(rowId) && rangeRect.cols.has(colId);
+
+    // Texto da seleção: colunas separadas por Tab e linhas por quebra de linha (cola direto no Excel)
+    const rangeToText = (rect) => {
+        const byId = new Map(filteredEquipments.map((eq) => [eq.id, eq]));
+        const cols = rect.colList.map((cid) => columnConfig.find((c) => c.id === cid)).filter(Boolean);
+        return rect.rowList.map((rid) => {
+            const eq = byId.get(rid);
+            if (!eq) return '';
+            return cols.map((col) => {
+                const v = eq[col.id];
+                if (col.type === 'checkbox') return v ? 'Sim' : 'Não';
+                return v === undefined || v === null ? '' : String(v).replace(/[\t\r\n]+/g, ' ');
+            }).join('\t');
+        }).join('\n');
+    };
+
+    const copyText = async (text) => {
+        try {
+            await navigator.clipboard.writeText(text);
+        } catch {
+            // Sem permissão do navegador: usa o método antigo de cópia
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); } catch { /* sem acesso à área de transferência */ }
+            document.body.removeChild(ta);
+        }
+    };
+
+    // Arrastar o mouse entre células: marca o retângulo e, ao soltar, copia o conteúdo marcado
+    const dragRef = useRef(null);
+    const latestRef = useRef({});
+    latestRef.current = { buildRect, rangeToText, copyText };
+    useEffect(() => {
+        const onUp = () => {
+            const d = dragRef.current;
+            dragRef.current = null;
+            if (!d || !d.moved) return;
+            const { buildRect: rect, rangeToText: toText, copyText: copy } = latestRef.current;
+            const r = rect(d.from, d.to);
+            if (r) copy(toText(r));
+        };
+        window.addEventListener('mouseup', onUp);
+        return () => window.removeEventListener('mouseup', onUp);
+    }, []);
+
+    // Eventos de mouse de uma célula: clique e arrastar (seleção e cópia)
+    const cellMouse = (rowId, colId, canStartEdit) => ({
+        onMouseDown: (e) => {
+            if (e.button !== 0 || isEditingCell(rowId, colId)) return;
+            const cell = { rowId, colId };
+            dragRef.current = { from: cell, to: cell, moved: false };
+            if (onActivateCell) onActivateCell(cell);
+        },
+        onMouseEnter: () => {
+            const d = dragRef.current;
+            if (!d) return;
+            if (d.to.rowId === rowId && d.to.colId === colId) return;
+            d.to = { rowId, colId };
+            d.moved = true;
+            if (onRangeSelect) onRangeSelect(d.from, d.to);
+        },
+        onDoubleClick: () => {
+            if (!readOnly && canStartEdit) setEditingCell({ rowId, colId });
+        }
+    });
+
     // Cor de fundo da linha antes de qualquer seleção: faixa de evento (cinza ou verde) ou linha comum
     const rowBase = (eq, completed) => {
         if (eq.isGroupHeader) return completed ? '#86efac' : '#94a3b8';
@@ -147,12 +260,14 @@ export function NocTable({
         const colSel = selCols.has(colId);
         const fmt = eq._fmt && eq._fmt[colId];
 
+        const inSel = inRange(eq.id, colId);
+
         let bg = base;
-        if (!isGroup && colSel) bg = SELECT_TINT;
+        if (!isGroup && (colSel || inSel)) bg = SELECT_TINT;
         if (fmt && fmt.bg) bg = fmt.bg;
 
-        // Linha selecionada e célula ativa usam a mesma borda azul; a cor da célula continua visível
-        const outline = isActive(eq.id, colId) || rowSel;
+        // Linha selecionada, célula ativa e área arrastada usam a mesma borda azul; a cor da célula continua visível
+        const outline = isActive(eq.id, colId) || rowSel || inSel;
         return { background: bg, boxShadow: outline ? `inset 0 0 0 2px ${SELECT_BLUE}` : 'none', ...extra };
     };
 
@@ -164,14 +279,15 @@ export function NocTable({
     const rowOutline = (eq) => (selRows.has(eq.id) ? { boxShadow: `inset 0 0 0 2px ${SELECT_BLUE}` } : {});
 
     // Número da linha: clique seleciona a linha (Ctrl soma, Shift vai até a linha anterior selecionada)
-    const renderRowNum = (eq, index, base) => {
+    const renderRowNum = (eq, index, base, dragProps = {}) => {
         const selected = selRows.has(eq.id);
         const isGroup = !!eq.isGroupHeader;
         return (
             <td
                 className="row-num"
-                title="Clique para selecionar a linha (Ctrl para várias, Shift para um intervalo)"
+                title="Clique para selecionar a linha (Ctrl para várias, Shift para um intervalo). Arraste pelo número para mover a linha."
                 onClick={(e) => onRowClick(eq.id, e, orderedRowIds)}
+                {...dragProps}
                 style={{
                     width: `${ROW_NUM_WIDTH}px`, minWidth: `${ROW_NUM_WIDTH}px`, maxWidth: `${ROW_NUM_WIDTH}px`,
                     textAlign: 'center', cursor: 'pointer', userSelect: 'none', fontSize: '0.72rem',
@@ -221,6 +337,7 @@ export function NocTable({
                 key={col.id}
                 className="sheet-cell"
                 onClick={focusCell(eq.id, col.id)}
+                {...cellMouse(eq.id, col.id, false)}
                 style={cellLook(eq, col.id, base, { width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`, textAlign: 'center', color: '#cbd5e1' })}
             >
                 —
@@ -237,7 +354,7 @@ export function NocTable({
 
         if (col.type === 'checkbox') {
             return (
-                <td key={col.id} className="sheet-cell checkbox-cell" style={look} onClick={focusCell(eq.id, col.id)}>
+                <td key={col.id} className="sheet-cell checkbox-cell" style={look} onClick={focusCell(eq.id, col.id)} {...cellMouse(eq.id, col.id, false)}>
                     <Checkbox
                         checked={!!value}
                         onChange={(e) => {
@@ -251,10 +368,14 @@ export function NocTable({
         }
 
         return (
-            <td key={col.id} className="sheet-cell" style={look}>
+            <td key={col.id} className="sheet-cell" style={look} {...cellMouse(eq.id, col.id, true)}>
                 <SheetInput
                     value={value}
                     readOnly={readOnly}
+                    canEdit={!readOnly}
+                    editing={isEditingCell(eq.id, col.id)}
+                    onStartEdit={() => setEditingCell({ rowId: eq.id, colId: col.id })}
+                    onStopEdit={() => setEditingCell(null)}
                     style={fmtStyle(eq._fmt && eq._fmt[col.id])}
                     onFocusCell={focusCell(eq.id, col.id)}
                     onChange={(v) => onUpdateField(eq.id, col.id, v)}
@@ -352,6 +473,7 @@ export function NocTable({
                                         style={{
                                             width: `${w}px`, minWidth: `${w}px`, maxWidth: `${w}px`,
                                             background: selected ? SELECT_BLUE : (isEventScope ? '#334155' : undefined),
+                                            boxShadow: isActive(HEADER_ROW, col.id) ? `inset 0 0 0 2px ${SELECT_BLUE}` : undefined,
                                             cursor: 'pointer'
                                         }}
                                         draggable={!readOnly}
@@ -360,9 +482,14 @@ export function NocTable({
                                         onDrop={(e) => onDrop(e, idx)}
                                         onClick={(e) => {
                                             if (editingCol === col.id) return;
-                                            if (onColClick) onColClick(col.id, e, orderedColIds);
+                                            // Clique simples seleciona só esta célula do cabeçalho; Ctrl/Shift selecionam a coluna inteira
+                                            if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                                                if (onColClick) onColClick(col.id, e, orderedColIds);
+                                                return;
+                                            }
+                                            if (onActivateCell) onActivateCell({ rowId: HEADER_ROW, colId: col.id });
                                         }}
-                                        title={isEventScope ? 'Coluna exclusiva de Eventos (clique para selecionar)' : 'Coluna geral (clique para selecionar)'}
+                                        title={isEventScope ? 'Coluna exclusiva de Eventos (clique seleciona a célula, Shift+clique seleciona a coluna)' : 'Coluna geral (clique seleciona a célula, Shift+clique seleciona a coluna)'}
                                     >
                                         {editingCol === col.id ? (
                                             <input
@@ -416,22 +543,24 @@ export function NocTable({
                                 const completed = isDone(eq);
                                 const base = rowBase(eq, completed);
 
-                                // A linha inteira pode ser arrastada para mudar de posição
-                                const dragProps = !readOnly ? {
+                                // Só o número da linha pode ser arrastado para mudar de posição (a linha inteira é o destino)
+                                const rowDrag = !readOnly ? {
                                     draggable: true,
                                     onDragStart: (e) => {
                                         e.dataTransfer.effectAllowed = 'move';
                                         e.dataTransfer.setData('text/plain', eq.id);
                                         onRowDragStart(eq.id);
-                                    },
+                                    }
+                                } : {};
+                                const rowDrop = !readOnly ? {
                                     onDragOver: (e) => e.preventDefault(),
                                     onDrop: () => onRowDrop(eq.id)
                                 } : {};
 
                                 if (eq.isGroupHeader) {
                                     return (
-                                        <tr key={eq.id} {...dragProps} style={{ backgroundColor: base, borderBottom: '2px solid #64748b' }}>
-                                            {renderRowNum(eq, index, base)}
+                                        <tr key={eq.id} {...rowDrop} style={{ backgroundColor: base, borderBottom: '2px solid #64748b' }}>
+                                            {renderRowNum(eq, index, base, rowDrag)}
                                             {!isRecurring && (
                                                 <td style={{ textAlign: 'center', fontSize: '1rem', background: base, ...rowOutline(eq) }}>
                                                     {completed ? <i className="fa-solid fa-circle-check" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null}
@@ -446,10 +575,10 @@ export function NocTable({
                                 return (
                                     <tr
                                         key={eq.id}
-                                        {...dragProps}
+                                        {...rowDrop}
                                         style={{ backgroundColor: base, borderLeft: eq.groupId ? '4px solid #8b5cf6' : 'none' }}
                                     >
-                                        {renderRowNum(eq, index, base)}
+                                        {renderRowNum(eq, index, base, rowDrag)}
                                         {!isRecurring && (
                                             <td style={{ textAlign: 'center', verticalAlign: 'middle', background: base, ...rowOutline(eq) }}>
                                                 {completed ? <i className="fa-solid fa-circle-check" title="Concluído" style={{ color: '#16a34a', fontSize: '18px' }}></i> : null}
