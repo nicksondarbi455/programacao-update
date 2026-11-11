@@ -217,10 +217,21 @@ export function NocTable({
         const onUp = () => {
             const d = dragRef.current;
             dragRef.current = null;
-            if (!d || !d.moved) return;
+            if (!d) return;
             const { buildRect: rect, rangeToText: toText, copyText: copy } = latestRef.current;
+
+            if (!d.moved) {
+                // Clique numa célula: não copia se o usuário selecionou só um trecho do texto dentro dela
+                const el = document.activeElement;
+                if (el && el.tagName === 'INPUT' && el.selectionStart !== el.selectionEnd) return;
+            }
+
             const r = rect(d.from, d.to);
-            if (r) copy(toText(r));
+            if (!r) return;
+            const text = toText(r);
+            // Célula vazia clicada não substitui o que estava na área de transferência
+            if (!d.moved && text === '') return;
+            copy(text);
         };
         window.addEventListener('mouseup', onUp);
         return () => window.removeEventListener('mouseup', onUp);
