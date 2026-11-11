@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '../atoms/Button';
+
+// Meses mostrados antes do mês atual (o calendário abre sempre em cima do mês atual)
+const MESES_PASSADOS = 2;
 
 const colorHexMap = {
     'vermelho': '#dc2626', 'azul': '#2914c8', 'verde': '#16a34a',
@@ -27,11 +30,21 @@ export function FloatingCalendar({ isOpen, onToggle, schedules, equipments, onOp
 
     const hoverItems = hoverInfo ? (schedules[hoverInfo.dateStr] || []) : [];
 
+    // Ao abrir o calendário, a rolagem vai para o topo do mês atual
+    const scrollRef = useRef(null);
+    const mesAtualRef = useRef(null);
+    useEffect(() => {
+        if (!isOpen) return;
+        const area = scrollRef.current;
+        const mes = mesAtualRef.current;
+        if (!area || !mes) return;
+        area.scrollTop += mes.getBoundingClientRect().top - area.getBoundingClientRect().top;
+    }, [isOpen]);
+
     // Gera os cards: 2 meses passados, o mês atual e os meses seguintes
     const renderMonths = () => {
         let months = [];
         let currentDate = new Date();
-        const MESES_PASSADOS = 2;
         const TOTAL_MESES = 26; // 2 passados + atual + 23 futuros
         for (let i = 0; i < TOTAL_MESES; i++) {
             let monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - MESES_PASSADOS + i, 1);
@@ -78,7 +91,7 @@ export function FloatingCalendar({ isOpen, onToggle, schedules, equipments, onOp
             }
 
             months.push(
-                <div key={i} className="month-card">
+                <div key={i} className="month-card" ref={i === MESES_PASSADOS ? mesAtualRef : undefined}>
                     <div className="month-header">{monthDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</div>
                     <div className="days-grid">
                         {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((wd, index) => <div key={index} className="day-name">{wd}</div>)}
@@ -97,7 +110,7 @@ export function FloatingCalendar({ isOpen, onToggle, schedules, equipments, onOp
                     <h3 style={{ margin: 0, fontSize: '0.85rem', color: '#fff' }}>Calendário de Serviços</h3>
                     <button type="button" onClick={onToggle} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1 }}><i className="fa-regular fa-circle-xmark" style={{ color: '#9ca3af' }}></i></button>
                 </div>
-                <div className="calendar-scroll-area" onScroll={hideHover}>
+                <div className="calendar-scroll-area" ref={scrollRef} onScroll={hideHover}>
                     <div className="months-grid">{renderMonths()}</div>
                 </div>
             </div>
