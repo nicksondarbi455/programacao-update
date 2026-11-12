@@ -536,40 +536,25 @@ export const supabaseService = {
         return data || [];
     },
 
-    // Diagramas (draw.io) do projeto
-    async listDiagrams(projectId) {
+    // Diagrama (draw.io) de cada CPD, usado na aba Hack do card no mapa
+    async getCpdDiagram(cpdNome) {
         const { data, error } = await supabase
-            .from('project_diagrams')
-            .select('id, name, updated_at, updated_by')
-            .eq('project_id', projectId)
-            .order('created_at', { ascending: true });
-        check('Erro ao carregar diagramas', { error });
-        return data || [];
-    },
-
-    async getDiagram(id) {
-        const { data, error } = await supabase.from('project_diagrams').select('*').eq('id', id).single();
+            .from('cpd_diagrams')
+            .select('xml, updated_at, updated_by')
+            .eq('cpd_nome', cpdNome)
+            .maybeSingle();
         check('Erro ao abrir diagrama', { error });
         return data;
     },
 
-    async createDiagram(projectId, name, xml) {
-        const { data: { user } } = await supabase.auth.getUser();
-        const { data, error } = await supabase
-            .from('project_diagrams')
-            .insert({ project_id: projectId, name, xml, updated_by: user?.email || null })
-            .select()
-            .single();
-        check('Erro ao criar diagrama', { error });
-        return data;
-    },
-
-    async saveDiagram(id, xml) {
+    async saveCpdDiagram(cpdNome, xml) {
         const { data: { user } } = await supabase.auth.getUser();
         const { error } = await supabase
-            .from('project_diagrams')
-            .update({ xml, updated_by: user?.email || null, updated_at: new Date().toISOString() })
-            .eq('id', id);
+            .from('cpd_diagrams')
+            .upsert(
+                { cpd_nome: cpdNome, xml, updated_by: user?.email || null, updated_at: new Date().toISOString() },
+                { onConflict: 'cpd_nome' }
+            );
         check('Erro ao salvar diagrama', { error });
     },
 

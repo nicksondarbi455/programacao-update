@@ -10,7 +10,6 @@ import { logAction, LOG_ACTIONS } from '../services/logService';
 import { CommentsModal } from '../components/organisms/CommentsModal';
 import { ProjectSettingsModal } from '../components/organisms/ProjectSettingsModal';
 import { ProjectHistoryModal } from '../components/organisms/ProjectHistoryModal';
-import { DiagramasModal } from '../components/organisms/DiagramasModal';
 
 export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdated }) {
     const [equipments, setEquipments] = useState(project.equipments || []);
@@ -27,7 +26,6 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     // Histórico de conclusões (somente projetos recorrentes)
     const [historyOpen, setHistoryOpen] = useState(false);
-    const [diagramasOpen, setDiagramasOpen] = useState(false);
     const [colModalOpen, setColModalOpen] = useState(false);
     const [rowModalOpen, setRowModalOpen] = useState(false);
     const [modalData, setModalData] = useState({ isOpen: false, dateStr: '', friendlyDate: '', items: [], equipments: [] });
@@ -706,9 +704,6 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
 
     return (
         <div>
-            {diagramasOpen && (
-                <DiagramasModal projectId={project.id} podeEditar={!!project.canEdit} onClose={() => setDiagramasOpen(false)} />
-            )}
             {historyOpen && (
                 <ProjectHistoryModal projectId={project.id} nomeDaLinha={rowLabelOf} onClose={() => setHistoryOpen(false)} />
             )}
@@ -798,7 +793,6 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
                 weekCount={weekCount}
                 tomorrowCount={tomorrowCount}
                 onOpenHistory={() => setHistoryOpen(true)}
-                onOpenDiagrams={() => setDiagramasOpen(true)}
                 modalData={modalData}
                 onSaveEvent={handleSaveEvent}
                 onCloseModal={() => setModalData(prev => ({ ...prev, isOpen: false }))}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { CpdDiagrama } from '../components/organisms/CpdDiagrama';
 import { mapService } from '../services/mapService';
 import { loadMapLibs, parseRouteFile } from '../utils/mapLoader';
 import { Button } from '../components/atoms/Button';
@@ -391,7 +392,7 @@ export function MapPage({ userEmail }) {
                     )}
                 </div>
                 {cpdSelecionado && (
-                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 650, width: '560px', maxWidth: 'calc(100% - 40px)', height: '360px', maxHeight: 'calc(100% - 40px)', background: '#ffffff', border: '1px solid #d1d5db', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box' }}>
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 650, width: cpdAba === 'hack' ? 'min(1280px, 96%)' : '560px', maxWidth: 'calc(100% - 40px)', height: cpdAba === 'hack' ? '88%' : '360px', maxHeight: 'calc(100% - 40px)', background: '#ffffff', border: '1px solid #d1d5db', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>
                             <i className="fa-solid fa-server" style={{ color: CORES_TIPO[cpdSelecionado.tipo] || '#64748b' }}></i>
                             <strong style={{ flex: 1, fontSize: '1rem', color: '#1f2937' }}>{cpdSelecionado.nome}</strong>
@@ -421,9 +422,13 @@ export function MapPage({ userEmail }) {
                                     );
                                 })}
                             </nav>
-                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', color: '#6b7280', fontSize: '0.95rem', textAlign: 'center' }}>
-                                {cpdAba ? 'trabalhando nisso' : 'Selecione uma opção'}
-                            </div>
+                            {cpdAba === 'hack' ? (
+                                <CpdDiagrama key={cpdSelecionado.nome} cpdNome={cpdSelecionado.nome} podeEditar={true} />
+                            ) : (
+                                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', color: '#6b7280', fontSize: '0.95rem', textAlign: 'center' }}>
+                                    {cpdAba ? 'trabalhando nisso' : 'Selecione uma opção'}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
