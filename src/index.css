@@ -742,3 +742,25 @@ th.col-selected .col-title-display {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.25; }
 }
+
+/* Botões de ícone do cabeçalho da tabela (configurações e histórico) */
+.header-icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #1a73e8;
+    font-size: 1rem;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.header-icon-btn:hover {
+    background: rgba(26, 115, 232, 0.15);
+    color: #0b4fb3;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(26, 115, 232, 0.3);
+}
