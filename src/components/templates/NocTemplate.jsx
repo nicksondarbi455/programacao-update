@@ -69,7 +69,8 @@ export function NocTemplate({
     onSelectAll,
     onConfirmDelete,
     projectType,
-    onOpenHistory
+    onOpenHistory,
+    onOpenDiagrams
 }) {
     const selectedCount = selRows.size + selCols.size;
     const hasTarget = !!activeCell || selectedCount > 0;
@@ -139,6 +140,7 @@ export function NocTemplate({
                     onOpenRowComments={onOpenRowComments}
                     commentCounts={commentCounts}
                     onOpenSettings={onOpenSettings}
+                    onOpenDiagrams={onOpenDiagrams}
                     onOpenHistory={onOpenHistory}
                     onDragStart={onDragStart}
                     onDragOver={onDragOver}

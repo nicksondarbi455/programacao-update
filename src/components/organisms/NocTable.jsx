@@ -117,6 +117,7 @@ export function NocTable({
     commentCounts = {},
     onOpenSettings,
     onOpenHistory,
+    onOpenDiagrams,
     onDragStart,
     onDragOver,
     onDrop,
@@ -462,6 +463,11 @@ export function NocTable({
                     {onOpenSettings && (
                         <button type="button" title="Configurações do projeto" onClick={onOpenSettings} className="header-icon-btn">
                             <i className="fa-solid fa-gear"></i>
+                        </button>
+                    )}
+                    {onOpenDiagrams && (
+                        <button type="button" title="Diagramas do projeto" onClick={onOpenDiagrams} className="header-icon-btn">
+                            <i className="fa-solid fa-diagram-project"></i>
                         </button>
                     )}
                     {onOpenHistory && (

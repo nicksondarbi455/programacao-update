@@ -536,6 +536,43 @@ export const supabaseService = {
         return data || [];
     },
 
+    // Diagramas (draw.io) do projeto
+    async listDiagrams(projectId) {
+        const { data, error } = await supabase
+            .from('project_diagrams')
+            .select('id, name, updated_at, updated_by')
+            .eq('project_id', projectId)
+            .order('created_at', { ascending: true });
+        check('Erro ao carregar diagramas', { error });
+        return data || [];
+    },
+
+    async getDiagram(id) {
+        const { data, error } = await supabase.from('project_diagrams').select('*').eq('id', id).single();
+        check('Erro ao abrir diagrama', { error });
+        return data;
+    },
+
+    async createDiagram(projectId, name, xml) {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data, error } = await supabase
+            .from('project_diagrams')
+            .insert({ project_id: projectId, name, xml, updated_by: user?.email || null })
+            .select()
+            .single();
+        check('Erro ao criar diagrama', { error });
+        return data;
+    },
+
+    async saveDiagram(id, xml) {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { error } = await supabase
+            .from('project_diagrams')
+            .update({ xml, updated_by: user?.email || null, updated_at: new Date().toISOString() })
+            .eq('id', id);
+        check('Erro ao salvar diagrama', { error });
+    },
+
     // Histórico não pode travar a edição: se falhar, só avisa no console
     async addHistory(entries) {
         if (!entries || entries.length === 0) return;
