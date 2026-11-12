@@ -9,7 +9,7 @@ import { isRowCompleted } from '../components/organisms/NocTable';
 import { logAction, LOG_ACTIONS } from '../services/logService';
 import { CommentsModal } from '../components/organisms/CommentsModal';
 import { ProjectSettingsModal } from '../components/organisms/ProjectSettingsModal';
-import { RecurrenceHistoryModal } from '../components/organisms/RecurrenceHistoryModal';
+import { ProjectHistoryModal } from '../components/organisms/ProjectHistoryModal';
 
 export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdated }) {
     const [equipments, setEquipments] = useState(project.equipments || []);
@@ -705,7 +705,7 @@ export function NocPage({ project, userEmail, onBackToDashboard, onProjectUpdate
     return (
         <div>
             {historyOpen && (
-                <RecurrenceHistoryModal schedules={schedules} onClose={() => setHistoryOpen(false)} />
+                <ProjectHistoryModal projectId={project.id} nomeDaLinha={rowLabelOf} onClose={() => setHistoryOpen(false)} />
             )}
             {settingsOpen && (
                 <ProjectSettingsModal project={project} onSave={handleSaveSettings} onClose={() => setSettingsOpen(false)} onDelete={project.canManage ? handleDeleteProject : undefined} />

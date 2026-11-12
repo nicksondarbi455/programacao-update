@@ -116,6 +116,7 @@ export function NocTable({
     onOpenRowComments,
     commentCounts = {},
     onOpenSettings,
+    onOpenHistory,
     onDragStart,
     onDragOver,
     onDrop,
@@ -461,6 +462,11 @@ export function NocTable({
                     {onOpenSettings && (
                         <button type="button" title="Configurações do projeto" onClick={onOpenSettings} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--th-sheet-muted)', fontSize: '1rem' }}>
                             <i className="fa-solid fa-gear"></i>
+                        </button>
+                    )}
+                    {onOpenHistory && (
+                        <button type="button" title="Histórico do projeto" onClick={onOpenHistory} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--th-sheet-muted)', fontSize: '1rem' }}>
+                            <i className="fa-solid fa-clock-rotate-left"></i>
                         </button>
                     )}
                 </div>

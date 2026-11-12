@@ -139,6 +139,7 @@ export function NocTemplate({
                     onOpenRowComments={onOpenRowComments}
                     commentCounts={commentCounts}
                     onOpenSettings={onOpenSettings}
+                    onOpenHistory={onOpenHistory}
                     onDragStart={onDragStart}
                     onDragOver={onDragOver}
                     onDrop={onDrop}

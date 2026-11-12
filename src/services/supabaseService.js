@@ -512,6 +512,30 @@ export const supabaseService = {
         return data || [];
     },
 
+    // Histórico completo do projeto (agendamentos, conclusões, cancelamentos, alterações), mais recente primeiro
+    async listProjectHistory(projectId, limit = 1000) {
+        const { data, error } = await supabase
+            .from('item_history')
+            .select('*')
+            .eq('project_id', projectId)
+            .order('created_at', { ascending: false })
+            .limit(limit);
+        check('Erro ao carregar histórico', { error });
+        return data || [];
+    },
+
+    // Observações (comentários) do projeto, mais recente primeiro
+    async listProjectComments(projectId, limit = 500) {
+        const { data, error } = await supabase
+            .from('item_comments')
+            .select('*')
+            .eq('project_id', projectId)
+            .order('created_at', { ascending: false })
+            .limit(limit);
+        check('Erro ao carregar observações', { error });
+        return data || [];
+    },
+
     // Histórico não pode travar a edição: se falhar, só avisa no console
     async addHistory(entries) {
         if (!entries || entries.length === 0) return;
