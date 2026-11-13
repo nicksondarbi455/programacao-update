@@ -20,8 +20,8 @@ import { MentionsPanel } from '../components/organisms/MentionsPanel';
 import * as XLSX from 'xlsx';
 
 const labelStyle = { fontSize: '0.75rem', color: 'var(--th-muted)', fontWeight: 'bold' };
-// Ícone padrão dos projetos do tipo diagrama (quando o projeto não escolheu um ícone)
-const ICONE_DIAGRAMA = 'fa-solid fa-diagram-project';
+// Ícone padrão por tipo de projeto (quando o projeto não escolheu um ícone)
+const ICONES_POR_TIPO = { drawio: 'fa-solid fa-diagram-project', mapa: 'fa-solid fa-map-location-dot' };
 const selectStyle = { padding: '7px', background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', borderRadius: '4px', fontSize: '0.8rem' };
 const textareaStyle = { background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', padding: '8px', borderRadius: '4px', fontSize: '0.8rem', resize: 'none', height: '50px', fontFamily: 'inherit' };
 const checkLabelStyle = { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', cursor: 'pointer', color: 'var(--th-text-3)', whiteSpace: 'nowrap' };
@@ -338,14 +338,14 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
         if (!name.trim()) return;
 
         // Diagramas não têm tabela: nada de colunas nem linhas
-        const isDrawio = tipo === 'drawio';
+        const semTabela = tipo !== 'tabela';
         let initialColumns = [];
         let initialEquipments = [];
 
-        if (!isDrawio && tableSource === 'exportar' && importedData.columns.length > 0) {
+        if (!semTabela && tableSource === 'exportar' && importedData.columns.length > 0) {
             initialColumns = importedData.columns;
             initialEquipments = importedData.rows;
-        } else if (!isDrawio) {
+        } else if (!semTabela) {
             for (let i = 1; i <= parseInt(numCols); i++) {
                 initialColumns.push({
                     id: `col_${i}_${Date.now()}`,
@@ -370,10 +370,10 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                 name: name.trim(),
                 description: description.trim(),
                 tipo,
-                hasCalendar: !isDrawio && hasCalendar,
+                hasCalendar: !semTabela && hasCalendar,
                 isPrivate,
-                showProgress: !isDrawio && projectType === 'pontual' && showProgress,
-                projectType: isDrawio ? 'pontual' : projectType,
+                showProgress: !semTabela && projectType === 'pontual' && showProgress,
+                projectType: semTabela ? 'pontual' : projectType,
                 icon: projectIcon,
                 folderId: projectFolderId || null,
                 departmentIds: isPrivate ? [] : selectedDeptIds,
@@ -540,7 +540,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
             >
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
                     <span aria-hidden="true" style={{ width: '44px', height: '44px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.15rem', color: 'var(--th-text)', background: 'var(--th-surface-2)', border: '1px solid var(--th-border)' }}>
-                        <i className={proj.icon || (proj.tipo === 'drawio' ? ICONE_DIAGRAMA : DEFAULT_PROJECT_ICON)}></i>
+                        <i className={proj.icon || ICONES_POR_TIPO[proj.tipo] || DEFAULT_PROJECT_ICON}></i>
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -712,13 +712,13 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
 
             {/* Escolha: pasta ou projeto */}
             {isChooserOpen && (
-                <ModalShell title="O que deseja criar?" width={520}>
+                <ModalShell title="O que deseja criar?" width={640}>
                     {currentFolder && (
                         <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--th-muted)' }}>
                             Local: <strong style={{ color: 'var(--th-text-3)' }}>{folderLabel(currentFolder.id)}</strong>
                         </p>
                     )}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
                         <ChoiceCard
                             icon="fa-folder"
                             title="Pasta"
@@ -737,6 +737,12 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                             description="Desenho livre no draw.io"
                             onClick={() => handleChoose('drawio')}
                         />
+                        <ChoiceCard
+                            icon="fa-map-location-dot"
+                            title="Mapa"
+                            description="Objetos, rotas KMZ e eventos"
+                            onClick={() => handleChoose('mapa')}
+                        />
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
                         <Button variant="secondary" className="btn-modal" onClick={() => setIsChooserOpen(false)}><span>Cancelar</span></Button>
@@ -746,7 +752,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
 
             {/* Criação de projeto */}
             {isProjectModalOpen && (
-                <ModalShell title={tipo === 'drawio' ? 'Configurar Novo Diagrama' : 'Configurar Novo Projeto'}>
+                <ModalShell title={tipo === 'drawio' ? 'Configurar Novo Diagrama' : tipo === 'mapa' ? 'Configurar Novo Mapa' : 'Configurar Novo Projeto'}>
                     <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         <label style={labelStyle}>Nome do Projeto</label>
                         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Gestão de Ativos NOC" required />

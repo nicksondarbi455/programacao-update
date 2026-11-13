@@ -26,8 +26,8 @@ export function ProjectSettingsModal({ project, onSave, onClose, onDelete }) {
     const [loadingDeps, setLoadingDeps] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
-    // Diagramas (tipo drawio) não têm calendário nem progresso
-    const isDrawio = project.tipo === 'drawio';
+    // Diagramas e mapas de projeto não têm calendário nem progresso de tabela
+    const semTabela = project.tipo === 'drawio' || project.tipo === 'mapa';
 
     useEffect(() => {
         usersService.listDepartments()
@@ -45,7 +45,7 @@ export function ProjectSettingsModal({ project, onSave, onClose, onDelete }) {
                 name: name.trim(),
                 description: description.trim(),
                 // Diagramas não têm calendário nem progresso: esses campos ficam como estão
-                ...(isDrawio ? {} : { showProgress, hasCalendar }),
+                ...(semTabela ? {} : { showProgress, hasCalendar }),
                 isPrivate,
                 icon,
                 departmentIds: isPrivate ? [] : departmentIds
@@ -78,7 +78,7 @@ export function ProjectSettingsModal({ project, onSave, onClose, onDelete }) {
                 </div>
 
                 <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-                    {!isDrawio && (<>
+                    {!semTabela && (<>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--th-text-3)' }}>
                             <Checkbox checked={hasCalendar} onChange={(e) => setHasCalendar(e.target.checked)} />
                             Usar calendário

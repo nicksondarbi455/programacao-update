@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { logAction, LOG_ACTIONS } from './logService';
+import { projectMapService } from './projectMapService';
 
 // Lança um erro legível quando o Supabase devolve { error }
 const check = (context, { error }) => {
@@ -255,6 +256,10 @@ export const supabaseService = {
         if (source.tipo === 'drawio') {
             const diagrama = await supabaseService.getProjectDiagram(source.id);
             if (diagrama?.xml) await supabaseService.saveProjectDiagram(newId, diagrama.xml);
+        }
+        // Objetos, anotações, eventos e rotas (com arquivos) do projeto de mapa são copiados
+        if (source.tipo === 'mapa') {
+            await projectMapService.copiarProjeto(source.id, newId, userEmail);
         }
 
         if (copySchedules) {

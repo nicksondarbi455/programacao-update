@@ -5,6 +5,7 @@ import { NewPasswordPage } from './pages/NewPasswordPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { NocPage } from './pages/NocPage';
 import { DrawioProjectPage } from './pages/DrawioProjectPage';
+import { ProjectMapPage } from './pages/ProjectMapPage';
 import { UsersPage } from './pages/UsersPage';
 import { TrashPage } from './pages/TrashPage';
 import { MapPage } from './pages/MapPage';
@@ -201,6 +202,17 @@ export default function App() {
                     onBackToDashboard={closeProject}
                     onProjectUpdated={(p) => setCurrentProject(p)}
                 />
+            ) : currentProject.tipo === 'mapa' ? (
+                role.hasMapAccess ? (
+                    <ProjectMapPage
+                        project={currentProject}
+                        userEmail={user.email}
+                        onBackToDashboard={closeProject}
+                        onProjectUpdated={(p) => setCurrentProject(p)}
+                    />
+                ) : (
+                    <PlaceholderPage title="Mapa do projeto" description="Acesso restrito. Peça ao administrador para liberar o acesso ao mapa." />
+                )
             ) : (
                 <NocPage
                     project={currentProject}
