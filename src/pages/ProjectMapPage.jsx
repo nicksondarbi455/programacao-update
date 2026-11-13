@@ -4,7 +4,9 @@ import { mapService } from '../services/mapService';
 import { projectMapService } from '../services/projectMapService';
 import { supabaseService } from '../services/supabaseService';
 import { ProjectSettingsModal } from '../components/organisms/ProjectSettingsModal';
-import { ProjectMapCalendar, dataLocal } from '../components/organisms/ProjectMapCalendar';
+import { CalendarWidget } from '../components/organisms/CalendarWidget';
+import { Modals } from '../components/organisms/Modals';
+import { localDateStr } from '../utils/dates';
 import { ProjectIconPicker } from '../components/molecules/ProjectIconPicker';
 import { Button } from '../components/atoms/Button';
 import { Checkbox } from '../components/atoms/Checkbox';
@@ -18,8 +20,7 @@ const ABAS = [
     { id: 'objetos', label: 'Objetos' },
     { id: 'anotacoes', label: 'Anotações' },
     { id: 'rotas', label: 'Rotas' },
-    { id: 'viabilidade', label: 'Viabilidade' },
-    { id: 'eventos', label: 'Eventos' }
+    { id: 'viabilidade', label: 'Viabilidade' }
 ];
 
 const inputStyle = { width: '100%', boxSizing: 'border-box', padding: '7px 8px', background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', borderRadius: '4px', fontSize: '0.8rem', color: 'var(--th-text)', fontFamily: 'inherit' };
@@ -42,15 +43,10 @@ function lerCoordenadas(texto) {
 
 const textoCoordenadas = (lat, lng) => `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
-function formatarData(iso) {
-    const [ano, mes, dia] = iso.split('-');
-    return `${dia}/${mes}/${ano}`;
-}
-
 const iconeDoObjeto = (o) => o.icone || ICONE_TIPO[o.tipo] || ICONE_TIPO.OUTRO;
 const corDoObjeto = (o) => CORES_TIPO[o.tipo] || CORES_TIPO.OUTRO;
 
-// Projeto do tipo "mapa": objetos, rotas KMZ, anotações e eventos próprios do projeto.
+// Projeto do tipo "mapa": objetos, rotas KMZ, anotações e agenda próprias do projeto.
 // Usa o Leaflet e as mesmas funções de leitura de KMZ e de viabilidade do mapa oficial,
 // mas não lê nem altera nenhuma tabela ou arquivo do mapa oficial.
 export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjectUpdated }) {
@@ -72,7 +68,6 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
     const [objetos, setObjetos] = useState([]);
     const [anotacoes, setAnotacoes] = useState([]);
     const [rotas, setRotas] = useState([]);
-    const [eventos, setEventos] = useState([]);
     const [oficiais, setOficiais] = useState([]);
     // Rotas do mapa real (somente leitura) e as camadas já lidas dos arquivos KMZ
     const [oficialRotas, setOficialRotas] = useState([]);
@@ -92,8 +87,10 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
     const [rotaForm, setRotaForm] = useState({ nome: '', descricao: '', origemId: '', destinoId: '', file: null });
     const [fileKey, setFileKey] = useState(0);
 
-    const [diaSel, setDiaSel] = useState(dataLocal(new Date()));
-    const [eventoForm, setEventoForm] = useState({ titulo: '', descricao: '' });
+    // Agenda do projeto: a mesma tabela (schedules) e os mesmos componentes das tabelas
+    const [schedules, setSchedules] = useState(project.schedules || {});
+    const [calendarioAberto, setCalendarioAberto] = useState(false);
+    const [modalDia, setModalDia] = useState({ isOpen: false, dateStr: '', friendlyDate: '', items: [], equipments: [] });
 
     const [viab, setViab] = useState({ origemTipo: 'coords', coords: '', origemObjetoId: '', destinoKey: '' });
     const [resultado, setResultado] = useState(null);
@@ -103,7 +100,6 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
         setObjetos(dados.objetos);
         setAnotacoes(dados.anotacoes);
         setRotas(dados.rotas);
-        setEventos(dados.eventos);
     };
 
     const recarregar = async () => {
@@ -481,22 +477,6 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
         await executar(() => projectMapService.excluirRota(rota));
     };
 
-    // --- Eventos ---
-    const eventosDoDia = eventos.filter((e) => e.data === diaSel);
-
-    const salvarEvento = async () => {
-        if (!eventoForm.titulo.trim()) {
-            setErro('Informe o título do evento.');
-            return;
-        }
-        const ok = await executar(() => projectMapService.salvarEvento(project.id, {
-            titulo: eventoForm.titulo.trim(),
-            descricao: eventoForm.descricao.trim(),
-            data: diaSel
-        }, userEmail));
-        if (ok) setEventoForm({ titulo: '', descricao: '' });
-    };
-
     // --- Viabilidade ---
     const destinoPorChave = (chave) => {
         if (chave.startsWith('obj:')) {
@@ -556,6 +536,74 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
         }
     };
 
+    // --- Calendário: mesma agenda das tabelas (grava em schedules) ---
+    const gravarDia = async (dateStr, items) => {
+        const proximo = { ...schedules };
+        if (items.length === 0) delete proximo[dateStr];
+        else proximo[dateStr] = items;
+        setSchedules(proximo);
+        setModalDia((prev) => ({ ...prev, items }));
+        try {
+            await supabaseService.saveSchedule(project.id, dateStr, items);
+        } catch (e) {
+            setErro(e.message || 'Não foi possível guardar o agendamento.');
+        }
+    };
+
+    const abrirDia = (dateStr, friendlyDate) => {
+        setModalDia({ isOpen: true, dateStr, friendlyDate, items: schedules[dateStr] || [], equipments: [] });
+    };
+
+    const fecharDia = () => {
+        setModalDia({ isOpen: false, dateStr: '', friendlyDate: '', items: [], equipments: [] });
+    };
+
+    const agendarEvento = async (titulo, hora = '') => {
+        const dateStr = modalDia.dateStr;
+        const atual = schedules[dateStr] || [];
+        if (atual.some((i) => i.text === titulo)) return alert('Este evento já está agendado para este dia!');
+        await gravarDia(dateStr, [...atual, { text: titulo, completed: false, statusText: 'Agendado', ...(hora ? { hora } : {}) }]);
+    };
+
+    const alternarConcluido = async (dateStr, idx) => {
+        const proximo = (schedules[dateStr] || []).map((item, i) => {
+            if (i !== idx) return { ...item };
+            const concluido = !item.completed;
+            return {
+                ...item,
+                completed: concluido,
+                completedAt: concluido ? new Date().toISOString() : undefined,
+                statusText: concluido ? '✔ Realizado com Sucesso' : '⏳ Pendente / Agendado'
+            };
+        });
+        await gravarDia(dateStr, proximo);
+    };
+
+    const removerEvento = async (dateStr, idx) => {
+        await gravarDia(dateStr, (schedules[dateStr] || []).filter((_, i) => i !== idx));
+    };
+
+    // Selos do calendário: itens pendentes desta semana e de amanhã
+    const hoje = new Date();
+    const amanha = new Date(hoje);
+    amanha.setDate(hoje.getDate() + 1);
+    const amanhaStr = localDateStr(amanha);
+    const inicioSemana = new Date(hoje);
+    inicioSemana.setDate(hoje.getDate() - hoje.getDay());
+    inicioSemana.setHours(0, 0, 0, 0);
+    const fimSemana = new Date(inicioSemana);
+    fimSemana.setDate(inicioSemana.getDate() + 6);
+    fimSemana.setHours(23, 59, 59, 999);
+    let weekCount = 0;
+    let tomorrowCount = 0;
+    Object.entries(schedules).forEach(([dateStr, items]) => {
+        const [a, m, d] = dateStr.split('-').map(Number);
+        const data = new Date(a, m - 1, d);
+        const pendentes = (items || []).filter((i) => !i.completed).length;
+        if (data >= inicioSemana && data <= fimSemana) weekCount += pendentes;
+        if (dateStr === amanhaStr) tomorrowCount += pendentes;
+    });
+
     const handleSaveSettings = async (campos) => {
         await supabaseService.updateProject(project.id, campos);
         setSettingsOpen(false);
@@ -611,6 +659,29 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
                     <Button variant="secondary" size="sm" onClick={onBackToDashboard}>Voltar</Button>
                 </div>
             </div>
+
+            <CalendarWidget
+                isOpen={calendarioAberto}
+                onToggle={() => setCalendarioAberto((v) => !v)}
+                schedules={schedules}
+                equipments={[]}
+                onOpenModal={abrirDia}
+                onToggleComplete={alternarConcluido}
+                weekCount={weekCount}
+                tomorrowCount={tomorrowCount}
+                projectType="pontual"
+            />
+
+            <Modals
+                modalData={modalDia}
+                onCloseModal={fecharDia}
+                onSaveEvent={agendarEvento}
+                onDeleteSchedule={removerEvento}
+                onToggleCompleteSchedule={alternarConcluido}
+                colModalOpen={false}
+                columnConfig={[]}
+                textoLivre
+            />
 
             {erro && (
                 <div role="alert" style={{ background: '#fef2f2', color: '#b91c1c', borderBottom: '1px solid #fecaca', padding: '6px 15px', fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -905,48 +976,6 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
                         </section>
                     )}
 
-                    {aba === 'eventos' && (
-                        <section style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <h3 style={titleStyle}>Calendário de eventos</h3>
-                            <ProjectMapCalendar
-                                eventos={eventos}
-                                diaSelecionado={diaSel}
-                                onSelecionarDia={setDiaSel}
-                            />
-
-                            <h4 style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--th-text)' }}>Eventos em {formatarData(diaSel)}</h4>
-                            {eventosDoDia.length === 0 && <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--th-muted)' }}>Nenhum evento neste dia.</p>}
-                            {eventosDoDia.map((ev) => (
-                                <div key={ev.id} style={{ ...itemStyle, cursor: 'default', alignItems: 'flex-start' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={ev.concluido}
-                                        disabled={!podeEditar || salvando}
-                                        onChange={() => executar(() => projectMapService.marcarEvento(ev.id, !ev.concluido))}
-                                        style={{ marginTop: '2px' }}
-                                    />
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontWeight: 600, textDecoration: ev.concluido ? 'line-through' : 'none' }}>{ev.titulo}</div>
-                                        {ev.descricao && <div style={{ fontSize: '0.72rem', color: 'var(--th-muted)' }}>{ev.descricao}</div>}
-                                    </div>
-                                    {podeEditar && (
-                                        <button type="button" title="Excluir evento" onClick={() => executar(() => projectMapService.excluirEvento(ev.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626' }}>
-                                            <i className="fa-solid fa-trash"></i>
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
-
-                            {podeEditar && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--th-border)', paddingTop: '10px' }}>
-                                    <label style={labelStyle}>Novo evento em {formatarData(diaSel)}</label>
-                                    <input type="text" placeholder="Título" value={eventoForm.titulo} onChange={(e) => setEventoForm({ ...eventoForm, titulo: e.target.value })} style={inputStyle} />
-                                    <input type="text" placeholder="Descrição (opcional)" value={eventoForm.descricao} onChange={(e) => setEventoForm({ ...eventoForm, descricao: e.target.value })} style={inputStyle} />
-                                    <Button variant="primary" onClick={salvarEvento} disabled={salvando}>Adicionar evento</Button>
-                                </div>
-                            )}
-                        </section>
-                    )}
                 </aside>
 
                 <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>

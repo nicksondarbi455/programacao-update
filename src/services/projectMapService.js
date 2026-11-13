@@ -19,21 +19,18 @@ const nomeSeguro = (nome) => nome
 
 export const projectMapService = {
     async carregar(projectId) {
-        const [objetos, anotacoes, rotas, eventos] = await Promise.all([
+        const [objetos, anotacoes, rotas] = await Promise.all([
             supabase.from('project_map_objects').select('*').eq('project_id', projectId).order('nome'),
             supabase.from('project_map_notes').select('*').eq('project_id', projectId),
-            supabase.from('project_map_routes').select('*').eq('project_id', projectId).order('nome'),
-            supabase.from('project_map_events').select('*').eq('project_id', projectId).order('data')
+            supabase.from('project_map_routes').select('*').eq('project_id', projectId).order('nome')
         ]);
         check('Erro ao carregar objetos', objetos);
         check('Erro ao carregar anotações', anotacoes);
         check('Erro ao carregar rotas', rotas);
-        check('Erro ao carregar eventos', eventos);
         return {
             objetos: objetos.data || [],
             anotacoes: anotacoes.data || [],
-            rotas: rotas.data || [],
-            eventos: eventos.data || []
+            rotas: rotas.data || []
         };
     },
 
@@ -81,28 +78,6 @@ export const projectMapService = {
         check('Erro ao excluir anotação', await supabase.from('project_map_notes').delete().eq('id', id));
     },
 
-    // --- Eventos (calendário) ---
-    async salvarEvento(projectId, dados, userEmail) {
-        const campos = { titulo: dados.titulo, descricao: dados.descricao || '', data: dados.data };
-        if (dados.id) {
-            check('Erro ao salvar evento', await supabase.from('project_map_events').update(campos).eq('id', dados.id));
-            return dados.id;
-        }
-        const id = novoId('evt');
-        check('Erro ao criar evento', await supabase.from('project_map_events').insert({
-            id, project_id: projectId, ...campos, concluido: false, criado_por: userEmail.toLowerCase()
-        }));
-        return id;
-    },
-
-    async marcarEvento(id, concluido) {
-        check('Erro ao atualizar evento', await supabase.from('project_map_events').update({ concluido }).eq('id', id));
-    },
-
-    async excluirEvento(id) {
-        check('Erro ao excluir evento', await supabase.from('project_map_events').delete().eq('id', id));
-    },
-
     // --- Rotas (KMZ/KML) ---
     async salvarRota(projectId, { nome, descricao, origemId, destinoId, file }, userEmail) {
         const id = novoId('rota');
@@ -141,7 +116,8 @@ export const projectMapService = {
         return data;
     },
 
-    // Copia objetos, anotações, eventos e rotas (com os arquivos) para outro projeto do mesmo tipo
+    // Copia objetos, anotações e rotas (com os arquivos) para outro projeto do mesmo tipo.
+    // A agenda é copiada pela duplicação normal de projetos (tabela schedules).
     async copiarProjeto(origemId, destinoId, userEmail) {
         const dados = await projectMapService.carregar(origemId);
         const email = userEmail.toLowerCase();
@@ -161,13 +137,6 @@ export const projectMapService = {
             id: novoId('nota'), project_id: destinoId, lat: n.lat, lng: n.lng, texto: n.texto, cor: n.cor, criado_por: email
         }));
         if (anotacoes.length) check('Erro ao copiar anotações', await supabase.from('project_map_notes').insert(anotacoes));
-
-        // Eventos voltam como pendentes na cópia
-        const eventos = dados.eventos.map((e) => ({
-            id: novoId('evt'), project_id: destinoId, titulo: e.titulo, descricao: e.descricao, data: e.data,
-            concluido: false, criado_por: email
-        }));
-        if (eventos.length) check('Erro ao copiar eventos', await supabase.from('project_map_events').insert(eventos));
 
         for (const rota of dados.rotas) {
             const arquivo = await projectMapService.baixarArquivoRota(rota.arquivo_path);

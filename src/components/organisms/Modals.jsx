@@ -14,7 +14,9 @@ export function Modals({
     onCloseCol, 
     columnConfig,
     scheduledLabels = new Set(),
-    projectType = 'pontual'
+    projectType = 'pontual',
+    // Mapas de projeto: o evento é digitado, sem escolher uma linha da tabela
+    textoLivre = false
 }) {
     const [selectedItem, setSelectedItem] = useState('');
     const [customColName, setCustomColName] = useState('');
@@ -26,6 +28,7 @@ export function Modals({
     const [confirmItem, setConfirmItem] = useState(null);
     // Horário opcional do evento agendado (usado nos lembretes do dashboard)
     const [hora, setHora] = useState('');
+    const [tituloLivre, setTituloLivre] = useState('');
 
     if (!modalData?.isOpen && !colModalOpen) return null;
 
@@ -36,6 +39,15 @@ export function Modals({
         setSelectedItem('');
         setHora('');
         setEventSearch('');
+    };
+
+    const handleAddLivreSubmit = (e) => {
+        e.preventDefault();
+        const titulo = tituloLivre.trim();
+        if (!titulo) return alert('Digite o título do evento!');
+        onSaveEvent(titulo, hora);
+        setTituloLivre('');
+        setHora('');
     };
 
     const handleAddColSubmit = (e) => {
@@ -146,6 +158,32 @@ export function Modals({
                         </div>
 
                         {/* Pesquisa e seleção exclusiva de Eventos Únicos */}
+                        {textoLivre ? (
+                        <form onSubmit={handleAddLivreSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid var(--th-border)', paddingTop: '12px' }}>
+                            <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--th-text-4)' }}>Novo evento neste dia:</label>
+                            <input
+                                type="text"
+                                value={tituloLivre}
+                                placeholder="Ex: Visita preventiva ao CPD"
+                                autoComplete="off"
+                                onChange={(e) => setTituloLivre(e.target.value)}
+                                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--th-border-strong)', fontSize: '0.85rem', boxSizing: 'border-box', background: 'var(--th-surface-2)', color: 'var(--th-text)' }}
+                            />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--th-text-4)' }}>Horário (opcional):</label>
+                                <input
+                                    type="time"
+                                    value={hora}
+                                    onChange={(e) => setHora(e.target.value)}
+                                    style={{ padding: '5px 8px', border: '1px solid var(--th-border-strong)', borderRadius: '6px', fontSize: '0.8rem' }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '5px' }}>
+                                <Button variant="secondary" className="btn-modal" onClick={closeDayModal}>Fechar</Button>
+                                <button type="submit" className="btn-agendar">Agendar evento</button>
+                            </div>
+                        </form>
+                        ) : (
                         <form onSubmit={handleAddEventSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid var(--th-border)', paddingTop: '12px' }}>
                             <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--th-text-4)' }}>
                                 Pesquisar evento único para agendar:
@@ -224,6 +262,7 @@ export function Modals({
                                 </button>
                             </div>
                         </form>
+                        )}
 
                     </div>
                 </div>

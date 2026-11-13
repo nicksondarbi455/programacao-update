@@ -27,7 +27,7 @@ const ICONES_POR_TIPO = { drawio: 'fa-solid fa-diagram-project', mapa: 'fa-solid
 const CORES_CARD_TIPO = {
     tabela: { fundo: '#16a34a', borda: '#15803d' },
     drawio: { fundo: '#ea580c', borda: '#c2410c' },
-    mapa: { fundo: '#2563eb', borda: '#1d4ed8' }
+    mapa: { fundo: '#16a34a', borda: '#15803d' }
 };
 
 // As cores de texto do tema passam a valer só dentro do cartão, para o texto ficar branco sobre a cor
@@ -392,7 +392,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                 name: name.trim(),
                 description: description.trim(),
                 tipo,
-                hasCalendar: !semTabela && hasCalendar,
+                hasCalendar: tipo === 'mapa' || (!semTabela && hasCalendar),
                 isPrivate,
                 showProgress: !semTabela && projectType === 'pontual' && showProgress,
                 projectType: semTabela ? 'pontual' : projectType,
