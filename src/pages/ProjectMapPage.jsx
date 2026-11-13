@@ -7,6 +7,7 @@ import { ProjectSettingsModal } from '../components/organisms/ProjectSettingsMod
 import { ProjectMapCalendar, dataLocal } from '../components/organisms/ProjectMapCalendar';
 import { ProjectIconPicker } from '../components/molecules/ProjectIconPicker';
 import { Button } from '../components/atoms/Button';
+import { Checkbox } from '../components/atoms/Checkbox';
 
 const TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}';
 const CORES_TIPO = { CPD: '#2563eb', COLO: '#16a34a', OUTRO: '#64748b' };
@@ -29,6 +30,17 @@ const itemStyle = { display: 'flex', alignItems: 'center', gap: '8px', fontSize:
 function escapar(texto) {
     return String(texto ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+
+// Lê "latitude, longitude" (ex.: -3.8914, -38.4483), como o Google Maps copia
+function lerCoordenadas(texto) {
+    const partes = String(texto || '').trim().split(/[,;\s]+/).filter(Boolean).map(Number);
+    if (partes.length !== 2 || partes.some((n) => Number.isNaN(n))) return null;
+    const [lat, lng] = partes;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+    return { lat, lng };
+}
+
+const textoCoordenadas = (lat, lng) => `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
 function formatarData(iso) {
     const [ano, mes, dia] = iso.split('-');
@@ -62,6 +74,10 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
     const [rotas, setRotas] = useState([]);
     const [eventos, setEventos] = useState([]);
     const [oficiais, setOficiais] = useState([]);
+    // Rotas do mapa real (somente leitura) e as camadas já lidas dos arquivos KMZ
+    const [oficialRotas, setOficialRotas] = useState([]);
+    const [camadasRotasOficiais, setCamadasRotasOficiais] = useState([]);
+    const [mostrarOficial, setMostrarOficial] = useState(true);
 
     const [aba, setAba] = useState('objetos');
     // Modo de posicionamento no mapa: null | 'objeto' | 'anotacao'
@@ -69,6 +85,9 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
     modoRef.current = modo;
     // Item sendo criado ou editado no painel: { kind: 'objeto' | 'anotacao', id?, lat, lng, ... }
     const [rascunho, setRascunho] = useState(null);
+    // Texto colado com as coordenadas, antes de criar o item
+    const [colarObjeto, setColarObjeto] = useState('');
+    const [colarAnotacao, setColarAnotacao] = useState('');
 
     const [rotaForm, setRotaForm] = useState({ nome: '', descricao: '', origemId: '', destinoId: '', file: null });
     const [fileKey, setFileKey] = useState(0);
@@ -96,13 +115,16 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
         let ativo = true;
         (async () => {
             try {
-                const [dados, dcs] = await Promise.all([
+                // Só leitura no mapa real: listDatacenters e listRoutes não alteram nada
+                const [dados, dcs, rotasOf] = await Promise.all([
                     projectMapService.carregar(project.id),
-                    mapService.listDatacenters()
+                    mapService.listDatacenters(),
+                    mapService.listRoutes()
                 ]);
                 if (!ativo) return;
                 aplicar(dados);
                 setOficiais(dcs);
+                setOficialRotas(rotasOf);
             } catch (e) {
                 if (ativo) setErro(e.message || 'Não foi possível carregar o mapa do projeto.');
             } finally {
@@ -124,11 +146,15 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
                 if (cancelado) return;
                 mapa = L.map(containerRef.current).setView([-3.89, -38.46], 10);
                 L.tileLayer(TILE_URL, { attribution: 'Tiles &copy; Esri', maxZoom: 16 }).addTo(mapa);
+                // Ordem de baixo para cima: rede oficial primeiro, depois o que é do projeto
                 camadasRef.current = {
+                    oficialRotas: L.layerGroup().addTo(mapa),
                     rotas: L.layerGroup().addTo(mapa),
+                    oficialCpds: L.layerGroup().addTo(mapa),
                     objetos: L.layerGroup().addTo(mapa),
                     anotacoes: L.layerGroup().addTo(mapa),
-                    viab: L.layerGroup().addTo(mapa)
+                    viab: L.layerGroup().addTo(mapa),
+                    rascunho: L.layerGroup().addTo(mapa)
                 };
                 mapa.on('click', (e) => aoClicarRef.current?.(e.latlng));
                 mapRef.current = mapa;
@@ -152,10 +178,10 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
         if (!m || !podeRef.current) return;
         if (m === 'objeto') {
             setAba('objetos');
-            setRascunho({ kind: 'objeto', lat, lng, nome: '', categoria: 'CPD', icone: null, descricao: '' });
+            setRascunho({ kind: 'objeto', lat, lng, coordTexto: textoCoordenadas(lat, lng), nome: '', categoria: 'CPD', icone: null, descricao: '' });
         } else {
             setAba('anotacoes');
-            setRascunho({ kind: 'anotacao', lat, lng, texto: '', cor: CORES_ANOTACAO[0] });
+            setRascunho({ kind: 'anotacao', lat, lng, coordTexto: textoCoordenadas(lat, lng), texto: '', cor: CORES_ANOTACAO[0] });
         }
         setModo(null);
     };
@@ -168,16 +194,80 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
     const editarObjeto = (o) => {
         setAba('objetos');
         setModo(null);
-        setRascunho({ kind: 'objeto', id: o.id, lat: o.lat, lng: o.lng, nome: o.nome, categoria: o.tipo, icone: o.icone, descricao: o.descricao || '' });
+        setRascunho({ kind: 'objeto', id: o.id, lat: o.lat, lng: o.lng, coordTexto: textoCoordenadas(o.lat, o.lng), nome: o.nome, categoria: o.tipo, icone: o.icone, descricao: o.descricao || '' });
         focar(o.lat, o.lng);
     };
 
     const editarAnotacao = (n) => {
         setAba('anotacoes');
         setModo(null);
-        setRascunho({ kind: 'anotacao', id: n.id, lat: n.lat, lng: n.lng, texto: n.texto, cor: n.cor });
+        setRascunho({ kind: 'anotacao', id: n.id, lat: n.lat, lng: n.lng, coordTexto: textoCoordenadas(n.lat, n.lng), texto: n.texto, cor: n.cor });
         focar(n.lat, n.lng);
     };
+
+    // Rede oficial (somente leitura): CPDs e COLOs do mapa real
+    useEffect(() => {
+        const L = window.L;
+        const grupo = camadasRef.current.oficialCpds;
+        if (!pronto || !L || !grupo) return;
+        grupo.clearLayers();
+        if (!mostrarOficial) return;
+        oficiais.forEach((d) => {
+            const cor = CORES_TIPO[d.tipo] || CORES_TIPO.OUTRO;
+            L.marker([d.lat, d.lng], {
+                icon: L.divIcon({
+                    className: '',
+                    html: `<i class="fa-solid fa-server" style="color:${cor};font-size:18px;line-height:18px;text-shadow:0 0 3px #fff,0 0 3px #fff;"></i>`,
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
+                })
+            })
+                .bindTooltip(escapar(d.nome), { permanent: true, direction: 'right', offset: [10, 0], className: 'cpd-tooltip' })
+                .bindPopup(`<b>${escapar(d.nome)}</b><br><span style="font-size:11px">${escapar(d.tipo)} · rede oficial (somente leitura)</span>`)
+                .addTo(grupo);
+        });
+    }, [oficiais, mostrarOficial, pronto]);
+
+    // Lê os KMZ da rede oficial uma vez. Só download: nada é gravado no mapa real.
+    useEffect(() => {
+        if (!pronto) return;
+        let cancelado = false;
+        (async () => {
+            const camadas = [];
+            for (const r of oficialRotas) {
+                if (cancelado) return;
+                try {
+                    const arquivo = await mapService.downloadRouteFile(r.arquivo_path);
+                    const camada = await parseRouteFile(arquivo, r.nome_arquivo);
+                    if (camada.setStyle) camada.setStyle({ color: '#7c3aed', weight: 2, opacity: 0.85 });
+                    const cabos = (r.cabos || []).map((c) =>
+                        `<div style="display:flex;align-items:center;gap:5px;font-size:12px;margin-bottom:3px;">` +
+                        `<span style="width:10px;height:10px;border-radius:50%;background:${escapar(c.cor)}"></span>${escapar(c.nome)}</div>`
+                    ).join('') || '<i style="font-size:11px;color:#888">Nenhum cabo cadastrado.</i>';
+                    camada.bindPopup(
+                        `<b>${escapar(r.origem)} ↔ ${escapar(r.destino)}</b><br>` +
+                        `<span style="font-size:11px">${escapar(r.descricao)}</span><hr style="margin:5px 0">${cabos}` +
+                        `<div style="font-size:10px;color:#888;margin-top:4px">Rede oficial (somente leitura)</div>`
+                    );
+                    camadas.push(camada);
+                } catch (err) {
+                    console.warn('Rota oficial não carregada:', r.id, err.message);
+                }
+            }
+            if (!cancelado) setCamadasRotasOficiais(camadas);
+        })();
+        return () => {
+            cancelado = true;
+        };
+    }, [oficialRotas, pronto]);
+
+    // Mostra ou esconde as rotas oficiais sem baixar os arquivos de novo
+    useEffect(() => {
+        const grupo = camadasRef.current.oficialRotas;
+        if (!pronto || !grupo) return;
+        grupo.clearLayers();
+        if (mostrarOficial) camadasRotasOficiais.forEach((c) => c.addTo(grupo));
+    }, [camadasRotasOficiais, mostrarOficial, pronto]);
 
     // Desenha os objetos do projeto
     useEffect(() => {
@@ -221,6 +311,18 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
         });
     }, [anotacoes, pronto]);
 
+    // Marca no mapa o ponto do item em criação/edição, até salvar ou cancelar
+    useEffect(() => {
+        const L = window.L;
+        const grupo = camadasRef.current.rascunho;
+        if (!pronto || !L || !grupo) return;
+        grupo.clearLayers();
+        const c = rascunho ? lerCoordenadas(rascunho.coordTexto) : null;
+        if (c) {
+            L.circleMarker([c.lat, c.lng], { radius: 9, color: '#2563eb', weight: 3, fillColor: '#2563eb', fillOpacity: 0.25 }).addTo(grupo);
+        }
+    }, [rascunho, pronto]);
+
     // Desenha as rotas KMZ/KML do projeto (lidas uma vez por carregamento da lista)
     useEffect(() => {
         const L = window.L;
@@ -234,7 +336,7 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
                 try {
                     const arquivo = await projectMapService.baixarArquivoRota(r.arquivo_path);
                     const camada = await parseRouteFile(arquivo, r.nome_arquivo);
-                    if (camada.setStyle) camada.setStyle({ color: '#7c3aed', weight: 3, opacity: 0.85 });
+                    if (camada.setStyle) camada.setStyle({ color: '#0d9488', weight: 3, opacity: 0.85 });
                     camada.bindPopup(`<b>${escapar(r.nome)}</b><br><span style="font-size:11px">${escapar(r.descricao)}</span>`);
                     if (!cancelado) camada.addTo(grupo);
                 } catch (err) {
@@ -267,19 +369,53 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
         setModo((atual) => (atual === novo ? null : novo));
     };
 
+    // Cria o item já na posição das coordenadas coladas, sem precisar clicar no mapa
+    const criarObjetoPelasCoordenadas = () => {
+        const c = lerCoordenadas(colarObjeto);
+        if (!c) {
+            setErro('Coordenadas inválidas. Use: latitude, longitude (ex: -3.8914, -38.4483).');
+            return;
+        }
+        setErro('');
+        setModo(null);
+        setAba('objetos');
+        setRascunho({ kind: 'objeto', lat: c.lat, lng: c.lng, coordTexto: textoCoordenadas(c.lat, c.lng), nome: '', categoria: 'CPD', icone: null, descricao: '' });
+        setColarObjeto('');
+        focar(c.lat, c.lng);
+    };
+
+    const criarAnotacaoPelasCoordenadas = () => {
+        const c = lerCoordenadas(colarAnotacao);
+        if (!c) {
+            setErro('Coordenadas inválidas. Use: latitude, longitude (ex: -3.8914, -38.4483).');
+            return;
+        }
+        setErro('');
+        setModo(null);
+        setAba('anotacoes');
+        setRascunho({ kind: 'anotacao', lat: c.lat, lng: c.lng, coordTexto: textoCoordenadas(c.lat, c.lng), texto: '', cor: CORES_ANOTACAO[0] });
+        setColarAnotacao('');
+        focar(c.lat, c.lng);
+    };
+
     // --- Objetos ---
     const salvarObjeto = async () => {
         const r = rascunho;
+        const coord = lerCoordenadas(r.coordTexto);
         if (!r.nome.trim()) {
             setErro('Informe o nome do objeto.');
+            return;
+        }
+        if (!coord) {
+            setErro('Coordenadas inválidas. Use: latitude, longitude (ex: -3.8914, -38.4483).');
             return;
         }
         const ok = await executar(() => projectMapService.salvarObjeto(project.id, {
             id: r.id,
             nome: r.nome.trim(),
             tipo: r.categoria,
-            lat: r.lat,
-            lng: r.lng,
+            lat: coord.lat,
+            lng: coord.lng,
             icone: r.icone,
             descricao: r.descricao.trim()
         }, userEmail));
@@ -295,12 +431,17 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
     // --- Anotações ---
     const salvarAnotacao = async () => {
         const r = rascunho;
+        const coord = lerCoordenadas(r.coordTexto);
         if (!r.texto.trim()) {
             setErro('Escreva o texto da anotação.');
             return;
         }
+        if (!coord) {
+            setErro('Coordenadas inválidas. Use: latitude, longitude (ex: -3.8914, -38.4483).');
+            return;
+        }
         const ok = await executar(() => projectMapService.salvarAnotacao(project.id, {
-            id: r.id, texto: r.texto.trim(), cor: r.cor, lat: r.lat, lng: r.lng
+            id: r.id, texto: r.texto.trim(), cor: r.cor, lat: coord.lat, lng: coord.lng
         }, userEmail));
         if (ok) setRascunho(null);
     };
@@ -484,6 +625,21 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
                         <span style={{ fontSize: '0.72rem', color: 'var(--th-muted)' }}>Somente leitura: você pode ver, mas não alterar.</span>
                     )}
 
+                    <section style={{ display: 'flex', flexDirection: 'column', gap: '6px', border: '1px solid var(--th-border)', borderRadius: '6px', padding: '8px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--th-text)', cursor: 'pointer' }}>
+                            <Checkbox checked={mostrarOficial} onChange={(e) => setMostrarOficial(e.target.checked)} />
+                            Mostrar rede oficial
+                        </label>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--th-muted)' }}>
+                            {oficiais.length} pontos e {oficialRotas.length} rotas do mapa real, somente leitura.
+                        </span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '0.7rem', color: 'var(--th-muted)' }}>
+                            <span><i className="fa-solid fa-server" style={{ color: CORES_TIPO.CPD }}></i> CPD oficial</span>
+                            <span><span style={{ color: '#7c3aed' }}>━</span> Rota oficial</span>
+                            <span><span style={{ color: '#0d9488' }}>━</span> Rota do projeto</span>
+                        </div>
+                    </section>
+
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                         {ABAS.map((a) => botaoAba(a.id, a.label))}
                     </div>
@@ -500,6 +656,16 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
                             )}
                             {modo === 'objeto' && (
                                 <p style={{ margin: 0, fontSize: '0.75rem', color: '#2563eb' }}>Clique no mapa onde o objeto deve ficar.</p>
+                            )}
+
+                            {podeEditar && !rascunhoObjeto && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <label style={labelStyle}>Ou cole as coordenadas (lat, lng)</label>
+                                    <div style={{ display: 'flex', gap: '6px' }}>
+                                        <input type="text" value={colarObjeto} placeholder="-3.8914, -38.4483" onChange={(e) => setColarObjeto(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+                                        <Button variant="secondary" onClick={criarObjetoPelasCoordenadas} disabled={!colarObjeto.trim()}>Criar aqui</Button>
+                                    </div>
+                                </div>
                             )}
 
                             {rascunhoObjeto && (
@@ -523,9 +689,20 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
                                     <label style={labelStyle}>Descrição</label>
                                     <input type="text" value={rascunhoObjeto.descricao} disabled={!podeEditar} onChange={(e) => setRascunho({ ...rascunhoObjeto, descricao: e.target.value })} style={inputStyle} />
 
-                                    <span style={{ fontSize: '0.7rem', color: 'var(--th-muted)' }}>
-                                        Posição: {rascunhoObjeto.lat.toFixed(6)}, {rascunhoObjeto.lng.toFixed(6)}
-                                    </span>
+                                    <label style={labelStyle}>Coordenadas (lat, lng)</label>
+                                    <input
+                                        type="text"
+                                        value={rascunhoObjeto.coordTexto}
+                                        disabled={!podeEditar}
+                                        onChange={(e) => {
+                                            const c = lerCoordenadas(e.target.value);
+                                            setRascunho({ ...rascunhoObjeto, coordTexto: e.target.value, ...(c ? { lat: c.lat, lng: c.lng } : {}) });
+                                        }}
+                                        style={inputStyle}
+                                    />
+                                    {!lerCoordenadas(rascunhoObjeto.coordTexto) && (
+                                        <span style={{ fontSize: '0.7rem', color: '#b91c1c' }}>Coordenadas inválidas. Use: latitude, longitude.</span>
+                                    )}
 
                                     {podeEditar && (
                                         <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
@@ -564,10 +741,35 @@ export function ProjectMapPage({ project, userEmail, onBackToDashboard, onProjec
                                 <p style={{ margin: 0, fontSize: '0.75rem', color: '#2563eb' }}>Clique no mapa onde a anotação deve ficar.</p>
                             )}
 
+                            {podeEditar && !rascunhoAnotacao && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <label style={labelStyle}>Ou cole as coordenadas (lat, lng)</label>
+                                    <div style={{ display: 'flex', gap: '6px' }}>
+                                        <input type="text" value={colarAnotacao} placeholder="-3.8914, -38.4483" onChange={(e) => setColarAnotacao(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+                                        <Button variant="secondary" onClick={criarAnotacaoPelasCoordenadas} disabled={!colarAnotacao.trim()}>Criar aqui</Button>
+                                    </div>
+                                </div>
+                            )}
+
                             {rascunhoAnotacao && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', border: '1px solid var(--th-border-strong)', borderRadius: '6px', padding: '10px' }}>
                                     <label style={labelStyle}>Texto</label>
                                     <textarea value={rascunhoAnotacao.texto} disabled={!podeEditar} onChange={(e) => setRascunho({ ...rascunhoAnotacao, texto: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+
+                                    <label style={labelStyle}>Coordenadas (lat, lng)</label>
+                                    <input
+                                        type="text"
+                                        value={rascunhoAnotacao.coordTexto}
+                                        disabled={!podeEditar}
+                                        onChange={(e) => {
+                                            const c = lerCoordenadas(e.target.value);
+                                            setRascunho({ ...rascunhoAnotacao, coordTexto: e.target.value, ...(c ? { lat: c.lat, lng: c.lng } : {}) });
+                                        }}
+                                        style={inputStyle}
+                                    />
+                                    {!lerCoordenadas(rascunhoAnotacao.coordTexto) && (
+                                        <span style={{ fontSize: '0.7rem', color: '#b91c1c' }}>Coordenadas inválidas. Use: latitude, longitude.</span>
+                                    )}
 
                                     <label style={labelStyle}>Cor</label>
                                     <div style={{ display: 'flex', gap: '6px' }}>

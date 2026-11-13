@@ -22,6 +22,28 @@ import * as XLSX from 'xlsx';
 const labelStyle = { fontSize: '0.75rem', color: 'var(--th-muted)', fontWeight: 'bold' };
 // Ícone padrão por tipo de projeto (quando o projeto não escolheu um ícone)
 const ICONES_POR_TIPO = { drawio: 'fa-solid fa-diagram-project', mapa: 'fa-solid fa-map-location-dot' };
+
+// Cor sólida do cartão por tipo: tabela e mapa em verde, diagrama em laranja.
+const CORES_CARD_TIPO = {
+    tabela: { fundo: '#16a34a', borda: '#15803d' },
+    drawio: { fundo: '#ea580c', borda: '#c2410c' },
+    mapa: { fundo: '#16a34a', borda: '#15803d' }
+};
+
+// As cores de texto do tema passam a valer só dentro do cartão, para o texto ficar branco sobre a cor
+function estiloCardProjeto(proj) {
+    const cor = CORES_CARD_TIPO[proj.tipo] || CORES_CARD_TIPO.tabela;
+    return {
+        background: cor.fundo,
+        border: `2px solid ${cor.borda}`,
+        '--th-text': '#ffffff',
+        '--th-muted': 'rgba(255, 255, 255, 0.9)',
+        '--th-muted-2': 'rgba(255, 255, 255, 0.85)',
+        '--th-surface-2': 'rgba(255, 255, 255, 0.2)',
+        '--th-surface-3': 'rgba(255, 255, 255, 0.35)',
+        '--th-border': 'rgba(255, 255, 255, 0.4)'
+    };
+}
 const selectStyle = { padding: '7px', background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', borderRadius: '4px', fontSize: '0.8rem' };
 const textareaStyle = { background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', padding: '8px', borderRadius: '4px', fontSize: '0.8rem', resize: 'none', height: '50px', fontFamily: 'inherit' };
 const checkLabelStyle = { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', cursor: 'pointer', color: 'var(--th-text-3)', whiteSpace: 'nowrap' };
@@ -267,7 +289,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
     const handleChoose = (kind) => {
         setIsChooserOpen(false);
         if (kind === 'pasta') setFolderModal({ folder: null });
-        else openProjectModal(kind);
+        else openProjectModal();
     };
 
     const resetProjectForm = () => {
@@ -529,8 +551,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                 onMouseEnter={hoverIn('0 6px 16px rgba(255, 90, 205, 0.2)')}
                 onMouseLeave={hoverOut}
                 style={{
-                    background: 'linear-gradient(var(--th-surface), var(--th-surface)) padding-box, linear-gradient(45deg, #fada61 0%, #ff9188 50%, #ff5acd 100%) border-box',
-                    border: '2px solid transparent',
+                    ...estiloCardProjeto(proj),
                     padding: '20px', borderRadius: '12px', cursor: 'pointer',
                     boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
                     transition: 'transform 0.3s ease, box-shadow 0.3s ease',
@@ -558,7 +579,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', borderTop: '1px solid var(--th-surface-3)', paddingTop: '8px' }}>
                     <span style={{ fontSize: '0.65rem', color: 'var(--th-muted-2)', background: 'var(--th-surface-2)', padding: '2px 6px', borderRadius: '4px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {proj.hasCalendar ? <><i className="fa-regular fa-calendar-days"></i> Com Calendário</> : <><i className="fa-regular fa-clipboard"></i> Apenas Tabela</>}
+                        {proj.tipo === 'tabela' && (proj.hasCalendar ? <><i className="fa-regular fa-calendar-days"></i> Com Calendário</> : <><i className="fa-regular fa-clipboard"></i> Apenas Tabela</>)}
                         {isSearching && proj.folderId && folderLabel(proj.folderId) && (
                             <> · <i className="fa-regular fa-folder"></i> {folderLabel(proj.folderId)}</>
                         )}
@@ -712,13 +733,13 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
 
             {/* Escolha: pasta ou projeto */}
             {isChooserOpen && (
-                <ModalShell title="O que deseja criar?" width={640}>
+                <ModalShell title="O que deseja criar?" width={360}>
                     {currentFolder && (
                         <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--th-muted)' }}>
                             Local: <strong style={{ color: 'var(--th-text-3)' }}>{folderLabel(currentFolder.id)}</strong>
                         </p>
                     )}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                         <ChoiceCard
                             icon="fa-folder"
                             title="Pasta"
@@ -726,22 +747,10 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                             onClick={() => handleChoose('pasta')}
                         />
                         <ChoiceCard
-                            icon="fa-table"
-                            title="Tabela"
-                            description="Linhas, colunas e calendário"
-                            onClick={() => handleChoose('tabela')}
-                        />
-                        <ChoiceCard
-                            icon="fa-diagram-project"
-                            title="Diagrama"
-                            description="Desenho livre no draw.io"
-                            onClick={() => handleChoose('drawio')}
-                        />
-                        <ChoiceCard
-                            icon="fa-map-location-dot"
-                            title="Mapa"
-                            description="Objetos, rotas KMZ e eventos"
-                            onClick={() => handleChoose('mapa')}
+                            icon="fa-clipboard"
+                            title="Projeto"
+                            description="Tabela, diagrama ou mapa"
+                            onClick={() => handleChoose('projeto')}
                         />
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
@@ -752,8 +761,15 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
 
             {/* Criação de projeto */}
             {isProjectModalOpen && (
-                <ModalShell title={tipo === 'drawio' ? 'Configurar Novo Diagrama' : tipo === 'mapa' ? 'Configurar Novo Mapa' : 'Configurar Novo Projeto'}>
+                <ModalShell title="Configurar Novo Projeto">
                     <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <label style={labelStyle}>Tipo do projeto</label>
+                        <select value={tipo} onChange={(e) => setTipo(e.target.value)} style={selectStyle}>
+                            <option value="tabela">Tabela (linhas, colunas e calendário)</option>
+                            <option value="drawio">Diagrama (draw.io)</option>
+                            <option value="mapa">Mapa (objetos, rotas KMZ e eventos)</option>
+                        </select>
+
                         <label style={labelStyle}>Nome do Projeto</label>
                         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Gestão de Ativos NOC" required />
 
