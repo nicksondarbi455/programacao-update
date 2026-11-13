@@ -27,7 +27,7 @@ const ICONES_POR_TIPO = { drawio: 'fa-solid fa-diagram-project', mapa: 'fa-solid
 const CORES_CARD_TIPO = {
     tabela: { fundo: '#16a34a', borda: '#15803d' },
     drawio: { fundo: '#ea580c', borda: '#c2410c' },
-    mapa: { fundo: '#16a34a', borda: '#15803d' }
+    mapa: { fundo: '#2563eb', borda: '#1d4ed8' }
 };
 
 // As cores de texto do tema passam a valer só dentro do cartão, para o texto ficar branco sobre a cor
