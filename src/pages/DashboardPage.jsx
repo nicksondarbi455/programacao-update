@@ -20,6 +20,8 @@ import { MentionsPanel } from '../components/organisms/MentionsPanel';
 import * as XLSX from 'xlsx';
 
 const labelStyle = { fontSize: '0.75rem', color: 'var(--th-muted)', fontWeight: 'bold' };
+// Ícone padrão dos projetos do tipo diagrama (quando o projeto não escolheu um ícone)
+const ICONE_DIAGRAMA = 'fa-solid fa-diagram-project';
 const selectStyle = { padding: '7px', background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', borderRadius: '4px', fontSize: '0.8rem' };
 const textareaStyle = { background: 'var(--th-surface-2)', border: '1px solid var(--th-border-strong)', padding: '8px', borderRadius: '4px', fontSize: '0.8rem', resize: 'none', height: '50px', fontFamily: 'inherit' };
 const checkLabelStyle = { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', cursor: 'pointer', color: 'var(--th-text-3)', whiteSpace: 'nowrap' };
@@ -92,6 +94,8 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
     const [showProgress, setShowProgress] = useState(false);
     // Acompanhamento do projeto: 'pontual' (com check e linha verde) ou 'recorrente' (revisões que se repetem)
     const [projectType, setProjectType] = useState('pontual');
+    // Tipo do projeto: 'tabela' (linhas e colunas) ou 'drawio' (diagrama)
+    const [tipo, setTipo] = useState('tabela');
     // Ícone do card do projeto (null = ícone padrão) e se a grade de ícones está aberta
     const [projectIcon, setProjectIcon] = useState(null);
     const [selectedDeptIds, setSelectedDeptIds] = useState([]);
@@ -254,7 +258,8 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
     const goToLevel = (index) => setFolderPath((prev) => prev.slice(0, index + 1));
 
     // --- Criação ---
-    const openProjectModal = () => {
+    const openProjectModal = (novoTipo = 'tabela') => {
+        setTipo(novoTipo);
         setProjectFolderId(currentFolderId || '');
         setIsProjectModalOpen(true);
     };
@@ -262,7 +267,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
     const handleChoose = (kind) => {
         setIsChooserOpen(false);
         if (kind === 'pasta') setFolderModal({ folder: null });
-        else openProjectModal();
+        else openProjectModal(kind);
     };
 
     const resetProjectForm = () => {
@@ -272,6 +277,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
         setIsPrivate(false);
         setShowProgress(false);
         setProjectType('pontual');
+        setTipo('tabela');
         setProjectIcon(null);
         setSelectedDeptIds([]);
         setProjectFolderId('');
@@ -331,13 +337,15 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
         e.preventDefault();
         if (!name.trim()) return;
 
+        // Diagramas não têm tabela: nada de colunas nem linhas
+        const isDrawio = tipo === 'drawio';
         let initialColumns = [];
         let initialEquipments = [];
 
-        if (tableSource === 'exportar' && importedData.columns.length > 0) {
+        if (!isDrawio && tableSource === 'exportar' && importedData.columns.length > 0) {
             initialColumns = importedData.columns;
             initialEquipments = importedData.rows;
-        } else {
+        } else if (!isDrawio) {
             for (let i = 1; i <= parseInt(numCols); i++) {
                 initialColumns.push({
                     id: `col_${i}_${Date.now()}`,
@@ -361,10 +369,11 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
             await supabaseService.createProject({
                 name: name.trim(),
                 description: description.trim(),
-                hasCalendar,
+                tipo,
+                hasCalendar: !isDrawio && hasCalendar,
                 isPrivate,
-                showProgress: projectType === 'pontual' && showProgress,
-                projectType,
+                showProgress: !isDrawio && projectType === 'pontual' && showProgress,
+                projectType: isDrawio ? 'pontual' : projectType,
                 icon: projectIcon,
                 folderId: projectFolderId || null,
                 departmentIds: isPrivate ? [] : selectedDeptIds,
@@ -531,7 +540,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
             >
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
                     <span aria-hidden="true" style={{ width: '44px', height: '44px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.15rem', color: 'var(--th-text)', background: 'var(--th-surface-2)', border: '1px solid var(--th-border)' }}>
-                        <i className={proj.icon || DEFAULT_PROJECT_ICON}></i>
+                        <i className={proj.icon || (proj.tipo === 'drawio' ? ICONE_DIAGRAMA : DEFAULT_PROJECT_ICON)}></i>
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -703,13 +712,13 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
 
             {/* Escolha: pasta ou projeto */}
             {isChooserOpen && (
-                <ModalShell title="O que deseja criar?" width={360}>
+                <ModalShell title="O que deseja criar?" width={520}>
                     {currentFolder && (
                         <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--th-muted)' }}>
                             Local: <strong style={{ color: 'var(--th-text-3)' }}>{folderLabel(currentFolder.id)}</strong>
                         </p>
                     )}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                         <ChoiceCard
                             icon="fa-folder"
                             title="Pasta"
@@ -717,10 +726,16 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                             onClick={() => handleChoose('pasta')}
                         />
                         <ChoiceCard
-                            icon="fa-clipboard"
-                            title="Projeto"
-                            description="Tabela, linhas e calendário"
-                            onClick={() => handleChoose('projeto')}
+                            icon="fa-table"
+                            title="Tabela"
+                            description="Linhas, colunas e calendário"
+                            onClick={() => handleChoose('tabela')}
+                        />
+                        <ChoiceCard
+                            icon="fa-diagram-project"
+                            title="Diagrama"
+                            description="Desenho livre no draw.io"
+                            onClick={() => handleChoose('drawio')}
                         />
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
@@ -731,7 +746,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
 
             {/* Criação de projeto */}
             {isProjectModalOpen && (
-                <ModalShell title="Configurar Novo Projeto">
+                <ModalShell title={tipo === 'drawio' ? 'Configurar Novo Diagrama' : 'Configurar Novo Projeto'}>
                     <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         <label style={labelStyle}>Nome do Projeto</label>
                         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Gestão de Ativos NOC" required />
@@ -748,15 +763,17 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                         <ProjectIconPicker value={projectIcon} onChange={setProjectIcon} />
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', margin: '2px 0' }}>
-                            <label style={checkLabelStyle}>
-                                <span style={{ display: 'inline-flex', flexShrink: 0 }}><Checkbox checked={hasCalendar} onChange={(e) => setHasCalendar(e.target.checked)} /></span>
-                                Usar Calendário
-                            </label>
+                            {tipo === 'tabela' && (
+                                <label style={checkLabelStyle}>
+                                    <span style={{ display: 'inline-flex', flexShrink: 0 }}><Checkbox checked={hasCalendar} onChange={(e) => setHasCalendar(e.target.checked)} /></span>
+                                    Usar Calendário
+                                </label>
+                            )}
                             <label style={checkLabelStyle}>
                                 <span style={{ display: 'inline-flex', flexShrink: 0 }}><Checkbox checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} /></span>
                                 Projeto Privado
                             </label>
-                            {projectType === 'pontual' && (
+                            {tipo === 'tabela' && projectType === 'pontual' && (
                                 <label style={checkLabelStyle}>
                                     <span style={{ display: 'inline-flex', flexShrink: 0 }}><Checkbox checked={showProgress} onChange={(e) => setShowProgress(e.target.checked)} /></span>
                                     Mostrar progresso
@@ -764,11 +781,15 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                             )}
                         </div>
 
-                        <label style={labelStyle}>Acompanhamento</label>
-                        <select value={projectType} onChange={(e) => setProjectType(e.target.value)} style={selectStyle}>
-                            <option value="pontual">Pontual</option>
-                            <option value="recorrente">Recorrente</option>
-                        </select>
+                        {tipo === 'tabela' && (
+                            <>
+                                <label style={labelStyle}>Acompanhamento</label>
+                                <select value={projectType} onChange={(e) => setProjectType(e.target.value)} style={selectStyle}>
+                                    <option value="pontual">Pontual</option>
+                                    <option value="recorrente">Recorrente</option>
+                                </select>
+                            </>
+                        )}
 
                         <label style={labelStyle}>Pasta</label>
                         <select value={projectFolderId} onChange={(e) => setProjectFolderId(e.target.value)} style={selectStyle}>
@@ -789,6 +810,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                             />
                         )}
 
+                        {tipo === 'tabela' && (<>
                         <label style={labelStyle}>Origem dos Dados da Tabela</label>
                         <select value={tableSource} onChange={(e) => setTableSource(e.target.value)} style={selectStyle}>
                             <option value="manual">Criação Manual (Linhas e Colunas)</option>
@@ -817,6 +839,7 @@ export function DashboardPage({ user, onSelectProject, onLogout, focusFolderId, 
                                 )}
                             </div>
                         )}
+                        </>)}
 
                         <div style={{ textAlign: 'right', marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                             <Button variant="secondary" className="btn-modal" onClick={() => { setIsProjectModalOpen(false); resetProjectForm(); }}><span>Cancelar</span></Button>

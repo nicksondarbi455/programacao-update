@@ -26,6 +26,8 @@ export function ProjectSettingsModal({ project, onSave, onClose, onDelete }) {
     const [loadingDeps, setLoadingDeps] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    // Diagramas (tipo drawio) não têm calendário nem progresso
+    const isDrawio = project.tipo === 'drawio';
 
     useEffect(() => {
         usersService.listDepartments()
@@ -42,9 +44,9 @@ export function ProjectSettingsModal({ project, onSave, onClose, onDelete }) {
             await onSave({
                 name: name.trim(),
                 description: description.trim(),
-                showProgress,
+                // Diagramas não têm calendário nem progresso: esses campos ficam como estão
+                ...(isDrawio ? {} : { showProgress, hasCalendar }),
                 isPrivate,
-                hasCalendar,
                 icon,
                 departmentIds: isPrivate ? [] : departmentIds
             });
@@ -76,14 +78,16 @@ export function ProjectSettingsModal({ project, onSave, onClose, onDelete }) {
                 </div>
 
                 <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--th-text-3)' }}>
-                        <Checkbox checked={hasCalendar} onChange={(e) => setHasCalendar(e.target.checked)} />
-                        Usar calendário
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--th-text-3)' }}>
-                        <Checkbox checked={showProgress} onChange={(e) => setShowProgress(e.target.checked)} />
-                        Mostrar progresso
-                    </label>
+                    {!isDrawio && (<>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--th-text-3)' }}>
+                            <Checkbox checked={hasCalendar} onChange={(e) => setHasCalendar(e.target.checked)} />
+                            Usar calendário
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--th-text-3)' }}>
+                            <Checkbox checked={showProgress} onChange={(e) => setShowProgress(e.target.checked)} />
+                            Mostrar progresso
+                        </label>
+                    </>)}
                     <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', color: 'var(--th-text-3)' }}>
                         <Checkbox checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
                         Projeto Privado 🔒

@@ -81,6 +81,7 @@ export const supabaseService = {
                 showProgress: p.show_progress,
                 progress: p.progress ?? 0,
                 projectType: p.project_type,
+                tipo: p.tipo || 'tabela',
                 icon: p.icon || null,
                 ownerEmail: p.user_email,
                 folderId: p.folder_id || null,
@@ -145,6 +146,7 @@ export const supabaseService = {
             has_calendar: projectData.hasCalendar,
             is_private: projectData.isPrivate,
             project_type: projectData.projectType,
+            tipo: projectData.tipo || 'tabela',
             icon: projectData.icon || null,
             show_progress: projectData.showProgress ?? false,
             folder_id: projectData.folderId || null
@@ -241,12 +243,19 @@ export const supabaseService = {
             isPrivate: source.isPrivate,
             showProgress: source.showProgress,
             projectType: source.projectType,
+            tipo: source.tipo,
             icon: source.icon || null,
             folderId: source.folderId || null,
             departmentIds: source.departmentIds || [],
             columnConfig,
             equipments
         }, userEmail);
+
+        // O diagrama de um projeto drawio é copiado junto com o projeto
+        if (source.tipo === 'drawio') {
+            const diagrama = await supabaseService.getProjectDiagram(source.id);
+            if (diagrama?.xml) await supabaseService.saveProjectDiagram(newId, diagrama.xml);
+        }
 
         if (copySchedules) {
             for (const [dateStr, items] of Object.entries(source.schedules || {})) {
@@ -556,6 +565,27 @@ export const supabaseService = {
                 { onConflict: 'cpd_nome' }
             );
         check('Erro ao salvar diagrama', { error });
+    },
+
+    // --- DIAGRAMA DO PROJETO (projetos do tipo drawio) ---
+    async getProjectDiagram(projId) {
+        const { data, error } = await supabase
+            .from('project_diagrams')
+            .select('xml, updated_at, updated_by')
+            .eq('project_id', projId)
+            .maybeSingle();
+        check('Erro ao abrir diagrama', { error });
+        return data;
+    },
+
+    async saveProjectDiagram(projId, xml) {
+        const { data: { user } } = await supabase.auth.getUser();
+        check('Erro ao salvar diagrama', await supabase
+            .from('project_diagrams')
+            .upsert(
+                { project_id: projId, xml, updated_by: user?.email || null, updated_at: new Date().toISOString() },
+                { onConflict: 'project_id' }
+            ));
     },
 
     // Histórico não pode travar a edição: se falhar, só avisa no console
